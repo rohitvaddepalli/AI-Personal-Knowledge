@@ -4,11 +4,24 @@ from typing import List
 import json
 import zipfile
 import io
+import re
 from app.database import get_db
 from app.models.note import Note as NoteModel
 from app.schemas.note import NoteResponse
 
 router = APIRouter(prefix="/api/export", tags=["export"])
+
+def _safe_basename(title: str, default: str = "note") -> str:
+    # Prevent zip-slip and weird filesystem names when users extract exports.
+    name = (title or "").strip()
+    name = name.replace("\r", "").replace("\n", "")
+    name = name.replace("\\", "_").replace("/", "_")
+    name = re.sub(r"[<>:\"|?*]+", "_", name)
+    name = re.sub(r"\s+", "_", name).strip(" ._")
+    name = name.replace("..", ".")
+    if not name:
+        name = default
+    return name[:120]
 
 @router.get("/note/{note_id}/markdown")
 def export_note_markdown(note_id: str, db: Session = Depends(get_db)):
@@ -30,7 +43,7 @@ def export_note_markdown(note_id: str, db: Session = Depends(get_db)):
 *Exported from Second Brain on {note.created_at}*
 """
     
-    return {"filename": f"{note.title.replace(' ', '_')}.md", "content": markdown}
+    return {"filename": f"{_safe_basename(note.title)}.md", "content": markdown}
 
 @router.get("/vault/obsidian")
 def export_obsidian_vault(db: Session = Depends(get_db)):
@@ -53,7 +66,7 @@ def export_obsidian_vault(db: Session = Depends(get_db)):
 
 {note.content}
 """
-            filename = f"{note.title.replace(' ', '_').replace('/', '_')}.md"
+            filename = f"{_safe_basename(note.title)}.md"
             zip_file.writestr(filename, content)
         
         # Add basic Obsidian config
@@ -91,7 +104,7 @@ Created: {note.created_at}
 
 {note.content}
 """
-            filename = f"notes/{note.title.replace(' ', '_').replace('/', '_')}.md"
+            filename = f"notes/{_safe_basename(note.title)}.md"
             zip_file.writestr(filename, content)
     
     zip_buffer.seek(0)

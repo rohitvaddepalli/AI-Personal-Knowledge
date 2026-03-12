@@ -499,13 +499,14 @@ export default function NoteDetail() {
             <MDEditor value={editContent} onChange={val => setEditContent(val || '')} height={500} />
           </div>
         ) : (
-          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
-            <MDEditor.Markdown
-              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
-              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
-            />
-          </div>
-        )}
+	          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
+	            <MDEditor.Markdown
+	              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
+	              skipHtml={true}
+	              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
+	            />
+	          </div>
+	        )}
 
         {note.backlinks && note.backlinks.length > 0 && (
           <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
@@ -612,12 +613,12 @@ export default function NoteDetail() {
           )}
         </div>
 
-        {aiResult && (
-          <div className="card" style={{ marginTop: '0.5rem' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>AI Result</h3>
-            <MDEditor.Markdown source={aiResult} style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
-          </div>
-        )}
+	        {aiResult && (
+	          <div className="card" style={{ marginTop: '0.5rem' }}>
+	            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>AI Result</h3>
+	            <MDEditor.Markdown source={aiResult} skipHtml={true} style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
+	          </div>
+	        )}
 
         {/* Version History Panel */}
         {showVersions && (

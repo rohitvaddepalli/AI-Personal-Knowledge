@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 from app.database import Base, engine
 from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export
 from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
 from sqlalchemy import text
+from app.config import settings
+import ipaddress
+import secrets
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -80,6 +84,26 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:11434;"
         return response
 
+class AccessControlMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Protect the API surface area by default. This app is typically run locally.
+        if request.url.path.startswith("/api/"):
+            if settings.api_key:
+                provided = request.headers.get("x-api-key") or ""
+                if not secrets.compare_digest(provided, settings.api_key):
+                    return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+            elif not settings.allow_remote_clients:
+                # No API key configured: only allow loopback clients.
+                host = (request.client.host if request.client else "") or ""
+                try:
+                    ip = ipaddress.ip_address(host)
+                    if not ip.is_loopback:
+                        return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
+                except Exception:
+                    return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
+
+        return await call_next(request)
+
 app = FastAPI(
     title="Second Brain AI",
     description="AI-Powered Personal Knowledge System MVP API",
@@ -97,6 +121,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(AccessControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(notes.router)

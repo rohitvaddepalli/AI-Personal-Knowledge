@@ -116,7 +116,7 @@ export default function Review() {
           </div>
         ) : (
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            <MDEditor.Markdown source={currentNote.content} style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
+            <MDEditor.Markdown source={currentNote.content} skipHtml={true} style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
             
             <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1rem' }}>

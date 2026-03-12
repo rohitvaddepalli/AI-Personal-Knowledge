@@ -2,7 +2,8 @@ import httpx
 from bs4 import BeautifulSoup
 import re
 import ipaddress
-from urllib.parse import urlparse
+import socket
+from urllib.parse import urlparse, urljoin
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -38,23 +39,60 @@ def validate_url(url: str):
         if not hostname:
             raise ValueError("Missing hostname")
 
-        # Basic check for localhost/loopback
-        if hostname.lower() in ["localhost", "127.0.0.1", "::1"]:
+        # Block obvious localhost patterns.
+        if hostname.lower() in ["localhost"]:
             raise ValueError("Localhost access is prohibited")
 
-        # Comprehensive IP check (handles cases where hostname is an IP)
-        try:
-            ip = ipaddress.ip_address(hostname)
+        def _block_ip(ip: ipaddress._BaseAddress):
             if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_multicast:
                 raise ValueError("Internal/Private IP access is prohibited")
+            # IPv6 unique local addresses are considered private by ipaddress, so covered above.
+
+        # If hostname is an IP literal, validate directly.
+        try:
+            _block_ip(ipaddress.ip_address(hostname))
+            return
         except ValueError:
-            # Not an IP address, likely a domain name
-            # In a production environment, we should resolve the domain and check the resulting IPs
-            # but for a basic MVP fix, this stops direct IP-based SSRF.
+            # Not an IP literal; resolve DNS and validate all results to reduce DNS rebinding/SSRF risk.
             pass
+
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        try:
+            infos = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
+        except Exception:
+            # If we can't resolve safely, fail closed.
+            raise ValueError("Failed to resolve hostname")
+
+        if not infos:
+            raise ValueError("Failed to resolve hostname")
+
+        for family, _, _, _, sockaddr in infos:
+            ip_str = sockaddr[0]
+            try:
+                _block_ip(ipaddress.ip_address(ip_str))
+            except Exception:
+                raise ValueError("Hostname resolves to a blocked address")
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+async def safe_fetch_url(url: str, timeout_s: float = 10.0) -> httpx.Response:
+    # Manual redirect following so each hop is validated (avoid SSRF via redirect).
+    max_redirects = 5
+    cur = url
+    async with httpx.AsyncClient(follow_redirects=False) as client:
+        for _ in range(max_redirects + 1):
+            validate_url(cur)
+            resp = await client.get(cur, timeout=timeout_s)
+            if resp.status_code in (301, 302, 303, 307, 308):
+                loc = resp.headers.get("location")
+                if not loc:
+                    return resp
+                cur = urljoin(cur, loc)
+                continue
+            return resp
+
+    raise HTTPException(status_code=400, detail="Too many redirects")
 
 async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
     # ... (rest of the function remains the same)
@@ -85,6 +123,8 @@ async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
         sub_url = json_sub['url']
         
         async with httpx.AsyncClient() as client:
+            # Validate subtitle URL as well (defense-in-depth against unexpected redirects/URLs).
+            validate_url(sub_url)
             resp = await client.get(sub_url, timeout=10.0)
             if resp.status_code != 200:
                 return ""
@@ -167,9 +207,8 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
                 content_clipped = f"**Source:** {req.url}\n\n### AI Insight (From Description)\n{summary}\n\n**Note:** Transcript could not be auto-fetched. \n\n**Raw Video Description:**\n{description[:2000]}"
 
         else:
-            async with httpx.AsyncClient(follow_redirects=True) as client:
-                resp = await client.get(req.url, timeout=10.0)
-                resp.raise_for_status()
+            resp = await safe_fetch_url(req.url, timeout_s=10.0)
+            resp.raise_for_status()
                 
             soup = BeautifulSoup(resp.text, 'html.parser')
             title = soup.title.string if soup.title else "Imported from URL"
@@ -200,4 +239,3 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-

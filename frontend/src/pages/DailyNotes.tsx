@@ -139,6 +139,7 @@ export default function DailyNotes() {
               <div style={{ backgroundColor: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <MDEditor.Markdown
                   source={todayNote.content}
+                  skipHtml={true}
                   style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
                 />
               </div>
