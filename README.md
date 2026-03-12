@@ -48,7 +48,7 @@ Welcome to your **AI-Powered Personal Knowledge Management System**. This projec
 ### Option 1: Docker (Preferred)
 1. **Clone & Setup**:
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/rohitvaddepalli/AI-Personal-Knowledge.git
    cd "AI Personal Knowledge"
    ```
 2. **Run Everything**:
