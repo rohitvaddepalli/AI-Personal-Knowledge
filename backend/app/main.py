@@ -1,0 +1,120 @@
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.database import Base, engine
+from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export
+from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
+from sqlalchemy import text
+
+# Create all database tables
+Base.metadata.create_all(bind=engine)
+
+with engine.begin() as conn:
+    try:
+        existing_columns = {
+            row[1]
+            for row in conn.execute(text("PRAGMA table_info('notes')")).fetchall()
+        }
+
+        needed_columns = [
+            ("is_pinned", "BOOLEAN", "0"),
+            ("deleted_at", "DATETIME", None),
+            ("review_count", "INTEGER", "0"),
+            ("next_review_at", "DATETIME", None),
+            ("last_reviewed_at", "DATETIME", None),
+            ("parent_note_id", "VARCHAR", None),
+        ]
+
+        for name, col_type, default in needed_columns:
+            if name in existing_columns:
+                continue
+            if default is None:
+                conn.execute(text(f"ALTER TABLE notes ADD COLUMN {name} {col_type}"))
+            else:
+                conn.execute(
+                    text(
+                        f"ALTER TABLE notes ADD COLUMN {name} {col_type} DEFAULT {default}"
+                    )
+                )
+    except Exception as e:
+        print(f"DB migration check error: {e}")
+
+# FTS5 Setup
+with engine.begin() as conn:
+    try:
+        conn.execute(text("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(id UNINDEXED, title, content, tags);"))
+        
+        # Populate initially if empty
+        conn.execute(text("""
+            INSERT INTO notes_fts(id, title, content, tags) 
+            SELECT id, title, content, tags FROM notes 
+            WHERE id NOT IN (SELECT id FROM notes_fts);
+        """))
+
+        # Triggers
+        conn.execute(text("""
+        CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+            INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
+        END;"""))
+
+        conn.execute(text("""
+        CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+            DELETE FROM notes_fts WHERE id=old.id;
+        END;"""))
+
+        conn.execute(text("""
+        CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+            DELETE FROM notes_fts WHERE id=old.id;
+            INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
+        END;"""))
+    except Exception as e:
+        print(f"FTS Table setup error (FTS5 might not be enabled on this SQLite build): {e}")
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:11434;"
+        return response
+
+app = FastAPI(
+    title="Second Brain AI",
+    description="AI-Powered Personal Knowledge System MVP API",
+    version="0.1.0"
+)
+
+# CORS setup
+# In a desktop app/local environment, localhost is generally safe.
+# Avoid "*" in any production-ready deployment.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:4173", "http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+app.include_router(notes.router)
+app.include_router(connections.router)
+app.include_router(graph.router)
+app.include_router(ask.router)
+app.include_router(search.router)
+app.include_router(import_.router)
+app.include_router(collections.router)
+app.include_router(insights.router)
+app.include_router(chat_router.router)
+app.include_router(tasks.router)
+app.include_router(templates.router)
+app.include_router(attachments.router)
+app.include_router(note_versions.router)
+app.include_router(review.router)
+app.include_router(export.router)
+
+@app.get("/")
+def root():
+    return {"message": "Welcome to Second Brain AI API"}
