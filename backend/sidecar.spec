@@ -8,6 +8,13 @@ project_root = os.path.dirname(os.path.abspath(SPEC))
 
 hiddenimports = collect_submodules("app")
 hiddenimports += collect_submodules("chromadb")
+hiddenimports += [
+    "tqdm",
+    "chromadb.segment.impl.metadata.sqlite",
+    "chromadb.segment.impl.vector.local_hnsw",
+    "chromadb.segment.impl.vector.local_persistent_hnsw",
+    "chromadb.db.responses",
+]
 
 datas = collect_data_files("chromadb")
 

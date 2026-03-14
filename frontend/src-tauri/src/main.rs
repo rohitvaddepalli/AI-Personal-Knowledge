@@ -76,7 +76,7 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     Menu::with_items(app, &[&file_menu, &edit_menu, &view_menu])
 }
 
-fn spawn_sidecar<R: Runtime>(app: &AppHandle<R>, state: State<SidecarState>) -> tauri::Result<()> {
+fn spawn_sidecar<R: Runtime>(app: &AppHandle<R>, state: State<SidecarState>) -> Result<(), Box<dyn std::error::Error>> {
     let app_data_dir = ensure_app_data_dir(app)?;
 
     let command = app
@@ -98,7 +98,7 @@ fn spawn_sidecar<R: Runtime>(app: &AppHandle<R>, state: State<SidecarState>) -> 
     Ok(())
 }
 
-fn stop_sidecar<R: Runtime>(state: State<SidecarState>) {
+fn stop_sidecar(state: State<SidecarState>) {
     let shutdown_url = format!("http://{SIDECAR_HOST}:{SIDECAR_PORT}/api/system/shutdown");
     let _ = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(2))
@@ -107,7 +107,7 @@ fn stop_sidecar<R: Runtime>(state: State<SidecarState>) {
 
     std::thread::sleep(Duration::from_millis(400));
 
-    if let Some(mut child) = state.0.lock().expect("sidecar state lock").take() {
+    if let Some(child) = state.0.lock().expect("sidecar state lock").take() {
         let _ = child.kill();
     }
 }
@@ -123,7 +123,7 @@ fn main() {
             let menu = build_menu(&app.handle())?;
             app.set_menu(menu)?;
             let state = app.state::<SidecarState>();
-            spawn_sidecar(&app.handle(), state)?;
+            spawn_sidecar(&app.handle(), state).map_err(|e| tauri::Error::AssetNotFound(e.to_string()))?;
             Ok(())
         })
         .build(tauri::generate_context!())
