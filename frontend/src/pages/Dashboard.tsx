@@ -1,25 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, Variants } from 'framer-motion';
 import { Compass, PenTool, Search, Sparkles, X, Pin, ArrowRight } from 'lucide-react';
-
-// Animation variants
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 }
-  }
-};
-
-const childVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 280, damping: 24 }
-  }
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -91,19 +72,13 @@ export default function Dashboard() {
   };
 
   return (
-    <motion.div 
-      variants={containerVariants} 
-      initial="hidden" 
-      animate="visible" 
-      className="max-w-4xl mx-auto space-y-12"
-    >
-      <motion.header variants={childVariants} className="mb-10">
+    <div className="max-w-4xl mx-auto space-y-12">
+      <header className="mb-10">
         <h1 className="text-4xl lg:text-5xl font-serif text-text-main mb-3">Welcome to your space.</h1>
         <p className="text-lg text-text-muted">A calm environment for capturing, connecting, and deep thinking.</p>
-      </motion.header>
+      </header>
 
-      {/* Action Grid */}
-      <motion.div variants={childVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Capture', icon: PenTool, path: '/notes/new', isBtn: false },
           { label: 'Surprise', icon: Compass, onClick: getRandomNote, isBtn: true },
@@ -111,14 +86,12 @@ export default function Dashboard() {
           { label: 'Think', icon: Sparkles, onClick: generateDigest, isBtn: true },
         ].map((action, idx) => {
           const content = (
-            <motion.div 
-              whileHover={{ y: -4, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex flex-col items-center justify-center p-6 bg-surface/50 border border-border rounded-2xl cursor-pointer hover:border-accent/40 hover:bg-surface transition-colors h-full"
+            <div
+              className="flex h-full flex-col items-center justify-center rounded-2xl border border-border bg-surface/50 p-6 transition-transform transition-colors duration-200 cursor-pointer hover:-translate-y-1 hover:border-accent/40 hover:bg-surface active:scale-[0.98]"
             >
               <action.icon className="text-accent mb-3" size={28} strokeWidth={1.5} />
               <span className="text-sm font-medium text-text-main">{action.label}</span>
-            </motion.div>
+            </div>
           );
           
           return action.isBtn ? (
@@ -131,11 +104,10 @@ export default function Dashboard() {
             </Link>
           );
         })}
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Recent Notes */}
-        <motion.section variants={childVariants} className="lg:col-span-7 space-y-6">
+        <section className="lg:col-span-7 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-serif">Recent Notes</h2>
             <Link to="/notes" className="text-sm text-accent hover:text-accent-hover font-medium flex items-center gap-1 group">
@@ -150,7 +122,7 @@ export default function Dashboard() {
               </div>
             ) : (
               recentNotes.map((note) => (
-                <motion.div key={note.id} whileHover={{ x: 4 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }}>
+                <div key={note.id} className="transition-transform duration-200 hover:translate-x-1">
                   <Link 
                     to={`/notes/${note.id}`}
                     className="block p-5 bg-surface border border-transparent rounded-2xl hover:border-border hover:shadow-sm transition-all group"
@@ -165,14 +137,13 @@ export default function Dashboard() {
                       {note.content}
                     </div>
                   </Link>
-                </motion.div>
+                </div>
               ))
             )}
           </div>
-        </motion.section>
+        </section>
 
-        {/* Right Column: Insights */}
-        <motion.section variants={childVariants} className="lg:col-span-5 space-y-6">
+        <section className="lg:col-span-5 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-serif flex items-center gap-2">
               Deep Insights
@@ -180,12 +151,7 @@ export default function Dashboard() {
             {generating && (
               <div className="flex items-center gap-3 bg-surface/50 px-3 py-1.5 rounded-full border border-border">
                 <div className="w-24 h-1.5 bg-bg-highlight rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-accent"
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '100%' }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                  />
+                  <div className="dashboard-progress-bar h-full w-full bg-accent" />
                 </div>
                 <span className="text-xs text-text-muted font-medium">Synthesizing...</span>
               </div>
@@ -207,12 +173,9 @@ export default function Dashboard() {
               </div>
             ) : (
               insights.map((ins) => (
-                <motion.div 
+                <div
                   key={ins.id} 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative p-6 pr-10 bg-gradient-to-br from-bg-base to-surface border border-border/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+                  className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-bg-base to-surface p-6 pr-10 shadow-sm transition-shadow hover:shadow-md"
                 >
                   <button 
                     onClick={() => dismissInsight(ins.id)}
@@ -226,12 +189,12 @@ export default function Dashboard() {
                   <div className="text-sm leading-relaxed text-text-main whitespace-pre-wrap prose prose-invert prose-sm max-w-none">
                     {ins.content.replace(/(\*\*|##)/g, '')}
                   </div>
-                </motion.div>
+                </div>
               ))
             )}
           </div>
-        </motion.section>
+        </section>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import MDEditor from '@uiw/react-md-editor';
 import ConnectionsSidebar from '../components/ConnectionsSidebar';
+import { MarkdownEditor, MarkdownPreview } from '../components/Markdown';
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -496,13 +496,14 @@ export default function NoteDetail() {
 
         {isEditing ? (
           <div style={{ marginTop: '1rem' }}>
-            <MDEditor value={editContent} onChange={val => setEditContent(val || '')} height={500} />
+            <MarkdownEditor value={editContent} onChange={val => setEditContent(val || '')} height={500} />
           </div>
         ) : (
 	          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
-	            <MDEditor.Markdown
+	            <MarkdownPreview
 	              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
 	              skipHtml={true}
+                fallbackClassName="whitespace-pre-wrap"
 	              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
 	            />
 	          </div>
@@ -616,7 +617,7 @@ export default function NoteDetail() {
 	        {aiResult && (
 	          <div className="card" style={{ marginTop: '0.5rem' }}>
 	            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>AI Result</h3>
-	            <MDEditor.Markdown source={aiResult} skipHtml={true} style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
+	            <MarkdownPreview source={aiResult} skipHtml={true} fallbackClassName="whitespace-pre-wrap" style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
 	          </div>
 	        )}
 

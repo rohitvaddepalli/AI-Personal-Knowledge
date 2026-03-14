@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface Note {
@@ -13,6 +13,7 @@ interface Note {
 export default function NoteList() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [importUrlStr, setImportUrlStr] = useState('');
   const [importing, setImporting] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
@@ -20,19 +21,7 @@ export default function NoteList() {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get('q');
-    if (q) {
-      setSearchQuery(q);
-      fetchNotes(q);
-    } else {
-      fetchNotes();
-    }
-    fetchCollections();
-  }, []);
-
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     try {
       const res = await fetch('http://localhost:8000/api/collections');
       const data = await res.json();
@@ -40,9 +29,9 @@ export default function NoteList() {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, []);
 
-  const fetchNotes = async (query?: string) => {
+  const fetchNotes = useCallback(async (query?: string) => {
     if (query && query.trim()) {
       try {
         const res = await fetch('http://localhost:8000/api/search', {
@@ -64,7 +53,29 @@ export default function NoteList() {
         console.error(err);
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+      setSearchQuery(q);
+      setDebouncedQuery(q);
+    }
+    fetchCollections();
+  }, [fetchCollections]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchNotes(debouncedQuery);
+  }, [debouncedQuery, fetchNotes]);
 
   const handleImport = async () => {
     if (!importUrlStr.trim()) return;
@@ -80,7 +91,7 @@ export default function NoteList() {
       });
       if (!res.ok) throw new Error(await res.text());
       setImportUrlStr('');
-      await fetchNotes();
+      await fetchNotes(debouncedQuery);
       alert('Imported successfully!');
     } catch (e: any) {
       alert(`Import failed: ${e.message}`);
@@ -93,7 +104,7 @@ export default function NoteList() {
     if (!confirm('Are you sure you want to delete this note?')) return;
     try {
       const res = await fetch(`http://localhost:8000/api/notes/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchNotes();
+      if (res.ok) fetchNotes(debouncedQuery);
     } catch (e) {
       console.error(e);
     }
@@ -106,7 +117,7 @@ export default function NoteList() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_pinned: !isPinned }),
       });
-      if (res.ok) fetchNotes();
+      if (res.ok) fetchNotes(debouncedQuery);
     } catch (e) {
       console.error(e);
     }
@@ -132,35 +143,49 @@ export default function NoteList() {
 
   const bulkDelete = async () => {
     if (!confirm(`Move ${selectedNotes.size} notes to trash?`)) return;
-    for (const id of selectedNotes) {
-      await fetch(`http://localhost:8000/api/notes/${id}`, { method: 'DELETE' });
-    }
+    await Promise.all(Array.from(selectedNotes).map((id) =>
+      fetch(`http://localhost:8000/api/notes/${id}`, { method: 'DELETE' })
+    ));
     setSelectedNotes(new Set());
-    fetchNotes();
+    fetchNotes(debouncedQuery);
   };
 
   const bulkPin = async (pin: boolean) => {
-    for (const id of selectedNotes) {
-      await fetch(`http://localhost:8000/api/notes/${id}`, {
+    await Promise.all(Array.from(selectedNotes).map((id) =>
+      fetch(`http://localhost:8000/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_pinned: pin }),
-      });
-    }
+      })
+    ));
     setSelectedNotes(new Set());
-    fetchNotes();
+    fetchNotes(debouncedQuery);
   };
 
-  const filteredNotes = selectedCol
-    ? notes.filter(n => collections.find(c => c.id.toString() === selectedCol)?.notes.some((cn: any) => cn.id === n.id))
-    : notes;
+  const collectionLookup = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const collection of collections) {
+      map.set(
+        collection.id.toString(),
+        new Set((collection.notes ?? []).map((cn: any) => cn.id))
+      );
+    }
+    return map;
+  }, [collections]);
+
+  const filteredNotes = useMemo(() => {
+    if (!selectedCol) return notes;
+    const noteIds = collectionLookup.get(selectedCol);
+    if (!noteIds) return notes;
+    return notes.filter((n) => noteIds.has(n.id));
+  }, [collectionLookup, notes, selectedCol]);
 
   // Sort: pinned notes first, then by date
-  const sortedNotes = [...filteredNotes].sort((a, b) => {
+  const sortedNotes = useMemo(() => [...filteredNotes].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  }), [filteredNotes]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%', overflowY: 'auto' }}>
@@ -213,10 +238,9 @@ export default function NoteList() {
           placeholder="Search semantic + keywords..." 
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && fetchNotes(searchQuery)}
           style={{ marginBottom: 0, flex: 2, color: 'var(--text-main)', backgroundColor: 'var(--bg-base)' }}
         />
-        <button className="btn" onClick={() => fetchNotes(searchQuery)} style={{ backgroundColor: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>Search</button>
+        <button className="btn" onClick={() => setDebouncedQuery(searchQuery.trim())} style={{ backgroundColor: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>Search</button>
         
         <input 
           className="input" 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import MDEditor from '@uiw/react-md-editor';
+import { MarkdownEditor, MarkdownPreview } from '../components/Markdown';
 
 interface Note {
   id: string;
@@ -130,16 +130,17 @@ export default function DailyNotes() {
             </div>
             
             {isEditing ? (
-              <MDEditor
+              <MarkdownEditor
                 value={editContent}
                 onChange={val => setEditContent(val || '')}
                 height={600}
               />
             ) : (
               <div style={{ backgroundColor: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <MDEditor.Markdown
+                <MarkdownPreview
                   source={todayNote.content}
                   skipHtml={true}
+                  fallbackClassName="whitespace-pre-wrap"
                   style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
                 />
               </div>

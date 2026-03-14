@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,24 +16,41 @@ export default function KnowledgeGraph() {
   }, []);
 
   useEffect(() => {
-    if (containerRef.current) {
-        setDimensions({
-            width: containerRef.current.offsetWidth,
-            height: containerRef.current.offsetHeight
-        });
-    }
-    
-    const handleResize = () => {
-        if (containerRef.current) {
-            setDimensions({
-                width: containerRef.current.offsetWidth,
-                height: containerRef.current.offsetHeight
-            });
+    const container = containerRef.current;
+    if (!container) return;
+
+    let frameId = 0;
+
+    const syncDimensions = () => {
+      frameId = 0;
+      const nextWidth = container.offsetWidth;
+      const nextHeight = container.offsetHeight;
+
+      setDimensions((current) => {
+        if (current.width === nextWidth && current.height === nextHeight) {
+          return current;
         }
+
+        return { width: nextWidth, height: nextHeight };
+      });
     };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    const scheduleSync = () => {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(syncDimensions);
+    };
+
+    scheduleSync();
+
+    const resizeObserver = new ResizeObserver(scheduleSync);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
   }, []);
 
   return (
@@ -44,6 +61,10 @@ export default function KnowledgeGraph() {
             width={dimensions.width}
             height={dimensions.height}
             graphData={data}
+            autoPauseRedraw
+            cooldownTicks={80}
+            cooldownTime={2500}
+            d3AlphaDecay={0.08}
             nodeLabel="name"
             nodeAutoColorBy="group"
             nodeVal="val"

@@ -1,21 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X } from 'lucide-react';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
-import Dashboard from './pages/Dashboard';
-import NoteList from './pages/NoteList';
-import NoteEditor from './pages/NoteEditor';
-import NoteDetail from './pages/NoteDetail';
-import KnowledgeGraph from './pages/KnowledgeGraph';
-import AskBrain from './pages/AskBrain';
-import Collections from './pages/Collections';
-import Tasks from './pages/Tasks';
-import Settings from './pages/Settings';
-import Trash from './pages/Trash';
-import Templates from './pages/Templates';
-import Review from './pages/Review';
 import './index.css';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const NoteList = lazy(() => import('./pages/NoteList'));
+const NoteEditor = lazy(() => import('./pages/NoteEditor'));
+const NoteDetail = lazy(() => import('./pages/NoteDetail'));
+const KnowledgeGraph = lazy(() => import('./pages/KnowledgeGraph'));
+const AskBrain = lazy(() => import('./pages/AskBrain'));
+const Collections = lazy(() => import('./pages/Collections'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Trash = lazy(() => import('./pages/Trash'));
+const Templates = lazy(() => import('./pages/Templates'));
+const Review = lazy(() => import('./pages/Review'));
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: BookOpen },
@@ -33,23 +33,24 @@ const NAV_ITEMS = [
 
 function PageWrapper({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, filter: 'blur(4px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, filter: 'blur(4px)' }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex-1 min-h-0 ${className || ''}`}
-    >
+    <div className={`flex-1 min-h-0 ${className || ''}`}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 function AnimatedRoutes() {
   const location = useLocation();
+
+  const routeLoadingFallback = (
+    <div className="flex-1 min-h-0 rounded-2xl border border-border bg-bg-highlight/40 p-6 text-sm text-text-muted">
+      Loading page...
+    </div>
+  );
+
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <Suspense fallback={routeLoadingFallback}>
+      <Routes location={location}>
         <Route path="/" element={<PageWrapper><Dashboard /></PageWrapper>} />
         <Route path="/notes" element={<PageWrapper><NoteList /></PageWrapper>} />
         <Route path="/notes/new" element={<PageWrapper><NoteEditor /></PageWrapper>} />
@@ -63,7 +64,7 @@ function AnimatedRoutes() {
         <Route path="/trash" element={<PageWrapper><Trash /></PageWrapper>} />
         <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
       </Routes>
-    </AnimatePresence>
+    </Suspense>
   );
 }
 
@@ -73,7 +74,10 @@ function AppContent() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pulling, pullResult, pullProgress } = useDownload();
-  const currentNav = NAV_ITEMS.find((item) => item.path === location.pathname);
+  const currentNav = useMemo(
+    () => NAV_ITEMS.find((item) => item.path === location.pathname),
+    [location.pathname]
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-color-mode', theme);
@@ -136,11 +140,9 @@ function AppContent() {
             <div className="mb-4 p-4 bg-bg-highlight rounded-xl border border-border text-sm">
               <div className="font-medium text-accent mb-2">Downloading Model...</div>
               <div className="w-full bg-bg-base rounded-full h-1.5 overflow-hidden">
-                <motion.div
-                  className="h-full bg-accent"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pullProgress}%` }}
-                  transition={{ ease: 'linear' }}
+                <div
+                  className="h-full bg-accent transition-[width] duration-200 ease-linear"
+                  style={{ width: `${pullProgress}%` }}
                 />
               </div>
               <div className="mt-2 text-text-muted text-xs truncate">{pullResult}</div>

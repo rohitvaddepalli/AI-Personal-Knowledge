@@ -15,6 +15,7 @@ services:
       - CHROMA_PERSIST_DIR=./data/chroma
       - LLM_PROVIDER=ollama
       - OLLAMA_BASE_URL=http://ollama:11434
+      - ALLOW_REMOTE_CLIENTS=True
     depends_on:
       - ollama
 
@@ -34,7 +35,9 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama_data:/root/.ollama
+      - second-brain_ollama_data:/root/.ollama
 
 volumes:
-  ollama_data:
+  # Using the existing volume from before the folder move
+  second-brain_ollama_data:
+    external: true

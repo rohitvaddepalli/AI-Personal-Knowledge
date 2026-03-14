@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import { useNavigate } from 'react-router-dom';
+import { MarkdownEditor } from '../components/Markdown';
 
 interface Template {
   id: number;
@@ -197,7 +197,7 @@ export default function NoteEditor() {
         </div>
 
         <div>
-          <MDEditor
+          <MarkdownEditor
             value={content}
             onChange={val => setContent(val || '')}
             height={500}

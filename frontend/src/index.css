@@ -84,3 +84,17 @@ h1, h2, h3, h4, h5, h6 {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+@keyframes dashboard-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.dashboard-progress-bar {
+  animation: dashboard-progress 1.5s linear infinite;
+}
