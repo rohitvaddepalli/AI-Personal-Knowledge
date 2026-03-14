@@ -18,6 +18,11 @@ dependencies = [
     "python-multipart==0.0.9",
 ]
 
+[project.optional-dependencies]
+desktop = [
+    "pyinstaller==6.11.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

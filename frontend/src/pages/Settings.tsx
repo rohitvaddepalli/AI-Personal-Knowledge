@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useDesktopRuntime } from '../context/DesktopRuntimeContext';
 import { useDownload } from '../context/DownloadContext';
+import { apiUrl } from '../lib/api';
 
 export default function Settings() {
   const [profileName, setProfileName] = useState(() => localStorage.getItem('profileName') || 'User');
   const [profileBio, setProfileBio] = useState(() => localStorage.getItem('profileBio') || '');
   const [activeModel, setActiveModel] = useState(() => localStorage.getItem('activeModel') || 'qwen2.5:0.5b');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
+  const [systemSaving, setSystemSaving] = useState(false);
   
   const [modelName, setModelName] = useState('llama3');
   const { pulling, pullResult, pullModel } = useDownload();
+  const { saveSystemSettings, status } = useDesktopRuntime();
 
   const fetchModels = () => {
     fetch('http://localhost:8000/api/ask/models')
@@ -22,6 +27,12 @@ export default function Settings() {
   useEffect(() => {
     fetchModels();
   }, [pulling]);
+
+  useEffect(() => {
+    if (status?.ollamaBaseUrl) {
+      setOllamaHost(status.ollamaBaseUrl);
+    }
+  }, [status?.ollamaBaseUrl]);
 
   const saveSettings = () => {
     localStorage.setItem('profileName', profileName);
@@ -43,6 +54,18 @@ export default function Settings() {
       }
     } catch (e: any) {
       alert(`Error: ${e.message}`);
+    }
+  };
+
+  const handleSaveSystemSettings = async () => {
+    setSystemSaving(true);
+    try {
+      await saveSystemSettings({ ollamaBaseUrl: ollamaHost });
+      fetchModels();
+    } catch (e: any) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setSystemSaving(false);
     }
   };
 
@@ -76,6 +99,31 @@ export default function Settings() {
         />
         
         <button className="btn" onClick={saveSettings}>Save Settings</button>
+      </div>
+
+      <div className="card">
+        <h2>Desktop Runtime</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Configure how the bundled backend reaches Ollama on this machine.
+        </p>
+
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ollama Host</label>
+        <input
+          className="input"
+          value={ollamaHost}
+          onChange={e => setOllamaHost(e.target.value)}
+          placeholder="http://localhost:11434"
+        />
+
+        <div style={{ marginTop: '0.75rem', color: status?.ollamaReachable ? 'var(--accent-color)' : '#ff4444' }}>
+          {status?.ollamaReachable
+            ? 'Ollama is reachable.'
+            : 'Ollama is not reachable. Start Ollama or update the host before using AI features.'}
+        </div>
+
+        <button className="btn" onClick={handleSaveSystemSettings} disabled={systemSaving} style={{ marginTop: '1rem' }}>
+          {systemSaving ? 'Saving...' : 'Save Ollama Host'}
+        </button>
       </div>
 
       <div className="card">
@@ -119,14 +167,14 @@ export default function Settings() {
         
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <a 
-            href="http://localhost:8000/api/export/all/zip"
+            href={apiUrl('/api/export/all/zip')}
             className="btn"
             style={{ textDecoration: 'none' }}
           >
             📦 Export All (ZIP)
           </a>
           <a 
-            href="http://localhost:8000/api/export/vault/obsidian"
+            href={apiUrl('/api/export/vault/obsidian')}
             className="btn"
             style={{ 
               textDecoration: 'none', 

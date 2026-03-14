@@ -13,7 +13,7 @@ import re
 router = APIRouter(prefix="/api/notes/{note_id}/attachments", tags=["attachments"])
 
 # Configure upload directory
-UPLOAD_DIR = settings.upload_dir
+UPLOAD_DIR = str(settings.upload_path)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _safe_ext(filename: str) -> str:

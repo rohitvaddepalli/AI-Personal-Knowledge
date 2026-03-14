@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ConnectionsSidebar from '../components/ConnectionsSidebar';
 import { MarkdownEditor, MarkdownPreview } from '../components/Markdown';
+import { apiUrl, isDesktopRuntime } from '../lib/api';
+import { pickDesktopFile } from '../lib/desktopFiles';
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -27,6 +29,7 @@ export default function NoteDetail() {
   const [noteTree, setNoteTree] = useState<any>(null);
   const [allNotes, setAllNotes] = useState<any[]>([]);
   const [showParentSelector, setShowParentSelector] = useState(false);
+  const desktopRuntime = isDesktopRuntime();
 
   const fetchNote = () => {
     fetch(`http://localhost:8000/api/notes/${id}`)
@@ -66,10 +69,8 @@ export default function NoteDetail() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !id) return;
-    const file = e.target.files[0];
-    if (!file) return;
+  const uploadAttachment = async (file: File) => {
+    if (!id || !file) return;
     
     setUploading(true);
     const formData = new FormData();
@@ -82,13 +83,26 @@ export default function NoteDetail() {
       });
       if (res.ok) {
         fetchAttachments();
-        e.target.value = '';
       }
     } catch (err) {
       console.error(err);
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    await uploadAttachment(file);
+    e.target.value = '';
+  };
+
+  const handleDesktopFileUpload = async () => {
+    const file = await pickDesktopFile();
+    if (!file) return;
+    await uploadAttachment(file);
   };
 
   const deleteAttachment = async (attachmentId: string) => {
@@ -470,7 +484,7 @@ export default function NoteDetail() {
             Summarize
           </button>
           <a 
-            href={`http://localhost:8000/api/export/note/${id}/markdown`}
+            href={apiUrl(`/api/export/note/${id}/markdown`)}
             target="_blank"
             rel="noopener noreferrer"
             className="btn"
@@ -555,15 +569,21 @@ export default function NoteDetail() {
         <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', margin: 0 }}>📎 Attachments</h3>
-            <label className="btn" style={{ cursor: 'pointer', fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>
-              {uploading ? 'Uploading...' : '+ Add File'}
-              <input
-                type="file"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-                disabled={uploading}
-              />
-            </label>
+            {desktopRuntime ? (
+              <button className="btn" onClick={() => void handleDesktopFileUpload()} style={{ cursor: 'pointer', fontSize: '0.85rem', padding: '0.4rem 0.8rem' }} disabled={uploading}>
+                {uploading ? 'Uploading...' : '+ Add File'}
+              </button>
+            ) : (
+              <label className="btn" style={{ cursor: 'pointer', fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>
+                {uploading ? 'Uploading...' : '+ Add File'}
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                  disabled={uploading}
+                />
+              </label>
+            )}
           </div>
           
           {attachments.length === 0 ? (
@@ -584,7 +604,7 @@ export default function NoteDetail() {
                   }}
                 >
                   <a
-                    href={`http://localhost:8000/api/notes/${id}/attachments/${att.id}/download`}
+                    href={apiUrl(`/api/notes/${id}/attachments/${att.id}/download`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: 'var(--accent-color)', textDecoration: 'none', fontSize: '0.9rem' }}

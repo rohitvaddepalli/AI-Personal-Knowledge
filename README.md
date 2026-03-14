@@ -70,6 +70,45 @@ Welcome to your **AI-Powered Personal Knowledge Management System**. This projec
 2. Install dependencies: `npm install`
 3. Run dev server: `npm run dev`
 
+### Option 3: Tauri Desktop App
+The desktop app embeds the React UI and launches the FastAPI backend as a local Python sidecar on `127.0.0.1:31415`.
+
+#### Desktop prerequisites
+- Node.js 20+
+- Rust stable toolchain
+- Python 3.11+
+- Ollama installed separately and running locally
+
+#### Desktop development
+1. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Install backend desktop dependencies:
+   ```bash
+   cd ../backend
+   pip install -e .[desktop]
+   ```
+3. Build the packaged sidecar for your platform target:
+   ```bash
+   cd ..
+   python scripts/build_sidecar.py --target x86_64-pc-windows-msvc
+   ```
+4. Run the Tauri shell:
+   ```bash
+   cd frontend
+   npm run tauri:dev
+   ```
+
+#### Desktop production build
+```bash
+cd frontend
+npm run tauri:build
+```
+
+The desktop app stores SQLite, Chroma, uploads, and runtime settings in the OS app-data directory instead of the project root.
+
 ---
 
 ## 🤖 Model Configuration
@@ -85,6 +124,7 @@ ollama pull nomic-embed-text
 ```
 
 You can manage and change models directly from the **Settings** page within the app.
+The desktop build also exposes an **Ollama Host** setting so low-end machines or remote Ollama instances can be configured without editing env files.
 
 ---
 

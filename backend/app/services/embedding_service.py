@@ -1,7 +1,10 @@
 import chromadb
 from app.config import settings
+from app.runtime import ensure_app_directories
 
-client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
+ensure_app_directories()
+
+client = chromadb.PersistentClient(path=str(settings.chroma_persist_path))
 
 # Make sure we have the collections
 note_collection = client.get_or_create_collection(name="note_embeddings")

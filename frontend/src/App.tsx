@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X } from 'lucide-react';
+import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
 import './index.css';
 
@@ -71,6 +72,7 @@ function AnimatedRoutes() {
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { error, initializing, isDesktop, retryStartup } = useDesktopRuntime();
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pulling, pullResult, pullProgress } = useDownload();
@@ -94,6 +96,34 @@ function AppContent() {
   }, [navigate]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  if (isDesktop && initializing) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-base px-6 text-text-main">
+        <div className="max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-xl">
+          <div className="mb-3 text-xs uppercase tracking-[0.24em] text-text-muted">Second Brain</div>
+          <h1 className="mb-3 text-3xl font-serif">Preparing desktop services</h1>
+          <p className="text-sm text-text-muted">
+            Starting the local Python sidecar and warming up your knowledge base.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isDesktop && error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-base px-6 text-text-main">
+        <div className="max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-xl">
+          <h1 className="mb-3 text-3xl font-serif">Desktop startup failed</h1>
+          <p className="mb-6 text-sm text-text-muted">{error}</p>
+          <button className="btn" onClick={() => void retryStartup()}>
+            Retry startup
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base text-text-main font-sans selection:bg-accent/30 selection:text-text-main">

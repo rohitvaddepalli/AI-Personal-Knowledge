@@ -3,12 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from app.database import Base, engine
-from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export
+from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export, system
 from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
 from sqlalchemy import text
 from app.config import settings
+from app.runtime import ensure_app_directories, load_runtime_settings
 import ipaddress
 import secrets
+
+ensure_app_directories()
+load_runtime_settings()
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -81,7 +85,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:11434;"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            f"connect-src 'self' {settings.ollama_base_url};"
+        )
         return response
 
 class AccessControlMiddleware(BaseHTTPMiddleware):
@@ -115,7 +125,17 @@ app = FastAPI(
 # Avoid "*" in any production-ready deployment.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173", "http://localhost:3000"], 
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:4173",
+        "http://127.0.0.1:3000",
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -139,7 +159,16 @@ app.include_router(attachments.router)
 app.include_router(note_versions.router)
 app.include_router(review.router)
 app.include_router(export.router)
+app.include_router(system.router)
 
 @app.get("/")
 def root():
     return {"message": "Welcome to Second Brain AI API"}
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "port": settings.api_port,
+        "sidecarMode": settings.sidecar_mode,
+    }

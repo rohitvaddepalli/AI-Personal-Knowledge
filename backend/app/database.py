@@ -3,9 +3,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import StaticPool
 from .config import settings
+from .runtime import ensure_app_directories
 
-# Ensure data directory exists
-os.makedirs(os.path.dirname(settings.database_url.replace('sqlite:///', '')), exist_ok=True)
+ensure_app_directories()
+
+database_dir = os.path.dirname(str(settings.database_path))
+if database_dir:
+    os.makedirs(database_dir, exist_ok=True)
 
 engine = create_engine(
     settings.database_url,
