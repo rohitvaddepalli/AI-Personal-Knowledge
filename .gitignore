@@ -1,16 +1,15 @@
-# Environment
+# Environment & Config
 .venv/
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+!.env.example
+node_modules/
 
-# Tools
+# Tools & AI
 .agent/
 .gemini/
 
-# Python
+# Python & Backend
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,7 +18,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
+dist-sidecar/
+build-sidecar/
 eggs/
 .eggs/
 lib/
@@ -35,11 +35,18 @@ wheels/
 .coverage
 htmlcov/
 
-# Node/Frontend
-node_modules/
+# Rust / Tauri
+**/src-tauri/target/
+**/src-tauri/sidecar/*
+!**/src-tauri/sidecar/.gitkeep
+
+# Frontend / Vite
+dist/
 dist-ssr/
 *.local
 coverage/
+tsconfig.tsbuildinfo
+tsconfig.node.tsbuildinfo
 
 # IDEs
 .vscode/
@@ -47,13 +54,17 @@ coverage/
 *.swp
 *.swo
 
-# Data & Models
+# Data, Logs & Databases
 data/
-models/
+backend/data/
+uploads/
 *.db
 *.sqlite
 *.log
+pyinstaller_error.log
+cargo_error.log
 
-# OS
+# OS Files
 .DS_Store
 Thumbs.db
+Desktop.ini

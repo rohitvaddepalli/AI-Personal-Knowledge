@@ -1,10 +1,10 @@
 # PyInstaller spec for the bundled FastAPI sidecar.
-
-from pathlib import Path
-
+import os
+import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-project_root = Path(__file__).resolve().parent
+# project_root is the directory containing this spec file
+project_root = os.path.dirname(os.path.abspath(SPEC))
 
 hiddenimports = collect_submodules("app")
 hiddenimports += collect_submodules("chromadb")
@@ -15,7 +15,7 @@ block_cipher = None
 
 a = Analysis(
     ["run_sidecar.py"],
-    pathex=[str(project_root)],
+    pathex=[project_root],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
