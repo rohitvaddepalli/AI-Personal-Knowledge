@@ -23,7 +23,7 @@ To evolve this local-first personal knowledge system into a highly successful, p
 
 ## 4. Production-Grade Open Source Repository
 ### Community & Standards
-- [ ] **`CONTRIBUTING.md`**: Create clear guidelines on how to run the project locally, architecture overviews, and how to submit PRs.
+- [*] **`CONTRIBUTING.md`**: Create clear guidelines on how to run the project locally, architecture overviews, and how to submit PRs.
 - [ ] **`CODE_OF_CONDUCT.md`**: Add a standard contributor covenant.
 - [ ] **Issue & PR Templates**: Provide `.github/ISSUE_TEMPLATE` (e.g., Bug Report, Feature Request) and a `pull_request_template.md` to ensure high-quality contributions.
 - [ ] **Documentation Website**: Spin up a dedicated docs site (using VitePress or Docusaurus) covering User Guides, API References, and Plugin Development.
