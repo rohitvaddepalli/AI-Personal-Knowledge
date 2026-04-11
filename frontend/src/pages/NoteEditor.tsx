@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlockEditor } from '../components/BlockEditor';
+import { VoiceMemo } from '../components/VoiceMemo';
 
 interface Template {
   id: number;
@@ -194,6 +195,8 @@ export default function NoteEditor() {
           >
             {isTagging ? 'Tagging...' : 'Suggest Tags'}
           </button>
+          {/* Voice Memo — compact button that appends transcription to content */}
+          <VoiceMemo compact onTranscribed={text => setContent(prev => prev ? `${prev}\n\n${text}` : text)} />
         </div>
 
         <div>

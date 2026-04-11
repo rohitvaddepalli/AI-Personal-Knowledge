@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X } from 'lucide-react';
+import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X, LayoutGrid, Sparkles, Puzzle } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
 import './index.css';
@@ -17,6 +17,9 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Trash = lazy(() => import('./pages/Trash'));
 const Templates = lazy(() => import('./pages/Templates'));
 const Review = lazy(() => import('./pages/Review'));
+const DatabaseView = lazy(() => import('./pages/DatabaseView'));
+const PromptsLibrary = lazy(() => import('./pages/PromptsLibrary'));
+const PluginsPage = lazy(() => import('./pages/PluginsPage'));
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: BookOpen },
@@ -26,8 +29,11 @@ const NAV_ITEMS = [
   { path: '/templates', label: 'Templates', icon: LayoutTemplate },
   { path: '/graph', label: 'Graph', icon: Network },
   { path: '/ask', label: 'Ask Brain', icon: HelpCircle },
+  { path: '/database', label: 'Database', icon: LayoutGrid },
+  { path: '/prompts', label: 'Prompts', icon: Sparkles },
   { path: '/collections', label: 'Collections', icon: Layers },
   { path: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { path: '/plugins', label: 'Plugins', icon: Puzzle },
   { path: '/trash', label: 'Trash', icon: Trash2 },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -62,6 +68,9 @@ function AnimatedRoutes() {
         <Route path="/ask" element={<PageWrapper className="h-full"><AskBrain /></PageWrapper>} />
         <Route path="/collections" element={<PageWrapper><Collections /></PageWrapper>} />
         <Route path="/tasks" element={<PageWrapper><Tasks /></PageWrapper>} />
+        <Route path="/database" element={<PageWrapper><DatabaseView /></PageWrapper>} />
+        <Route path="/prompts" element={<PageWrapper><PromptsLibrary /></PageWrapper>} />
+        <Route path="/plugins" element={<PageWrapper><PluginsPage /></PageWrapper>} />
         <Route path="/trash" element={<PageWrapper><Trash /></PageWrapper>} />
         <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
       </Routes>
