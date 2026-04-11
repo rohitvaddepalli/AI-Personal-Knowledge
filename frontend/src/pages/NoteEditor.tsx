@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MarkdownEditor } from '../components/Markdown';
+import { BlockEditor } from '../components/BlockEditor';
 
 interface Template {
   id: number;
@@ -32,7 +32,7 @@ export default function NoteEditor() {
       setContent(templateContent);
       sessionStorage.removeItem('templateContent');
     }
-    
+
     // Fetch templates from API
     fetch('http://localhost:8000/api/templates')
       .then(res => res.json())
@@ -47,10 +47,10 @@ export default function NoteEditor() {
       const res = await fetch('http://localhost:8000/api/notes/suggest-tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title, 
-          content, 
-          model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' 
+        body: JSON.stringify({
+          title,
+          content,
+          model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b'
         }),
       });
       if (res.ok) {
@@ -115,10 +115,10 @@ export default function NoteEditor() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 style={{ display: isFocusMode ? 'none' : 'block' }}>Create Note</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
-            className="btn" 
+          <button
+            className="btn"
             onClick={() => setIsFocusMode(!isFocusMode)}
-            style={{ 
+            style={{
               backgroundColor: isFocusMode ? 'var(--accent-color)' : 'var(--surface-color)',
               color: isFocusMode ? 'var(--bg-base)' : 'var(--text-main)',
               border: isFocusMode ? 'none' : '1px solid var(--border-color)'
@@ -132,9 +132,9 @@ export default function NoteEditor() {
         </div>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
         gap: '1rem',
         position: isFocusMode ? 'fixed' : 'relative',
         top: isFocusMode ? 0 : 'auto',
@@ -197,10 +197,9 @@ export default function NoteEditor() {
         </div>
 
         <div>
-          <MarkdownEditor
+          <BlockEditor
             value={content}
-            onChange={val => setContent(val || '')}
-            height={500}
+            onChange={(val) => setContent(val)}
           />
           <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
             {content.trim() ? content.trim().split(/\s+/).length : 0} words

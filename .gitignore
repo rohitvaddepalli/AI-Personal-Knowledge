@@ -8,6 +8,8 @@ node_modules/
 # Tools & AI
 .agent/
 .gemini/
+.qwen
+
 
 # Python & Backend
 __pycache__/

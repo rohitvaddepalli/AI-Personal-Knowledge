@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ConnectionsSidebar from '../components/ConnectionsSidebar';
-import { MarkdownEditor, MarkdownPreview } from '../components/Markdown';
+import { BlockEditor } from '../components/BlockEditor';
+import { MarkdownPreview } from '../components/Markdown';
 import { apiUrl, isDesktopRuntime } from '../lib/api';
 import { pickDesktopFile } from '../lib/desktopFiles';
 
@@ -71,11 +72,11 @@ export default function NoteDetail() {
 
   const uploadAttachment = async (file: File) => {
     if (!id || !file) return;
-    
+
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const res = await fetch(`http://localhost:8000/api/notes/${id}/attachments`, {
         method: 'POST',
@@ -192,7 +193,7 @@ export default function NoteDetail() {
     fetchVersions();
     fetchNoteTree();
     fetchAllNotes();
-    
+
     fetch('http://localhost:8000/api/collections')
       .then(res => res.json())
       .then(setCollections)
@@ -314,7 +315,7 @@ export default function NoteDetail() {
       const res = await fetch(`http://localhost:8000/api/notes/${id}/transform`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           instruction: resolveInstruction(),
           model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b'
         }),
@@ -371,7 +372,7 @@ export default function NoteDetail() {
             <button
               className="btn"
               onClick={togglePin}
-              style={{ 
+              style={{
                 backgroundColor: note.is_pinned ? 'var(--accent-color)' : 'var(--surface-color)',
                 minWidth: '40px'
               }}
@@ -434,23 +435,23 @@ export default function NoteDetail() {
 
         {!isEditing && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {note.tags?.map((tag: string) => (
-            <span
-              key={tag}
-              style={{
-                backgroundColor: 'var(--accent-color)',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '1rem',
-                fontSize: '0.8rem',
-              }}
-            >
-              #{tag}
+            {note.tags?.map((tag: string) => (
+              <span
+                key={tag}
+                style={{
+                  backgroundColor: 'var(--accent-color)',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '1rem',
+                  fontSize: '0.8rem',
+                }}
+              >
+                #{tag}
+              </span>
+            ))}
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>
+              {wordCount} words · {readingTime} min read
             </span>
-          ))}
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>
-            {wordCount} words · {readingTime} min read
-          </span>
-        </div>
+          </div>
         )}
 
         {/* Parent Selector */}
@@ -483,7 +484,7 @@ export default function NoteDetail() {
           <button className="btn" onClick={handleSummarize} disabled={aiLoading}>
             Summarize
           </button>
-          <a 
+          <a
             href={apiUrl(`/api/export/note/${id}/markdown`)}
             target="_blank"
             rel="noopener noreferrer"
@@ -510,18 +511,18 @@ export default function NoteDetail() {
 
         {isEditing ? (
           <div style={{ marginTop: '1rem' }}>
-            <MarkdownEditor value={editContent} onChange={val => setEditContent(val || '')} height={500} />
+            <BlockEditor value={editContent} onChange={val => setEditContent(val)} />
           </div>
         ) : (
-	          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
-	            <MarkdownPreview
-	              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
-	              skipHtml={true}
-                fallbackClassName="whitespace-pre-wrap"
-	              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
-	            />
-	          </div>
-	        )}
+          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
+            <MarkdownPreview
+              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
+              skipHtml={true}
+              fallbackClassName="whitespace-pre-wrap"
+              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
+            />
+          </div>
+        )}
 
         {note.backlinks && note.backlinks.length > 0 && (
           <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
@@ -585,7 +586,7 @@ export default function NoteDetail() {
               </label>
             )}
           </div>
-          
+
           {attachments.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No attachments yet.</p>
           ) : (
@@ -634,12 +635,12 @@ export default function NoteDetail() {
           )}
         </div>
 
-	        {aiResult && (
-	          <div className="card" style={{ marginTop: '0.5rem' }}>
-	            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>AI Result</h3>
-	            <MarkdownPreview source={aiResult} skipHtml={true} fallbackClassName="whitespace-pre-wrap" style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
-	          </div>
-	        )}
+        {aiResult && (
+          <div className="card" style={{ marginTop: '0.5rem' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>AI Result</h3>
+            <MarkdownPreview source={aiResult} skipHtml={true} fallbackClassName="whitespace-pre-wrap" style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }} />
+          </div>
+        )}
 
         {/* Version History Panel */}
         {showVersions && (
