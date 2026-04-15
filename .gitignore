@@ -8,6 +8,8 @@ node_modules/
 # Tools & AI
 .agent/
 .gemini/
+.qwen
+
 
 # Python & Backend
 __pycache__/
@@ -68,3 +70,7 @@ cargo_error.log
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Docs site build output
+docs-site/docs/.vitepress/cache/
+docs-site/docs/.vitepress/dist/

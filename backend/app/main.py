@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from app.database import Base, engine
-from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export, system
+from app.routers import notes, connections, graph, ask, search, import_, collections, insights, chat as chat_router, tasks, templates, attachments, note_versions, review, export, system, voice, plugins, benchmark
 from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
 from sqlalchemy import text
 from app.config import settings
@@ -160,6 +160,9 @@ app.include_router(note_versions.router)
 app.include_router(review.router)
 app.include_router(export.router)
 app.include_router(system.router)
+app.include_router(voice.router)
+app.include_router(plugins.router)
+app.include_router(benchmark.router)
 
 @app.get("/")
 def root():

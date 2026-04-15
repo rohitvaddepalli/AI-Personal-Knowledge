@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MarkdownEditor, MarkdownPreview } from '../components/Markdown';
+import { BlockEditor } from '../components/BlockEditor';
+import { MarkdownPreview } from '../components/Markdown';
 
 interface Note {
   id: string;
@@ -65,7 +66,7 @@ export default function DailyNotes() {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return date.toLocaleDateString();
@@ -76,14 +77,14 @@ export default function DailyNotes() {
       {/* Sidebar with daily notes list */}
       <div style={{ flex: 1, maxWidth: '300px', borderRight: '1px solid var(--border-color)', paddingRight: '1rem', overflowY: 'auto' }}>
         <h2 style={{ marginBottom: '1rem' }}>📓 Daily Notes</h2>
-        <button 
-          className="btn" 
+        <button
+          className="btn"
           onClick={fetchTodayNote}
           style={{ width: '100%', marginBottom: '1rem' }}
         >
           📝 Open Today's Note
         </button>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {allDailyNotes.map(note => (
             <Link
@@ -128,12 +129,11 @@ export default function DailyNotes() {
                 )}
               </div>
             </div>
-            
+
             {isEditing ? (
-              <MarkdownEditor
+              <BlockEditor
                 value={editContent}
-                onChange={val => setEditContent(val || '')}
-                height={600}
+                onChange={val => setEditContent(val)}
               />
             ) : (
               <div style={{ backgroundColor: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>

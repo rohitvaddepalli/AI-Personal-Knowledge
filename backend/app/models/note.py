@@ -24,3 +24,4 @@ class Note(Base):
     
     # Hierarchical notes
     parent_note_id = Column(String, ForeignKey('notes.id', ondelete='CASCADE'), nullable=True)
+    order = Column(Integer, default=0)
