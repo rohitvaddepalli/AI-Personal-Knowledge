@@ -158,8 +158,8 @@ export default function AskBrain() {
   return (
     <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
       {/* Sessions Sidebar */}
-      <div style={{ width: '250px', borderRight: '1px solid var(--border-color)', paddingRight: '1rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <h3>Recent Chats</h3>
+      <div style={{ width: '280px', borderRight: '1px solid var(--border-color)', paddingRight: '1.5rem', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
+          <h3 className="mb-4">Recent Chats</h3>
           <button className="btn" onClick={() => { setHistory([]); setSessionId(null); }} style={{ marginBottom: '1rem', width: '100%' }}>+ New Chat</button>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {sessions.map(s => (
@@ -203,13 +203,13 @@ export default function AskBrain() {
       </div>
 
       {/* Chat Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '890px' }}>
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0, maxHeight: 'calc(100vh - 280px)' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0, paddingRight: '0.5rem' }}>
           {history.length === 0 && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
-              <h2 style={{ marginBottom: '0.5rem' }}>Ask your Second Brain</h2>
-              <p>Ask questions about your notes, connections, and ideas.</p>
-              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Type @ to reference a specific note.</p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)', textAlign: 'center' }}>
+              <h2 className="font-serif mb-2">Ask your Second Brain</h2>
+              <p className="max-w-md">Ask questions about your notes, connections, and ideas. Your AI companion will synthesize an answer from your own knowledge.</p>
+              <p style={{ fontSize: '0.9rem', marginTop: '1rem' }} className="text-accent/80 font-medium">Type @ to reference a specific note.</p>
             </div>
           )}
           {history.map((msg, idx) => (

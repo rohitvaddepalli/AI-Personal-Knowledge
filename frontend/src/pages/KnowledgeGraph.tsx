@@ -54,27 +54,35 @@ export default function KnowledgeGraph() {
   }, []);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <h1>Knowledge Graph</h1>
-        <div ref={containerRef} style={{ flex: 1, backgroundColor: 'var(--surface-color)', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-        <ForceGraph2D
-            width={dimensions.width}
-            height={dimensions.height}
-            graphData={data}
-            autoPauseRedraw
-            cooldownTicks={80}
-            cooldownTime={2500}
-            d3AlphaDecay={0.08}
-            nodeLabel="name"
-            nodeAutoColorBy="group"
-            nodeVal="val"
-            linkDirectionalArrowLength={3.5}
-            linkDirectionalArrowRelPos={1}
-            onNodeClick={(node: any) => {
-               navigate(`/notes/${node.id}`);
-            }}
-            linkColor={() => 'rgba(255,255,255,0.2)'}
-        />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="m-0">Knowledge Graph</h1>
+          <div className="text-xs text-text-muted bg-bg-highlight px-3 py-1 rounded-full border border-border">
+            {data.nodes.length} Nodes • {data.links.length} Connections
+          </div>
+        </div>
+        
+        <div ref={containerRef} className="flex-1 bg-surface rounded-2xl border border-border overflow-hidden shadow-inner relative group">
+          {dimensions.width > 0 && (
+            <ForceGraph2D
+                width={dimensions.width}
+                height={dimensions.height}
+                graphData={data}
+                autoPauseRedraw
+                cooldownTicks={80}
+                cooldownTime={2500}
+                d3AlphaDecay={0.08}
+                nodeLabel="name"
+                nodeAutoColorBy="group"
+                nodeVal="val"
+                linkDirectionalArrowLength={3.5}
+                linkDirectionalArrowRelPos={1}
+                onNodeClick={(node: any) => {
+                   navigate(`/notes/${node.id}`);
+                }}
+                linkColor={() => 'rgba(128,128,128,0.2)'}
+            />
+          )}
         </div>
     </div>
   );

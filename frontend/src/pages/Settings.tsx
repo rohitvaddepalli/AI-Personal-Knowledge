@@ -34,11 +34,21 @@ export default function Settings() {
     }
   }, [status?.ollamaBaseUrl]);
 
+  const [fontSize, setFontSizeState] = useState(() => Number(localStorage.getItem('fontSize')) || 16);
+
   const saveSettings = () => {
     localStorage.setItem('profileName', profileName);
     localStorage.setItem('profileBio', profileBio);
     localStorage.setItem('activeModel', activeModel);
+    localStorage.setItem('fontSize', String(fontSize));
     alert('Settings saved globally!');
+  };
+
+  const handleFontSizeChange = (val: number) => {
+    setFontSizeState(val);
+    document.documentElement.style.fontSize = `${val}px`;
+    localStorage.setItem('fontSize', String(val));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleDeleteModel = async (name: string) => {
@@ -73,6 +83,26 @@ export default function Settings() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%', overflowY: 'auto' }}>
       <h1>Settings</h1>
       
+      <div className="card">
+        <h2>Appearance</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Adjust how the Second Brain looks and feels.</p>
+        
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Global Text Size ({fontSize}px)</label>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <span style={{ fontSize: '12px' }}>A</span>
+          <input 
+            type="range" 
+            min="12" 
+            max="24" 
+            step="1" 
+            value={fontSize} 
+            onChange={e => handleFontSizeChange(Number(e.target.value))}
+            style={{ flex: 1, accentColor: 'var(--accent-color)' }}
+          />
+          <span style={{ fontSize: '24px' }}>A</span>
+        </div>
+      </div>
+
       <div className="card">
         <h2>Global Settings & Profile</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Personalize how the Second Brain interacts with you and which local AI Model it uses.</p>

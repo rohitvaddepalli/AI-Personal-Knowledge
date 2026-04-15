@@ -73,9 +73,15 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-12">
+      {/* SEO Semantic Block */}
+      <section className="sr-only" aria-hidden="true">
+        <h2>Dashboard - Second Brain AI</h2>
+        <p>Overview of your personal knowledge base, recent insights, and capture tools.</p>
+      </section>
+
       <header className="mb-10">
-        <h1 className="text-4xl lg:text-5xl font-serif text-text-main mb-3">Welcome to your space.</h1>
-        <p className="text-lg text-text-muted">A calm environment for capturing, connecting, and deep thinking.</p>
+        <h1 className="text-text-main mb-3">Welcome to your space.</h1>
+        <p className="text-text-muted">A calm environment for capturing, connecting, and deep thinking.</p>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

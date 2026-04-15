@@ -5,13 +5,22 @@ from app.services.embedding_service import note_collection
 from app.models.connection import Connection
 from app.database import SessionLocal
 
+from app.utils.security import sanitize_content_for_prompt
+
 async def classify_relationship(llm_base_url: str, note_a: str, note_b: str) -> dict:
+    safe_a = sanitize_content_for_prompt(note_a)
+    safe_b = sanitize_content_for_prompt(note_b)
+    
     prompt = f"""Classify the relationship between these two notes.
 Options: similar, contradicts, extends, inspires, prerequisite.
-Note A:
-{note_a}
-Note B:
-{note_b}
+
+[NOTE_A_START]
+{safe_a}
+[NOTE_A_END]
+
+[NOTE_B_START]
+{safe_b}
+[NOTE_B_END]
 
 Respond with only the classification word.
 """
