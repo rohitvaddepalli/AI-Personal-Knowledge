@@ -382,6 +382,27 @@ def get_note_tree(note_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/full-tree")
+def get_full_tree(db: Session = Depends(get_db)):
+    """Get all notes as a nested tree structure"""
+    all_notes = db.query(NoteModel).filter(
+        NoteModel.is_archived == False,
+        NoteModel.deleted_at == None
+    ).all()
+    
+    # Map by ID for quick lookup
+    note_map = {n.id: {"id": n.id, "title": n.title, "children": []} for n in all_notes}
+    roots = []
+    
+    for n in all_notes:
+        if n.parent_note_id and n.parent_note_id in note_map:
+            note_map[n.parent_note_id]["children"].append(note_map[n.id])
+        else:
+            roots.append(note_map[n.id])
+            
+    return roots
+
+
 @router.post("/{note_id}/summarize", response_model=NoteTransformResponse)
 def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session = Depends(get_db)):
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()

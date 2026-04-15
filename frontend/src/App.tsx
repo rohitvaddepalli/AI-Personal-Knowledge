@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X, LayoutGrid, Sparkles, Puzzle } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
+import { Sidebar, NAV_ITEMS } from './components/Sidebar';
 import './index.css';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -21,22 +22,6 @@ const DatabaseView = lazy(() => import('./pages/DatabaseView'));
 const PromptsLibrary = lazy(() => import('./pages/PromptsLibrary'));
 const PluginsPage = lazy(() => import('./pages/PluginsPage'));
 
-const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: BookOpen },
-  { path: '/notes', label: 'Notes', icon: PenTool },
-  { path: '/review', label: 'Review', icon: RefreshCw },
-  { path: '/notes/new', label: 'New Note', icon: PenTool },
-  { path: '/templates', label: 'Templates', icon: LayoutTemplate },
-  { path: '/graph', label: 'Graph', icon: Network },
-  { path: '/ask', label: 'Ask Brain', icon: HelpCircle },
-  { path: '/database', label: 'Database', icon: LayoutGrid },
-  { path: '/prompts', label: 'Prompts', icon: Sparkles },
-  { path: '/collections', label: 'Collections', icon: Layers },
-  { path: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { path: '/plugins', label: 'Plugins', icon: Puzzle },
-  { path: '/trash', label: 'Trash', icon: Trash2 },
-  { path: '/settings', label: 'Settings', icon: SettingsIcon },
-];
 
 function PageWrapper({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
@@ -143,59 +128,15 @@ function AppContent() {
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      <aside 
-        className={`fixed inset-y-0 left-0 z-40 w-56 border-r border-border bg-surface/80 backdrop-blur-xl transform transition-transform duration-300 ease-out lg:static lg:translate-x-0 flex flex-col ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        <div className="p-6">
-          <h2 className="text-2xl font-serif font-medium tracking-tight flex items-center gap-3">
-            <span className="text-accent">✧</span> Second Brain
-          </h2>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-accent/10 text-accent font-medium'
-                    : 'text-text-muted hover:text-text-main hover:bg-white/5'
-                }`}
-              >
-                <Icon size={18} className={isActive ? 'text-accent' : 'text-text-muted'} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-border">
-          {pulling && (
-            <div className="mb-4 p-4 bg-bg-highlight rounded-xl border border-border text-sm">
-              <div className="font-medium text-accent mb-2">Downloading Model...</div>
-              <div className="w-full bg-bg-base rounded-full h-1.5 overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-[width] duration-200 ease-linear"
-                  style={{ width: `${pullProgress}%` }}
-                />
-              </div>
-              <div className="mt-2 text-text-muted text-xs truncate">{pullResult}</div>
-            </div>
-          )}
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-base border border-border hover:border-accent/40 text-text-muted hover:text-text-main transition-colors"
-          >
-            <span className="text-sm font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        </div>
-      </aside>
+      <Sidebar 
+        theme={theme}
+        toggleTheme={toggleTheme}
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        pulling={pulling}
+        pullProgress={pullProgress}
+        pullResult={pullResult}
+      />
 
       <main className="flex-1 relative overflow-y-auto">
         <div className={`mx-auto min-h-full flex flex-col ${

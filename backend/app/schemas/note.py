@@ -11,6 +11,8 @@ class NoteBase(BaseModel):
     tags: Optional[List[str]] = None
     is_archived: Optional[bool] = False
     is_pinned: Optional[bool] = False
+    order: Optional[int] = 0
+    parent_note_id: Optional[str] = None
 
 
 class NoteCreate(NoteBase):
