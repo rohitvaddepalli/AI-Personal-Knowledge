@@ -14,6 +14,21 @@ import secrets
 ensure_app_directories()
 load_runtime_settings()
 
+
+def _is_loopback_host(host: str) -> bool:
+    normalized = (host or "").strip().lower()
+    if normalized in {"", "localhost", "testclient"}:
+        return True
+
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except Exception:
+        return False
+
+
+def _is_local_only_binding() -> bool:
+    return _is_loopback_host(settings.api_host)
+
 # Create all database tables
 Base.metadata.create_all(bind=engine)
 
@@ -25,25 +40,19 @@ with engine.begin() as conn:
         }
 
         needed_columns = [
-            ("is_pinned", "BOOLEAN", "0"),
-            ("deleted_at", "DATETIME", None),
-            ("review_count", "INTEGER", "0"),
-            ("next_review_at", "DATETIME", None),
-            ("last_reviewed_at", "DATETIME", None),
-            ("parent_note_id", "VARCHAR", None),
+            ("is_pinned", "is_pinned BOOLEAN DEFAULT 0"),
+            ("deleted_at", "deleted_at DATETIME"),
+            ("review_count", "review_count INTEGER DEFAULT 0"),
+            ("next_review_at", "next_review_at DATETIME"),
+            ("last_reviewed_at", "last_reviewed_at DATETIME"),
+            ("parent_note_id", "parent_note_id VARCHAR"),
+            ("order", '"order" INTEGER DEFAULT 0'),
         ]
 
-        for name, col_type, default in needed_columns:
+        for name, column_sql in needed_columns:
             if name in existing_columns:
                 continue
-            if default is None:
-                conn.execute(text(f"ALTER TABLE notes ADD COLUMN {name} {col_type}"))
-            else:
-                conn.execute(
-                    text(
-                        f"ALTER TABLE notes ADD COLUMN {name} {col_type} DEFAULT {default}"
-                    )
-                )
+            conn.execute(text(f"ALTER TABLE notes ADD COLUMN {column_sql}"))
     except Exception as e:
         print(f"DB migration check error: {e}")
 
@@ -103,13 +112,13 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
                 if not secrets.compare_digest(provided, settings.api_key):
                     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
             elif not settings.allow_remote_clients:
+                # If the server itself is bound to loopback, the socket already limits access.
+                if _is_local_only_binding():
+                    return await call_next(request)
+
                 # No API key configured: only allow loopback clients.
                 host = (request.client.host if request.client else "") or ""
-                try:
-                    ip = ipaddress.ip_address(host)
-                    if not ip.is_loopback:
-                        return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
-                except Exception:
+                if not _is_loopback_host(host):
                     return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
 
         return await call_next(request)

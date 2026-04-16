@@ -2,6 +2,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import settings
+from app.main import app
+
 
 class TestTemplates:
     """Test suite for templates."""
@@ -167,6 +170,25 @@ class TestHealth:
         """Test the system status endpoint."""
         response = client.get("/api/system/status")
         assert response.status_code == 200
+
+    def test_loopback_binding_allows_api_without_key(self):
+        """Loopback-bound servers should not reject ordinary local API requests."""
+        previous_api_host = settings.api_host
+        previous_allow_remote_clients = settings.allow_remote_clients
+        previous_api_key = settings.api_key
+
+        settings.api_host = "127.0.0.1"
+        settings.allow_remote_clients = False
+        settings.api_key = None
+
+        try:
+            with TestClient(app) as client:
+                response = client.get("/api/health")
+                assert response.status_code == 200
+        finally:
+            settings.api_host = previous_api_host
+            settings.allow_remote_clients = previous_allow_remote_clients
+            settings.api_key = previous_api_key
 
 
 class TestReview:

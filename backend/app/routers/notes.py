@@ -196,24 +196,6 @@ def read_notes(skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
     return notes
 
 
-@router.get("/{note_id}", response_model=NoteResponse)
-def read_note(note_id: str, db: Session = Depends(get_db)):
-    note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
-    if note is None:
-        raise HTTPException(status_code=404, detail="Note not found")
-    note.tags = json.loads(note.tags) if note.tags else []
-    
-    # Simple backlink finding based on title match in other notes' content
-    backlinks_query = db.query(NoteModel).filter(
-        NoteModel.id != note_id,
-        NoteModel.is_archived == False,
-        NoteModel.content.icontains(f"[[{note.title}]]")
-    ).all()
-    note.backlinks = [{"id": b.id, "title": b.title} for b in backlinks_query]
-    
-    return note
-
-
 @router.put("/{note_id}", response_model=NoteResponse)
 def update_note(note_id: str, note_update: NoteUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     db_note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
@@ -409,6 +391,24 @@ def get_full_tree(db: Session = Depends(get_db)):
             roots.append(note_map[n.id])
             
     return roots
+
+
+@router.get("/{note_id}", response_model=NoteResponse)
+def read_note(note_id: str, db: Session = Depends(get_db)):
+    note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
+    if note is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    note.tags = json.loads(note.tags) if note.tags else []
+    
+    # Simple backlink finding based on title match in other notes' content
+    backlinks_query = db.query(NoteModel).filter(
+        NoteModel.id != note_id,
+        NoteModel.is_archived == False,
+        NoteModel.content.icontains(f"[[{note.title}]]")
+    ).all()
+    note.backlinks = [{"id": b.id, "title": b.title} for b in backlinks_query]
+    
+    return note
 
 
 @router.post("/{note_id}/summarize", response_model=NoteTransformResponse)
