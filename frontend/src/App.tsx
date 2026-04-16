@@ -1,9 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X, LayoutGrid, Sparkles, Puzzle } from 'lucide-react';
+import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
-import { Sidebar, NAV_ITEMS } from './components/Sidebar';
 import './index.css';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -18,6 +17,9 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Trash = lazy(() => import('./pages/Trash'));
 const Templates = lazy(() => import('./pages/Templates'));
 const Review = lazy(() => import('./pages/Review'));
+const DatabaseView = lazy(() => import('./pages/DatabaseView'));
+const PromptsLibrary = lazy(() => import('./pages/PromptsLibrary'));
+const PluginsPage = lazy(() => import('./pages/PluginsPage'));
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: BookOpen },
@@ -82,7 +84,7 @@ function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pulling, pullResult, pullProgress } = useDownload();
   const currentNav = useMemo(
-    () => ALL_NAV_ITEMS.find((item) => item.path === location.pathname),
+    () => NAV_ITEMS.find((item) => item.path === location.pathname),
     [location.pathname]
   );
 

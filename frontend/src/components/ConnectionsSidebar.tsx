@@ -68,7 +68,6 @@ export default function ConnectionsSidebar({ noteId }: { noteId: string }) {
           const richConnections: RichConnection[] = connections.map(c => {
             const otherId = c.source_note_id === noteId ? c.target_note_id : c.source_note_id;
             const isIncoming = c.target_note_id === noteId;
-            const isOutgoing = c.source_note_id === noteId;
             // Check if reverse connection also exists
             const hasBoth = connections.some(
               c2 => c2.source_note_id === otherId && c2.target_note_id === noteId

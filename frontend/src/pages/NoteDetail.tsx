@@ -509,20 +509,16 @@ export default function NoteDetail() {
           {aiLoading && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>AI is working...</span>}
         </div>
 
-        {isEditing ? (
-          <div style={{ marginTop: '1rem' }}>
-            <BlockEditor value={editContent} onChange={val => setEditContent(val)} />
-          </div>
-        ) : (
-          <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
-            <MarkdownPreview
-              source={note.content ? note.content.replace(/\[\[(.*?)\]\]/g, '[$1](/notes?q=$1)') : ''}
-              skipHtml={true}
-              fallbackClassName="whitespace-pre-wrap"
-              style={{ backgroundColor: 'transparent', color: 'var(--text-main)' }}
-            />
-          </div>
-        )}
+         {isEditing ? (
+           <div style={{ marginTop: '1rem' }}>
+             <BlockEditor value={editContent} onChange={val => setEditContent(val)} />
+           </div>
+         ) : (
+           <div style={{ backgroundColor: 'transparent', marginBottom: '1rem' }}>
+             <BlockEditor value={note.content || ''} onChange={() => {}} editable={false} />
+           </div>
+         )}
+
 
         {note.backlinks && note.backlinks.length > 0 && (
           <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>

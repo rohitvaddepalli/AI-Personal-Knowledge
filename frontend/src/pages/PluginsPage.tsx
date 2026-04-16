@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Code2, Puzzle, CheckCircle2, XCircle, ExternalLink, RefreshCw, Info } from 'lucide-react';
+import { Code2, Puzzle, CheckCircle2, XCircle, RefreshCw, Info } from 'lucide-react';
 
 interface Plugin {
   id: string;

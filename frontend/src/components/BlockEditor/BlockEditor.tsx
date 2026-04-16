@@ -1,4 +1,5 @@
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -16,6 +17,7 @@ export interface BlockEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  editable?: boolean;
 }
 
 export interface BlockEditorRef {
@@ -259,16 +261,19 @@ const SlashCommandExt = Extension.create({
     };
   },
 
-  addExtensions() {
-    return [Suggestion.configure(this.options.suggestion)];
+  addProseMirrorPlugins() {
+    return [
+      Suggestion(this.options.suggestion),
+    ];
   },
 });
 
 export const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(
-  ({ value, onChange, placeholder = 'Type \'/\' for commands, or start writing...', className }, ref) => {
+  ({ value, onChange, placeholder = 'Type \'/\' for commands, or start writing...', className, editable = true }, ref) => {
     const editorRef = useRef<any>(null);
 
     const editor = useEditor({
+      editable,
       extensions: [
         StarterKit.configure({
           bulletList: {

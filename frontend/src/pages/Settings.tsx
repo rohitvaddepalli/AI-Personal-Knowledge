@@ -12,7 +12,7 @@ export default function Settings() {
   const [systemSaving, setSystemSaving] = useState(false);
   const [telemetryEnabled, setTelemetryEnabled] = useState(() => localStorage.getItem('telemetry_enabled') === '1');
   const [reduceMotion, setReduceMotion] = useState(() => localStorage.getItem('reduce_motion') === '1');
-  const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('font_size') || '15'));
+  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('fontSize')) || 16);
   
   const [modelName, setModelName] = useState('llama3');
   const { pulling, pullResult, pullModel } = useDownload();
@@ -37,8 +37,6 @@ export default function Settings() {
     }
   }, [status?.ollamaBaseUrl]);
 
-  const [fontSize, setFontSizeState] = useState(() => Number(localStorage.getItem('fontSize')) || 16);
-
   const saveSettings = () => {
     localStorage.setItem('profileName', profileName);
     localStorage.setItem('profileBio', profileBio);
@@ -48,7 +46,7 @@ export default function Settings() {
   };
 
   const handleFontSizeChange = (val: number) => {
-    setFontSizeState(val);
+    setFontSize(val);
     document.documentElement.style.fontSize = `${val}px`;
     localStorage.setItem('fontSize', String(val));
     window.dispatchEvent(new Event('storage'));
