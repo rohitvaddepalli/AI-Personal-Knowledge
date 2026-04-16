@@ -120,6 +120,9 @@ app = FastAPI(
     version="0.1.0"
 )
 
+app.add_middleware(AccessControlMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
 # CORS setup
 # In a desktop app/local environment, localhost is generally safe.
 # Avoid "*" in any production-ready deployment.
@@ -140,9 +143,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(AccessControlMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(notes.router)
 app.include_router(connections.router)

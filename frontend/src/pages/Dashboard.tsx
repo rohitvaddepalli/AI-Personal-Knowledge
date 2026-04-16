@@ -2,11 +2,25 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Compass, PenTool, Search, Sparkles, X, Pin, ArrowRight } from 'lucide-react';
 
+function getErrorMessage(status: number) {
+  if (status === 401) {
+    return 'You need to sign in before the dashboard can load.';
+  }
+
+  if (status === 403) {
+    return 'The backend denied access to dashboard data. Check the API auth or permissions.';
+  }
+
+  return `Request failed with status ${status}.`;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [insights, setInsights] = useState<any[]>([]);
   const [recentNotes, setRecentNotes] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
+  const [recentNotesError, setRecentNotesError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInsights();
@@ -16,20 +30,28 @@ export default function Dashboard() {
   const fetchInsights = async () => {
     try {
       const res = await fetch('http://localhost:8000/api/insights');
+      if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
-      setInsights(data);
+      setInsights(Array.isArray(data) ? data : []);
+      setInsightsError(null);
     } catch (e) {
       console.error(e);
+      setInsights([]);
+      setInsightsError(e instanceof Error ? e.message : 'Failed to load insights.');
     }
   };
 
   const fetchRecentNotes = async () => {
     try {
       const res = await fetch('http://localhost:8000/api/notes?limit=5');
+      if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
-      setRecentNotes(data.slice(0, 5));
+      setRecentNotes(Array.isArray(data) ? data.slice(0, 5) : []);
+      setRecentNotesError(null);
     } catch (e) {
       console.error(e);
+      setRecentNotes([]);
+      setRecentNotesError(e instanceof Error ? e.message : 'Failed to load recent notes.');
     }
   };
 
@@ -83,6 +105,12 @@ export default function Dashboard() {
         <h1 className="text-text-main mb-3">Welcome to your space.</h1>
         <p className="text-text-muted">A calm environment for capturing, connecting, and deep thinking.</p>
       </header>
+
+      {(insightsError || recentNotesError) && (
+        <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-text-main">
+          {insightsError ?? recentNotesError}
+        </section>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[

@@ -10,6 +10,18 @@ interface Note {
   is_pinned: boolean;
 }
 
+function getErrorMessage(status: number) {
+  if (status === 401) {
+    return 'You need to sign in before notes can be loaded.';
+  }
+
+  if (status === 403) {
+    return 'This workspace denied access to notes. Check the backend auth or API permissions.';
+  }
+
+  return `Request failed with status ${status}.`;
+}
+
 export default function NoteList() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,14 +32,22 @@ export default function NoteList() {
   const [selectedCol, setSelectedCol] = useState('');
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
+  const [collectionsError, setCollectionsError] = useState<string | null>(null);
 
   const fetchCollections = useCallback(async () => {
     try {
       const res = await fetch('http://localhost:8000/api/collections');
+      if (!res.ok) {
+        throw new Error(getErrorMessage(res.status));
+      }
       const data = await res.json();
-      setCollections(data);
+      setCollections(Array.isArray(data) ? data : []);
+      setCollectionsError(null);
     } catch (e) {
       console.error(e);
+      setCollections([]);
+      setCollectionsError(e instanceof Error ? e.message : 'Failed to load collections.');
     }
   }, []);
 
@@ -39,18 +59,30 @@ export default function NoteList() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: query, limit: 20 })
         });
+        if (!res.ok) {
+          throw new Error(getErrorMessage(res.status));
+        }
         const data = await res.json();
-        setNotes(data);
+        setNotes(Array.isArray(data) ? data : []);
+        setNotesError(null);
       } catch (e) {
         console.error(e);
+        setNotes([]);
+        setNotesError(e instanceof Error ? e.message : 'Failed to load notes.');
       }
     } else {
       try {
         const res = await fetch('http://localhost:8000/api/notes');
+        if (!res.ok) {
+          throw new Error(getErrorMessage(res.status));
+        }
         const data = await res.json();
-        setNotes(data);
+        setNotes(Array.isArray(data) ? data : []);
+        setNotesError(null);
       } catch (err) {
         console.error(err);
+        setNotes([]);
+        setNotesError(err instanceof Error ? err.message : 'Failed to load notes.');
       }
     }
   }, []);
@@ -164,7 +196,7 @@ export default function NoteList() {
 
   const collectionLookup = useMemo(() => {
     const map = new Map<string, Set<string>>();
-    for (const collection of collections) {
+    for (const collection of Array.isArray(collections) ? collections : []) {
       map.set(
         collection.id.toString(),
         new Set((collection.notes ?? []).map((cn: any) => cn.id))
@@ -253,6 +285,14 @@ export default function NoteList() {
           {importing ? 'Importing...' : 'Import URL'}
         </button>
       </div>
+
+      {(collectionsError || notesError) && (
+        <div className="card" style={{ border: '1px solid #f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.08)' }}>
+          <p style={{ margin: 0, color: 'var(--text-main)' }}>
+            {notesError ?? collectionsError}
+          </p>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {sortedNotes.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No notes found. Create one!</p> : null}
