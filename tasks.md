@@ -33,7 +33,7 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 ## Phase 1 - Product Trust and UX Baseline (Must do now)
 
 ### 1.1 RAG trust and answer quality
-- [ ] Change default global chat retrieval: do not require `@mention` to retrieve context.
+- [ ] Support both retrieval styles: default global retrieval across the knowledge base, plus optional `@mention`-scoped retrieval for explicit note targeting.
 - [ ] Add modes in Ask Brain: `Auto`, `Search only`, `Strict cited answers`.
 - [ ] Show per-answer confidence + retrieval explanation ("why these sources").
 - [ ] Add citation chips linking to exact note anchors/snippets.
@@ -75,6 +75,9 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 - [ ] Implement production-grade URL ingestion with metadata extraction and robust fallback.
 - [ ] Complete YouTube ingestion pipeline (captions -> audio -> transcription fallback).
 - [ ] Complete file upload ingestion pipeline (PDF/DOCX/PPTX/MD/TXT/HTML).
+- [ ] Add voice dictation note capture (speech-to-text): user dictates, sees live transcript, and saves directly to a new note or Inbox.
+- [ ] Add push-to-talk and hands-free modes with pause/resume, punctuation assist, and language/accent selection.
+- [ ] Add optional post-processing on dictated text (cleanup, paragraph formatting, title suggestion, tag suggestion).
 - [ ] Add ingestion job queue status and progress UI.
 
 ### 3.2 Smart tagging and connections
@@ -107,11 +110,35 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 - [ ] Add prompt-injection-safe context handling for all ingestion sources.
 - [ ] Add streaming answer transport (SSE) for chat and long AI operations.
 
+### 4.4 Low-end PC optimization track
+- [ ] Add "Low Resource Mode" toggle (smaller models, lower context window, reduced concurrency).
+- [ ] Provide model presets by RAM tier (4 GB / 8 GB / 16 GB+) with safe defaults.
+- [ ] Defer heavy embeddings/summarization to background queue and throttle CPU usage.
+- [ ] Add lazy loading and route-level code splitting checks for all heavy frontend pages.
+- [ ] Add lightweight graph mode (cap nodes/edges, progressive rendering, optional static preview).
+- [ ] Add "battery/performance saver" UI mode (reduced animations, lower refresh frequency).
+- [ ] Add startup profiling and memory budget checks in desktop runtime.
+- [ ] Add a compact always-visible resource monitor widget pinned to a screen corner (user-configurable corner).
+- [ ] Show quick stats in collapsed state (CPU, RAM, active model/task indicator) with very low polling overhead.
+- [ ] Expand on click into detailed panel (CPU/RAM history, queue depth, model usage, embedding/indexing status, recent heavy operations).
+- [ ] Add thresholds and visual warnings (yellow/red) for high CPU/RAM and suggest one-click actions (pause indexing, switch to low resource mode).
+- [ ] Ensure monitor works in both web and desktop runtime with graceful fallback where system metrics are unavailable.
+
 ### 4.3 Security hardening
 - [ ] Add auth modes: single-user localhost mode and optional multi-user mode.
 - [ ] Add JWT access/refresh flow with secure cookies and CSRF strategy.
 - [ ] Add rate limiting on ingestion and AI endpoints.
 - [ ] Add markdown sanitization and stricter upload validation.
+
+### 4.5 Multi-provider API key support (user-managed)
+- [ ] Add provider abstraction layer for LLM calls (Ollama local + external providers).
+- [ ] Add settings UI for user-provided API keys: Google, OpenAI, OpenRouter, Anthropic, and extensible custom providers.
+- [ ] Add per-feature provider/model routing (chat, summarize, embeddings, edit, transcription assist).
+- [ ] Store secrets securely (desktop secure storage/keychain where available; encrypted-at-rest fallback).
+- [ ] Add key validation and health checks without exposing keys in logs/errors.
+- [ ] Add privacy controls: explicit opt-in for cloud providers, with local-only mode as default.
+- [ ] Add cost/usage guardrails (token caps, per-provider limits, warning thresholds).
+- [ ] Add provider fallback chain (preferred provider -> backup provider -> local Ollama fallback).
 
 ## Phase 5 - Retention and "Addictive" Product Layer (Healthy)
 
