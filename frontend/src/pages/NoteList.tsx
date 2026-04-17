@@ -64,7 +64,7 @@ export default function NoteList() {
     if (query && query.trim()) {
       try {
         const res = await fetch('http://localhost:8000/api/search', {
-          method:  'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, limit: 20 })
         });
         if (!res.ok) throw new Error(getErrorMessage(res.status));
@@ -111,7 +111,7 @@ export default function NoteList() {
     try {
       const res = await fetch('http://localhost:8000/api/import/url', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: importUrlStr, model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' })
+        body: JSON.stringify({ url: importUrlStr, model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b', ai_summarize: aiSummarize })
       });
       if (!res.ok) throw new Error(await res.text());
       setImportUrlStr('');
@@ -496,7 +496,7 @@ export default function NoteList() {
                       }}
                     />
                   </div>
-                  <button className="btn" onClick={handleImport} disabled={importing} style={{ padding: '10px 16px' }}>
+                  <button className="btn" onClick={handleImport} disabled={importing || !importUrlStr.trim()} style={{ padding: '10px 16px' }}>
                     {importing ? 'Fetching...' : 'Fetch & Import'}
                   </button>
                 </div>
@@ -507,7 +507,7 @@ export default function NoteList() {
                   marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--outline-variant)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div 
+                    <div
                       role="switch"
                       aria-checked={aiSummarize}
                       tabIndex={0}
@@ -543,9 +543,9 @@ export default function NoteList() {
               </div>
             )}
             {captureTab !== 'url' && (
-               <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                 <p style={{ color: 'var(--on-surface-dim)', fontSize: '0.875rem' }}>This capture method is coming soon.</p>
-               </div>
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <p style={{ color: 'var(--on-surface-dim)', fontSize: '0.875rem' }}>This capture method is coming soon.</p>
+              </div>
             )}
           </div>
         </div>

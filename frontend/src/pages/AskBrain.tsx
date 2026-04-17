@@ -168,8 +168,10 @@ export default function AskBrain() {
                 background: sessionId === s.id ? 'var(--primary-dim)' : 'transparent',
                 color: sessionId === s.id ? 'var(--primary)' : 'var(--on-surface-variant)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                transition: 'all 200ms', outline: 'none',
+                transition: 'all 200ms',
               }}
+              onFocus={e => { e.currentTarget.style.boxShadow = '0 0 0 2px var(--primary)'; }}
+              onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
               onMouseEnter={e => { if (sessionId !== s.id) e.currentTarget.style.background = 'var(--surface-variant)'; }}
               onMouseLeave={e => { if (sessionId !== s.id) e.currentTarget.style.background = 'transparent'; }}
             >

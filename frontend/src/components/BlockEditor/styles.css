@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════════
-   Block Editor — NeuronVault Design System
-   ═══════════════════════════════════════════════════ */
-
 .block-editor-container {
   position: relative;
   width: 100%;
@@ -77,7 +73,7 @@
   color: var(--on-surface, #E2E2EB);
 }
 
-.block-editor-container .ProseMirror > * + * {
+.block-editor-container .ProseMirror>*+* {
   margin-top: 0.75em;
 }
 
@@ -192,9 +188,8 @@
 .block-editor-container .ProseMirror a:hover,
 .block-editor-container .ProseMirror a:focus-visible {
   color: var(--primary-container, #947DFF);
-  outline: 2px solid var(--primary-dim, rgba(202, 190, 255, 0.15));
+  outline: 2px solid var(--primary, #CABEFF);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 /* Task List */

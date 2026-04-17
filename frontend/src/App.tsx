@@ -247,7 +247,7 @@ function AppContent() {
               role="button"
               tabIndex={0}
               onClick={() => navigate('/notes')}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/notes'); }}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/notes'); } }}
               style={{
                 color: 'var(--on-surface-dim)', fontSize: '0.8125rem',
                 fontFamily: 'var(--font-body)', width: '100%', cursor: 'pointer',

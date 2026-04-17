@@ -13,12 +13,6 @@ export default function KnowledgeGraph() {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
 
-  const getConnectionCount = (nodeId: string) => {
-    return data.links.filter((l: any) =>
-      (typeof l.source === 'object' ? l.source?.id : l.source) === nodeId ||
-      (typeof l.target === 'object' ? l.target?.id : l.target) === nodeId
-    ).length;
-  };
 
   const filteredData = useMemo(() => {
     if (filter === 'all') return data;
@@ -36,6 +30,13 @@ export default function KnowledgeGraph() {
     });
     return { nodes: filteredNodes, links: filteredLinks };
   }, [data, filter]);
+
+  const getConnectionCount = (nodeId: string) => {
+    return filteredData.links.filter((l: any) =>
+      (typeof l.source === 'object' ? l.source?.id : l.source) === nodeId ||
+      (typeof l.target === 'object' ? l.target?.id : l.target) === nodeId
+    ).length;
+  };
 
   useEffect(() => {
     fetch('http://localhost:8000/api/graph')
@@ -88,14 +89,14 @@ export default function KnowledgeGraph() {
           {/* Tab links */}
           <nav style={{ display: 'flex', gap: 4, fontFamily: 'var(--font-display)', fontSize: '0.8125rem' }}>
             {['Notes', 'Chat', 'Graph', 'Flashcards', 'Analytics'].map(tab => {
-              const tabRoutes: Record<string, string> = { Notes: '/notes', Chat: '/ask', Graph: '/graph', Flashcards: '/review', Analytics: '/graph' };
+              const tabRoutes: Record<string, string> = { Notes: '/notes', Chat: '/ask', Graph: '/graph', Flashcards: '/review', Analytics: '/analytics' };
               return (
                 <span
                   key={tab}
                   role="button"
                   tabIndex={0}
                   onClick={() => { setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); }}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); } }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); } }}
                   style={{
                     padding: '4px 10px', borderRadius: 'var(--radius-full)', cursor: 'pointer',
                     color: activeTab === tab ? 'var(--primary)' : 'var(--on-surface-dim)',
@@ -187,7 +188,7 @@ export default function KnowledgeGraph() {
                 const isAI = node.group === 'ai';
                 ctx.fillStyle = isSelected ? '#CABEFF'
                   : isAI ? '#03C6B2'
-                  : '#947DFF';
+                    : '#947DFF';
                 ctx.fill();
 
                 // White center dot for selected

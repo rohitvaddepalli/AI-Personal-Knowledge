@@ -140,7 +140,7 @@ export default function NoteDetail() {
 
   useEffect(() => {
     fetchNote(); fetchAttachments(); fetchVersions(); fetchNoteTree(); fetchAllNotes();
-    fetch(apiUrl('/api/collections')).then(r => r.json()).then(setCollections).catch(console.error);
+    fetch(apiUrl('/api/collections')).then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); }).then(setCollections).catch(console.error);
     fetch(apiUrl(`/api/chat/sessions?note_id=${id}`)).then(r => r.json())
       .then(sessions => {
         if (sessions?.length > 0) {
@@ -307,7 +307,7 @@ export default function NoteDetail() {
             >
               <Sparkles size={14} /> AI Actions
             </button>
-            <button className="btn-ghost" style={{ padding: '6px 8px' }} title="More options (coming soon)" aria-disabled="true">
+            <button className="btn-ghost" style={{ padding: '6px 8px' }} title="More options (coming soon)" disabled>
               <MoreVertical size={16} />
             </button>
           </div>
@@ -392,7 +392,7 @@ export default function NoteDetail() {
             fontSize: '0.9375rem', lineHeight: 1.75,
             maxWidth: 700,
           }}>
-            <BlockEditor value={note.content || ''} onChange={() => {}} editable={false} />
+            <BlockEditor value={note.content || ''} onChange={() => { }} editable={false} />
           </div>
         )}
 
