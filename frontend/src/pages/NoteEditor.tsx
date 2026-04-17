@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlockEditor } from '../components/BlockEditor';
 import { VoiceMemo } from '../components/VoiceMemo';
+import { Save, Maximize2, Minimize2, Sparkles, Tag, Mic } from 'lucide-react';
 
 interface Template {
   id: number;
@@ -22,23 +23,11 @@ export default function NoteEditor() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for template data from Templates page
     const templateTitle = sessionStorage.getItem('templateTitle');
     const templateContent = sessionStorage.getItem('templateContent');
-    if (templateTitle !== null) {
-      setTitle(templateTitle);
-      sessionStorage.removeItem('templateTitle');
-    }
-    if (templateContent !== null) {
-      setContent(templateContent);
-      sessionStorage.removeItem('templateContent');
-    }
-
-    // Fetch templates from API
-    fetch('http://localhost:8000/api/templates')
-      .then(res => res.json())
-      .then(setTemplates)
-      .catch(console.error);
+    if (templateTitle !== null) { setTitle(templateTitle); sessionStorage.removeItem('templateTitle'); }
+    if (templateContent !== null) { setContent(templateContent); sessionStorage.removeItem('templateContent'); }
+    fetch('http://localhost:8000/api/templates').then(res => res.json()).then(setTemplates).catch(console.error);
   }, []);
 
   const handleAutoTag = async () => {
@@ -46,26 +35,17 @@ export default function NoteEditor() {
     setIsTagging(true);
     try {
       const res = await fetch('http://localhost:8000/api/notes/suggest-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b'
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' }),
       });
       if (res.ok) {
         const suggestedTags = await res.json();
         if (suggestedTags && suggestedTags.length > 0) {
-          const newTags = tags ? `${tags}, ${suggestedTags.join(', ')}` : suggestedTags.join(', ');
-          setTags(newTags);
+          setTags(tags ? `${tags}, ${suggestedTags.join(', ')}` : suggestedTags.join(', '));
         }
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsTagging(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setIsTagging(false); }
   };
 
   const handleApplyTemplate = async () => {
@@ -74,139 +54,157 @@ export default function NoteEditor() {
       const res = await fetch(`http://localhost:8000/api/templates/${selectedTemplateId}/apply`);
       if (res.ok) {
         const data = await res.json();
-        if (!title) {
-          setTitle(data.title || '');
-        }
-        if (!content) {
-          setContent(data.content || '');
-        } else {
-          setContent(prev => `${prev.trim()}\n\n${data.content || ''}`);
-        }
+        if (!title) setTitle(data.title || '');
+        if (!content) setContent(data.content || '');
+        else setContent(prev => `${prev.trim()}\n\n${data.content || ''}`);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleSave = async () => {
-    const payload = {
-      title,
-      content,
-      tags: tags.split(',').map(t => t.trim()).filter(t => t),
-    };
-
+    const payload = { title, content, tags: tags.split(',').map(t => t.trim()).filter(t => t) };
     try {
       const res = await fetch('http://localhost:8000/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        navigate('/notes');
-      } else {
-        console.error('Failed to save', await res.text());
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.ok) navigate('/notes');
+      else console.error('Save failed', await res.text());
+    } catch (err) { console.error(err); }
   };
 
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ display: isFocusMode ? 'none' : 'block' }}>Create Note</h1>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <div style={{
+      position: isFocusMode ? 'fixed' : 'relative',
+      inset: isFocusMode ? 0 : 'auto',
+      zIndex: isFocusMode ? 1000 : 'auto',
+      background: isFocusMode ? 'var(--surface)' : 'transparent',
+      padding: isFocusMode ? 32 : 0,
+      display: 'flex', flexDirection: 'column', height: '100%',
+    }}>
+      {/* Top Bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 20, flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!isFocusMode && (
+            <>
+              <span style={{ fontSize: '0.75rem', color: 'var(--on-surface-dim)' }}>■</span>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--on-surface-dim)' }}>Vault</span>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--on-surface-dim)', opacity: 0.4 }}>›</span>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--on-surface)' }}>New Note</span>
+            </>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn-ghost"
+            onClick={() => setIsFocusMode(!isFocusMode)}
+          >
+            {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {isFocusMode ? 'Exit Focus' : 'Focus'}
+          </button>
           <button
             className="btn"
-            onClick={() => setIsFocusMode(!isFocusMode)}
-            style={{
-              backgroundColor: isFocusMode ? 'var(--accent-color)' : 'var(--surface-color)',
-              color: isFocusMode ? 'var(--bg-base)' : 'var(--text-main)',
-              border: isFocusMode ? 'none' : '1px solid var(--border-color)'
-            }}
+            onClick={handleSave}
+            disabled={!title.trim() || !content.trim()}
           >
-            {isFocusMode ? '⛶ Exit Focus' : '⛶ Focus Mode'}
-          </button>
-          <button onClick={handleSave} className="btn" disabled={!title.trim() || !content.trim()}>
-            Save Note
+            <Save size={14} /> Save Note
           </button>
         </div>
       </div>
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        position: isFocusMode ? 'fixed' : 'relative',
-        top: isFocusMode ? 0 : 'auto',
-        left: isFocusMode ? 0 : 'auto',
-        right: isFocusMode ? 0 : 'auto',
-        bottom: isFocusMode ? 0 : 'auto',
-        zIndex: isFocusMode ? 1000 : 'auto',
-        backgroundColor: 'var(--bg-color)',
-        padding: isFocusMode ? '2rem' : 0,
-      }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <input
-            className="input"
-            type="text"
-            placeholder="Note Title"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            style={{ fontSize: '1.5rem', fontWeight: 'bold', flex: 1, backgroundColor: 'var(--bg-base)', color: 'var(--text-main)' }}
-          />
+      {/* Editor Content */}
+      <div style={{ flex: 1, overflowY: 'auto', maxWidth: 720 }}>
+        {/* Title */}
+        <input
+          type="text"
+          placeholder="Note Title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          style={{
+            width: '100%', border: 'none', outline: 'none',
+            background: 'transparent', color: 'var(--on-surface)',
+            fontFamily: 'var(--font-display)', fontSize: '2rem',
+            fontWeight: 700, letterSpacing: '-0.03em',
+            marginBottom: 20,
+          }}
+        />
+
+        {/* Template + Tag row */}
+        <div style={{
+          display: 'flex', gap: 8, alignItems: 'center',
+          marginBottom: 16, flexWrap: 'wrap',
+        }}>
           <select
             className="input"
-            style={{ marginBottom: 0, width: '220px' }}
             value={selectedTemplateId}
             onChange={e => setSelectedTemplateId(e.target.value)}
+            style={{
+              width: 180, fontSize: '0.75rem', padding: '6px 10px',
+              borderRadius: 'var(--radius-full)',
+            }}
           >
             <option value="">Template...</option>
-            {templates.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <button
-            className="btn"
-            onClick={handleApplyTemplate}
-            disabled={!selectedTemplateId}
-            style={{ whiteSpace: 'nowrap' }}
-          >
+          <button className="btn-ghost" onClick={handleApplyTemplate} disabled={!selectedTemplateId} style={{ fontSize: '0.75rem' }}>
             Apply
           </button>
-        </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <input
-            className="input"
-            type="text"
-            placeholder="Tags (comma separated)"
-            value={tags}
-            onChange={e => setTags(e.target.value)}
-            style={{ marginBottom: 0, flex: 1, backgroundColor: 'var(--bg-base)', color: 'var(--text-main)' }}
-          />
+          <div style={{ width: 1, height: 20, background: 'var(--outline)', margin: '0 4px' }} />
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, flex: 1,
+            background: 'var(--surface-container-lowest)',
+            borderRadius: 'var(--radius-full)', padding: '6px 12px',
+          }}>
+            <Tag size={13} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
+            <input
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="Tags (comma separated)"
+              style={{
+                background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--on-surface)', fontSize: '0.75rem',
+                fontFamily: 'var(--font-body)', width: '100%',
+              }}
+            />
+          </div>
+
           <button
-            className="btn"
+            className="btn-ghost"
             onClick={handleAutoTag}
             disabled={isTagging || (!title && !content)}
-            style={{ whiteSpace: 'nowrap' }}
+            style={{ fontSize: '0.75rem' }}
           >
-            {isTagging ? 'Tagging...' : 'Suggest Tags'}
+            <Sparkles size={13} style={{ color: 'var(--secondary)' }} />
+            {isTagging ? 'Tagging...' : 'AI Tags'}
           </button>
-          {/* Voice Memo — compact button that appends transcription to content */}
+
           <VoiceMemo compact onTranscribed={text => setContent(prev => prev ? `${prev}\n\n${text}` : text)} />
         </div>
 
-        <div>
-          <BlockEditor
-            value={content}
-            onChange={(val) => setContent(val)}
-          />
-          <div style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
-            {content.trim() ? content.trim().split(/\s+/).length : 0} words
-          </div>
+        {/* Block Editor */}
+        <div style={{
+          background: 'var(--surface-container-lowest)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 20, minHeight: 400,
+        }}>
+          <BlockEditor value={content} onChange={val => setContent(val)} />
+        </div>
+
+        {/* Word count */}
+        <div style={{
+          textAlign: 'right', marginTop: 8,
+          fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
+          fontFamily: 'var(--font-mono)',
+        }}>
+          {wordCount} words
         </div>
       </div>
     </div>

@@ -1,6 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { BookOpen, RefreshCw, PenTool, LayoutTemplate, Network, HelpCircle, Layers, CheckSquare, Trash2, Settings as SettingsIcon, Sun, Moon, Menu, X } from 'lucide-react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import {
+  BookOpen, PenTool, RefreshCw, LayoutTemplate, Network,
+  HelpCircle, Layers, CheckSquare, Trash2,
+  Settings as SettingsIcon, Plus, Search, Bell, Menu, X,
+  Database, BookMarked, Puzzle, Brain
+} from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
 import './index.css';
@@ -24,13 +29,16 @@ const PluginsPage = lazy(() => import('./pages/PluginsPage'));
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: BookOpen },
   { path: '/notes', label: 'Notes', icon: PenTool },
-  { path: '/review', label: 'Review', icon: RefreshCw },
   { path: '/notes/new', label: 'New Note', icon: PenTool },
+  { path: '/review', label: 'Review', icon: RefreshCw },
   { path: '/templates', label: 'Templates', icon: LayoutTemplate },
   { path: '/graph', label: 'Graph', icon: Network },
   { path: '/ask', label: 'Ask Brain', icon: HelpCircle },
   { path: '/collections', label: 'Collections', icon: Layers },
   { path: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { path: '/database', label: 'Database', icon: Database },
+  { path: '/prompts', label: 'Prompts', icon: BookMarked },
+  { path: '/plugins', label: 'Plugins', icon: Puzzle },
   { path: '/trash', label: 'Trash', icon: Trash2 },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -47,8 +55,16 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   const routeLoadingFallback = (
-    <div className="flex-1 min-h-0 rounded-2xl border border-border bg-bg-highlight/40 p-6 text-sm text-text-muted">
-      Loading page...
+    <div className="flex-1 min-h-0 flex items-center justify-center" style={{ color: 'var(--on-surface-dim)' }}>
+      <div className="flex items-center gap-3">
+        <div style={{
+          width: 20, height: 20, borderRadius: '50%',
+          border: '2px solid var(--primary-dim)',
+          borderTopColor: 'var(--primary)',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem' }}>Loading...</span>
+      </div>
     </div>
   );
 
@@ -79,33 +95,8 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { error, initializing, isDesktop, retryStartup } = useDesktopRuntime();
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
-  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('fontSize')) || 16);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pulling, pullResult, pullProgress } = useDownload();
-  const currentNav = useMemo(
-    () => NAV_ITEMS.find((item) => item.path === location.pathname),
-    [location.pathname]
-  );
-
-  useEffect(() => {
-    const handleStorage = () => {
-      const saved = Number(localStorage.getItem('fontSize')) || 16;
-      setFontSize(saved);
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-color-mode', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${fontSize}px`;
-    localStorage.setItem('fontSize', String(fontSize));
-  }, [fontSize]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -116,17 +107,22 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigate]);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-
   if (isDesktop && initializing) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-base px-6 text-text-main">
-        <div className="max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-xl">
-          <div className="mb-3 text-[0.6rem] uppercase tracking-[0.24em] text-text-muted">Second Brain</div>
-          <h1 className="mb-3">Preparing desktop services</h1>
-          <p className="text-sm text-text-muted">
-            Starting the local Python sidecar and warming up your knowledge base.
+      <div className="flex h-screen items-center justify-center" style={{ background: 'var(--surface)' }}>
+        <div style={{
+          maxWidth: 400, borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-container)', padding: 40,
+          textAlign: 'center', border: '1px solid var(--outline)'
+        }}>
+          <div className="label-xs" style={{ marginBottom: 12 }}>Second Brain</div>
+          <h2 style={{ marginBottom: 8 }}>Preparing your sanctuary</h2>
+          <p style={{ fontSize: '0.875rem', color: 'var(--on-surface-variant)' }}>
+            Starting local services and warming up your knowledge base.
           </p>
+          <div style={{ marginTop: 24, height: 3, borderRadius: 99, background: 'var(--surface-container-low)', overflow: 'hidden' }}>
+            <div className="dashboard-progress-bar" style={{ height: '100%', width: '100%', background: 'linear-gradient(90deg, var(--primary), var(--primary-container))' }} />
+          </div>
         </div>
       </div>
     );
@@ -134,10 +130,14 @@ function AppContent() {
 
   if (isDesktop && error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-base px-6 text-text-main">
-        <div className="max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-xl">
-          <h1 className="mb-3">Desktop startup failed</h1>
-          <p className="mb-6 text-sm text-text-muted">{error}</p>
+      <div className="flex h-screen items-center justify-center" style={{ background: 'var(--surface)' }}>
+        <div style={{
+          maxWidth: 400, borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-container)', padding: 40,
+          textAlign: 'center', border: '1px solid var(--outline)'
+        }}>
+          <h2 style={{ marginBottom: 8 }}>Startup failed</h2>
+          <p style={{ fontSize: '0.875rem', color: 'var(--on-surface-variant)', marginBottom: 24 }}>{error}</p>
           <button className="btn" onClick={() => void retryStartup()}>
             Retry startup
           </button>
@@ -147,101 +147,141 @@ function AppContent() {
   }
 
   const isFluidPage = ['/ask', '/graph'].includes(location.pathname);
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    if (path === '/notes/new') return location.pathname === '/notes/new';
+    if (path === '/notes') return location.pathname === '/notes' || (location.pathname.startsWith('/notes/') && location.pathname !== '/notes/new');
+    return location.pathname.startsWith(path);
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base text-text-main font-sans selection:bg-accent/30 selection:text-text-main">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--surface)', color: 'var(--on-surface)' }}>
+      {/* Mobile menu toggle */}
       <button
-        className="lg:hidden absolute top-4 left-4 z-50 p-2 rounded-full bg-surface shadow-md border border-border"
+        className="lg:hidden fixed top-4 left-4 z-50"
         onClick={() => setMobileOpen(!mobileOpen)}
+        style={{
+          padding: 10, borderRadius: 'var(--radius-md)',
+          background: 'var(--surface-container)', border: '1px solid var(--outline)',
+          color: 'var(--on-surface)', cursor: 'pointer'
+        }}
       >
-        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        {mobileOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      <aside 
-        className={`fixed inset-y-0 left-0 z-40 w-56 border-r border-border bg-surface/80 backdrop-blur-xl transform transition-transform duration-300 ease-out lg:static lg:translate-x-0 flex flex-col ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        <div className="p-6">
-          <h2 className="text-2xl font-serif font-medium tracking-tight flex items-center gap-3">
-            <span className="text-accent">✧</span> Second Brain
-          </h2>
+      {/* ═══ Sidebar ═══ */}
+      <aside className={`nv-sidebar ${mobileOpen ? 'open' : ''}`} style={{ width: 200, minWidth: 200 }}>
+        {/* Brand */}
+        <div className="nv-sidebar-brand">
+          <div className="nv-sidebar-brand-icon">
+            <Brain size={16} strokeWidth={2.5} style={{ color: 'var(--on-primary)' }} />
+          </div>
+          <h2>Second Brain</h2>
+          <span className="nv-subtitle">AI Knowledge System</span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+        {/* Navigation */}
+        <nav className="nv-nav" style={{ overflowY: 'auto' }}>
           {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
             const Icon = item.icon;
+            const active = isActive(item.path);
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-accent/10 text-accent font-medium'
-                    : 'text-text-muted hover:text-text-main hover:bg-white/5'
-                }`}
+                className={`nv-nav-item ${active ? 'active' : ''}`}
+                style={{ flexDirection: 'row', gap: 10, padding: '8px 12px' }}
               >
-                <Icon size={18} className={isActive ? 'text-accent' : 'text-text-muted'} />
+                <Icon size={18} strokeWidth={active ? 2 : 1.5} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        {/* Bottom Actions */}
+        <div className="nv-sidebar-bottom">
           {pulling && (
-            <div className="mb-4 p-4 bg-bg-highlight rounded-xl border border-border text-sm">
-              <div className="font-medium text-accent mb-2">Downloading Model...</div>
-              <div className="w-full bg-bg-base rounded-full h-1.5 overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-[width] duration-200 ease-linear"
-                  style={{ width: `${pullProgress}%` }}
-                />
+            <div style={{
+              padding: '10px 12px', borderRadius: 'var(--radius-md)',
+              background: 'var(--surface-container)', fontSize: '0.75rem'
+            }}>
+              <div style={{ color: 'var(--primary)', fontWeight: 600, marginBottom: 6 }}>Downloading Model...</div>
+              <div style={{ height: 3, borderRadius: 99, background: 'var(--surface-container-low)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pullProgress}%`, background: 'linear-gradient(90deg, var(--primary), var(--primary-container))', transition: 'width 200ms linear' }} />
               </div>
-              <div className="mt-2 text-text-muted text-xs truncate">{pullResult}</div>
+              <div style={{ marginTop: 4, color: 'var(--on-surface-dim)', fontSize: '0.625rem' }}>{pullResult}</div>
             </div>
           )}
+
           <button
-            onClick={toggleTheme}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-bg-base border border-border hover:border-accent/40 text-text-muted hover:text-text-main transition-colors"
+            className="nv-quick-capture"
+            onClick={() => { navigate('/notes/new'); setMobileOpen(false); }}
           >
-            <span className="text-sm font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <Plus size={14} strokeWidth={2.5} />
+            Quick Capture
           </button>
         </div>
       </aside>
 
-      <main className={`flex-1 relative ${isFluidPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
-        <div className={`mx-auto flex flex-col ${
-          isFluidPage
-            ? 'w-full flex-1 p-4 lg:p-6 space-y-2' 
-            : 'max-w-6xl min-h-full p-6 lg:p-8 pb-24 space-y-8'
-        }`}>
-          <header className={`z-10 bg-bg-base bg-opacity-90 backdrop-blur-xl border-b border-border flex items-center justify-between gap-4 ${
-            isFluidPage ? 'pb-2 mb-2 shrink-0' : 'pb-4 mb-4'
-          }`}>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.18em] text-text-muted">
-                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                <span>Second Brain</span>
-              </div>
-              <h1 className="font-serif">
-                {currentNav?.label ?? 'Overview'}
-              </h1>
+      {/* ═══ Main Content ═══ */}
+      <main className={`flex-1 relative flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        {/* Top Bar */}
+        <header style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 24px', gap: 16, flexShrink: 0,
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--outline-variant)',
+          zIndex: 10,
+        }}>
+          {/* Search Bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'var(--surface-container-lowest)',
+            borderRadius: 'var(--radius-full)',
+            padding: '8px 16px', flex: 1, maxWidth: 400,
+          }}>
+            <Search size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search your knowledge..."
+              onFocus={() => navigate('/notes')}
+              style={{
+                background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--on-surface)', fontSize: '0.8125rem',
+                fontFamily: 'var(--font-body)', width: '100%',
+              }}
+            />
+          </div>
+
+          {/* Right actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: 'var(--on-surface-dim)', padding: 6, borderRadius: 'var(--radius-md)',
+              transition: 'color 200ms',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--on-surface)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--on-surface-dim)')}
+            >
+              <Bell size={18} />
+            </button>
+            <div style={{
+              width: 32, height: 32, borderRadius: 'var(--radius-full)',
+              background: 'linear-gradient(135deg, var(--primary-container), var(--secondary))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.75rem', fontWeight: 700, color: '#fff', cursor: 'pointer',
+            }}>
+              U
             </div>
-            <div className="hidden md:flex items-center gap-3 text-xs text-text-muted">
-              <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border bg-bg-base shadow-sm">
-                <span className="text-[0.7rem] font-mono">Ctrl</span>
-                <span className="text-[0.7rem] font-mono">K</span>
-              </div>
-              <span>Open notes</span>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border bg-bg-base shadow-sm">
-                <span className="text-[0.7rem] font-mono">Ctrl</span>
-                <span className="text-[0.7rem] font-mono">N</span>
-              </div>
-              <span>New note</span>
-            </div>
-          </header>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <div className={`flex-1 flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
+          style={{ padding: isFluidPage ? '0' : '24px 28px 80px 28px' }}
+        >
           <AnimatedRoutes />
         </div>
       </main>

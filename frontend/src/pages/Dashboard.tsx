@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Compass, PenTool, Search, Sparkles, X, Pin, ArrowRight } from 'lucide-react';
+import { Sparkles, X, PenTool, Shuffle, Search, Brain } from 'lucide-react';
 
 function getErrorMessage(status: number) {
-  if (status === 401) {
-    return 'You need to sign in before the dashboard can load.';
-  }
-
-  if (status === 403) {
-    return 'The backend denied access to dashboard data. Check the API auth or permissions.';
-  }
-
+  if (status === 401) return 'Sign in required to load dashboard.';
+  if (status === 403) return 'Access denied. Check API permissions.';
   return `Request failed with status ${status}.`;
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 export default function Dashboard() {
@@ -43,10 +47,11 @@ export default function Dashboard() {
 
   const fetchRecentNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes?limit=5');
+      const res = await fetch('http://localhost:8000/api/notes?limit=10');
       if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
-      setRecentNotes(Array.isArray(data) ? data.slice(0, 5) : []);
+      const notes = Array.isArray(data) ? data.slice(0, 10) : [];
+      setRecentNotes(notes);
       setRecentNotesError(null);
     } catch (e) {
       console.error(e);
@@ -59,11 +64,8 @@ export default function Dashboard() {
     setGenerating(true);
     try {
       await fetch('http://localhost:8000/api/insights/generate', { method: 'POST' });
-      // Poll for completion or just wait a bit and fetch new insights
-      // In a real implementation, the backend might return the new insights directly or we poll.
-      // For now, we assume it's synchronous or near-synchronous enough after the POST returns.
       await fetchInsights();
-      setTimeout(() => setGenerating(false), 2000); 
+      setTimeout(() => setGenerating(false), 2000);
     } catch (e) {
       console.error(e);
       setGenerating(false);
@@ -79,155 +81,258 @@ export default function Dashboard() {
     }
   };
 
-  const getRandomNote = async () => {
-    try {
-      const res = await fetch('http://localhost:8000/api/notes/random');
-      if (res.ok) {
-        const note = await res.json();
-        navigate(`/notes/${note.id}`);
-      } else {
-        alert('No notes available yet!');
+  const quickActions = [
+    { icon: PenTool, label: 'Capture', action: () => navigate('/notes/new') },
+    { icon: Shuffle, label: 'Surprise', action: () => {
+      if (recentNotes.length > 0) {
+        const rand = recentNotes[Math.floor(Math.random() * recentNotes.length)];
+        navigate(`/notes/${rand.id}`);
       }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    }},
+    { icon: Search, label: 'Search', action: () => navigate('/notes') },
+    { icon: Brain, label: 'Think', action: () => navigate('/ask') },
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12">
-      {/* SEO Semantic Block */}
-      <section className="sr-only" aria-hidden="true">
-        <h2>Dashboard - Second Brain AI</h2>
-        <p>Overview of your personal knowledge base, recent insights, and capture tools.</p>
-      </section>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, height: '100%', overflowY: 'auto' }}>
+      {/* ═══ Header ═══ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div className="label-xs" style={{ color: 'var(--primary)', marginBottom: 6 }}>
+            ● Second Brain
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 700 }}>
+            Dashboard
+          </h1>
+        </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{
+            fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
+            fontFamily: 'var(--font-mono)', padding: '4px 8px',
+            background: 'var(--surface-container)', borderRadius: 'var(--radius-sm)',
+          }}>
+            Ctrl K <span style={{ opacity: 0.5 }}>Open notes</span>
+          </span>
+          <span style={{
+            fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
+            fontFamily: 'var(--font-mono)', padding: '4px 8px',
+            background: 'var(--surface-container)', borderRadius: 'var(--radius-sm)',
+          }}>
+            Ctrl N <span style={{ opacity: 0.5 }}>New note</span>
+          </span>
+        </div>
+      </div>
 
-      <header className="mb-10">
-        <h1 className="text-text-main mb-3">Welcome to your space.</h1>
-        <p className="text-text-muted">A calm environment for capturing, connecting, and deep thinking.</p>
-      </header>
-
+      {/* Error Banner */}
       {(insightsError || recentNotesError) && (
-        <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-text-main">
+        <div style={{
+          borderRadius: 'var(--radius-md)', padding: '12px 16px',
+          background: 'var(--tertiary-container)', fontSize: '0.8125rem',
+          color: 'var(--on-surface)',
+        }}>
           {insightsError ?? recentNotesError}
-        </section>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Capture', icon: PenTool, path: '/notes/new', isBtn: false },
-          { label: 'Surprise', icon: Compass, onClick: getRandomNote, isBtn: true },
-          { label: 'Search', icon: Search, path: '/notes', isBtn: false },
-          { label: 'Think', icon: Sparkles, onClick: generateDigest, isBtn: true },
-        ].map((action, idx) => {
-          const content = (
-            <div
-              className="flex h-full flex-col items-center justify-center rounded-2xl border border-border bg-surface/50 p-6 transition-transform transition-colors duration-200 cursor-pointer hover:-translate-y-1 hover:border-accent/40 hover:bg-surface active:scale-[0.98]"
+      {/* ═══ Welcome ═══ */}
+      <div>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontSize: '1.5rem',
+          fontWeight: 600, marginBottom: 6, color: 'var(--on-surface)',
+        }}>
+          Welcome to your space.
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: 'var(--on-surface-variant)' }}>
+          A calm environment for capturing, connecting, and deep thinking.
+        </p>
+      </div>
+
+      {/* ═══ Quick Actions ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.label}
+              onClick={action.action}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 8, padding: '20px 12px',
+                background: 'var(--surface-container)',
+                borderRadius: 'var(--radius-lg)', border: '1px solid var(--outline-variant)',
+                cursor: 'pointer', color: 'var(--on-surface-variant)',
+                fontFamily: 'var(--font-display)', fontSize: '0.8125rem',
+                fontWeight: 500, transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--surface-container-high)';
+                e.currentTarget.style.color = 'var(--on-surface)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'var(--surface-container)';
+                e.currentTarget.style.color = 'var(--on-surface-variant)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
-              <action.icon className="text-accent mb-3" size={28} strokeWidth={1.5} />
-              <span className="text-sm font-medium text-text-main">{action.label}</span>
-            </div>
-          );
-          
-          return action.isBtn ? (
-            <button key={idx} onClick={action.onClick} className="w-full text-left focus:outline-none">
-              {content}
+              <Icon size={20} strokeWidth={1.5} />
+              {action.label}
             </button>
-          ) : (
-            <Link key={idx} to={action.path!} className="w-full relative">
-              {content}
-            </Link>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <section className="lg:col-span-7 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-serif">Recent Notes</h2>
-            <Link to="/notes" className="text-sm text-accent hover:text-accent-hover font-medium flex items-center gap-1 group">
-              View all <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+      {/* ═══ Two Column: Recent Notes + Deep Insights ═══ */}
+      <div style={{ display: 'flex', gap: 24, flex: 1, minHeight: 0 }}>
+        {/* Recent Notes — left column */}
+        <div style={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)' }}>Recent Notes</h3>
+            <Link
+              to="/notes"
+              style={{
+                fontSize: '0.75rem', color: 'var(--primary)',
+                textDecoration: 'none', fontWeight: 500,
+              }}
+            >
+              View all →
             </Link>
           </div>
-          
-          <div className="space-y-3">
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {recentNotes.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl border border-dashed border-border text-text-muted">
-                <p>The canvas is empty. It's time to capture your first thought.</p>
+              <div style={{
+                padding: 40, textAlign: 'center', color: 'var(--on-surface-dim)',
+                fontSize: '0.8125rem', background: 'var(--surface-container)',
+                borderRadius: 'var(--radius-lg)',
+              }}>
+                No notes yet. Create your first thought.
               </div>
             ) : (
               recentNotes.map((note) => (
-                <div key={note.id} className="transition-transform duration-200 hover:translate-x-1">
-                  <Link 
-                    to={`/notes/${note.id}`}
-                    className="block p-5 bg-surface border border-transparent rounded-2xl hover:border-border hover:shadow-sm transition-all group"
-                  >
-                    <div className="font-medium text-lg text-text-main mb-1.5 flex items-center gap-2">
-                      {note.is_pinned && <Pin size={14} className="text-accent-amber" />}
-                      <span className="group-hover:text-accent transition-colors">
-                        {note.title || 'Untitled Note'}
-                      </span>
-                    </div>
-                    <div className="text-sm text-text-muted line-clamp-2">
-                      {note.content}
-                    </div>
-                  </Link>
-                </div>
+                <Link
+                  key={note.id}
+                  to={`/notes/${note.id}`}
+                  style={{
+                    textDecoration: 'none', color: 'inherit',
+                    padding: '14px 18px',
+                    background: 'var(--surface-container)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--outline-variant)',
+                    transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    display: 'block',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--surface-container-high)';
+                    e.currentTarget.style.borderColor = 'var(--outline)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'var(--surface-container)';
+                    e.currentTarget.style.borderColor = 'var(--outline-variant)';
+                  }}
+                >
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontWeight: 600,
+                    fontSize: '0.875rem', color: 'var(--on-surface)',
+                    marginBottom: 4,
+                  }}>
+                    {note.title || 'Untitled Note'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem', color: 'var(--on-surface-dim)',
+                    lineHeight: 1.4, overflow: 'hidden',
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as any,
+                  }}>
+                    {note.content?.substring(0, 150)}
+                  </div>
+                </Link>
               ))
             )}
           </div>
-        </section>
+        </div>
 
-        <section className="lg:col-span-5 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-serif flex items-center gap-2">
-              Deep Insights
-            </h2>
+        {/* Deep Insights — right column */}
+        <div style={{ flex: 2, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)' }}>Deep Insights</h3>
             {generating && (
-              <div className="flex items-center gap-3 bg-surface/50 px-3 py-1.5 rounded-full border border-border">
-                <div className="w-24 h-1.5 bg-bg-highlight rounded-full overflow-hidden">
-                  <div className="dashboard-progress-bar h-full w-full bg-accent" />
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'var(--surface-container)', padding: '4px 12px',
+                borderRadius: 'var(--radius-full)', fontSize: '0.6875rem',
+                color: 'var(--on-surface-dim)',
+              }}>
+                <div style={{
+                  width: 50, height: 2, borderRadius: 99,
+                  background: 'var(--surface-container-low)', overflow: 'hidden',
+                }}>
+                  <div className="dashboard-progress-bar" style={{
+                    height: '100%', width: '100%',
+                    background: 'linear-gradient(90deg, var(--primary), var(--primary-container))',
+                  }} />
                 </div>
-                <span className="text-xs text-text-muted font-medium">Synthesizing...</span>
+                Synthesizing...
               </div>
             )}
           </div>
 
-          <div className="space-y-4">
+          <div style={{
+            padding: 24, borderRadius: 'var(--radius-lg)',
+            background: 'var(--surface-container)',
+            border: '1px solid var(--outline-variant)',
+            display: 'flex', flexDirection: 'column', gap: 12,
+          }}>
             {insights.length === 0 ? (
-              <div className="p-8 bg-bg-highlight border border-border rounded-2xl text-center">
-                <Sparkles className="mx-auto text-text-muted mb-3 opacity-50" size={24} />
-                <p className="text-sm text-text-muted mb-4">No recent insights generated.</p>
-                <button 
-                  onClick={generateDigest} 
-                  disabled={generating}
-                  className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent rounded-xl text-sm font-medium hover:bg-accent/20 transition-colors"
-                >
-                  {generating ? 'Processing thoughts...' : 'Synthesize Ideas'}
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <Sparkles style={{ margin: '0 auto 12px', color: 'var(--on-surface-dim)', opacity: 0.4 }} size={24} />
+                <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-dim)', marginBottom: 16 }}>
+                  No recent insights generated.
+                </p>
+                <button className="btn-secondary" onClick={generateDigest} disabled={generating}>
+                  {generating ? 'Processing...' : 'Synthesize Ideas'}
                 </button>
               </div>
             ) : (
               insights.map((ins) => (
                 <div
-                  key={ins.id} 
-                  className="relative rounded-2xl border border-border/60 bg-gradient-to-br from-bg-base to-surface p-6 pr-10 shadow-sm transition-shadow hover:shadow-md"
+                  key={ins.id}
+                  className="animate-fade-in"
+                  style={{
+                    position: 'relative', padding: '14px 16px',
+                    background: 'var(--surface-container-low)',
+                    borderRadius: 'var(--radius-md)',
+                    borderLeft: '2px solid var(--secondary)',
+                  }}
                 >
-                  <button 
+                  <button
                     onClick={() => dismissInsight(ins.id)}
-                    className="absolute top-4 right-4 text-text-muted hover:text-text-main transition-colors p-1"
+                    style={{
+                      position: 'absolute', top: 8, right: 8,
+                      background: 'transparent', border: 'none',
+                      color: 'var(--on-surface-dim)', cursor: 'pointer',
+                      padding: 4, borderRadius: 'var(--radius-sm)',
+                      transition: 'color 200ms',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--on-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--on-surface-dim)')}
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-accent mb-3 opacity-80">
+                  <div className="label-xs" style={{ color: 'var(--secondary)', marginBottom: 6 }}>
                     {ins.insight_type.replace(/_/g, ' ')}
                   </div>
-                  <div className="text-sm leading-relaxed text-text-main whitespace-pre-wrap prose prose-invert prose-sm max-w-none">
+                  <div style={{
+                    fontSize: '0.8125rem', lineHeight: 1.6,
+                    color: 'var(--on-surface-variant)', whiteSpace: 'pre-wrap',
+                  }}>
                     {ins.content.replace(/(\*\*|##)/g, '')}
                   </div>
                 </div>
               ))
             )}
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );

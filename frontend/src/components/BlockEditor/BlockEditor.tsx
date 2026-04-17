@@ -263,7 +263,10 @@ const SlashCommandExt = Extension.create({
 
   addProseMirrorPlugins() {
     return [
-      Suggestion(this.options.suggestion),
+      Suggestion({
+        ...this.options.suggestion,
+        editor: this.editor,
+      }),
     ];
   },
 });
