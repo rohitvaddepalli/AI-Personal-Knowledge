@@ -227,63 +227,7 @@ function AppContent() {
 
       {/* ═══ Main Content ═══ */}
       <main className={`flex-1 relative flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        {/* Top Bar */}
-        <header style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 24px', gap: 16, flexShrink: 0,
-          background: 'var(--surface)',
-          borderBottom: '1px solid var(--outline-variant)',
-          zIndex: 10,
-        }}>
-          {/* Search Bar */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--surface-container-lowest)',
-            borderRadius: 'var(--radius-full)',
-            padding: '8px 16px', flex: 1, maxWidth: 400,
-          }}>
-            <Search size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate('/notes')}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/notes'); } }}
-              style={{
-                color: 'var(--on-surface-dim)', fontSize: '0.8125rem',
-                fontFamily: 'var(--font-body)', width: '100%', cursor: 'pointer',
-              }}
-            >
-              Search your knowledge...
-            </div>
-          </div>
 
-          {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              title="Coming soon"
-              aria-disabled="true"
-              style={{
-                background: 'transparent', border: 'none',
-                color: 'var(--on-surface-dim)', padding: 6, borderRadius: 'var(--radius-md)',
-                cursor: 'default', opacity: 0.6,
-              }}
-            >
-              <Bell size={18} />
-            </button>
-            <div
-              title="Coming soon"
-              aria-disabled="true"
-              style={{
-                width: 32, height: 32, borderRadius: 'var(--radius-full)',
-                background: 'linear-gradient(135deg, var(--primary-container), var(--secondary))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.75rem', fontWeight: 700, color: '#fff', cursor: 'default',
-                opacity: 0.8,
-              }}>
-              U
-            </div>
-          </div>
-        </header>
 
         {/* Page Content */}
         <div className={`flex-1 flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
