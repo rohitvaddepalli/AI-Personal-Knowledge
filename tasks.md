@@ -1,40 +1,161 @@
-# Project Roadmap: Production-Grade Notion + Obsidian + AI
+# Second Brain - Product + Prompt Alignment Tasks
 
-To evolve this local-first personal knowledge system into a highly successful, production-grade open-source tool, you need to seamlessly blend an excellent user experience (Notion), robust local knowledge management (Obsidian), and intelligent features (AI), while adopting standard practices that encourage open-source contribution.
+This task list aligns the current project with `Prompt.md` and adds the product improvements needed to make the app more user-friendly, habit-forming, and trustworthy.
 
-## 1. Core Editor Experience (The "Notion" Feel)
-- [x] **Block-based Editor**: Transition to a rich text block editor (TipTap) with support for real-time formatting, block dragging/dropping, and slash commands (`/`). **✅ COMPLETED** - Implemented with TipTap, includes toolbar, slash command popup, and rich formatting.
-- [x] **Databases / Tabular Views**: Implement inline databases that allow users to view their note metadata as Tables, Kanban Boards, or Calendars. **✅ COMPLETED** - `DatabaseView.tsx` with Table, Kanban (tag-based columns), and Calendar views with tag filtering and stat bar.
-- [x] **Nested Hierarchies**: Support infinite nesting of pages within other pages, displayed elegantly in a sidebar tree view. Backend hierarchy API and parent selectors in NoteDetail already exist; frontend sidebar tree view implemented. **✅ COMPLETED**
-- [x] **Rich Media Embeds**: Smooth embedding for PDFs, live websites, and embedded local assets integrated directly into blocks. **✅ COMPLETED** - Attachment system in NoteDetail.tsx supports file upload, download, and deletion.
+## Current Alignment Snapshot
 
-## 2. Local Knowledge Management (The "Obsidian" Feel)
-- [x] **Robust Bidirectional Linking**: Enhance the `[[wiki-links]]` parser to automatically expose both incoming (backlinks) and unlinked references to the current note. **✅ COMPLETED** - `ConnectionsSidebar.tsx` now has three tabs: AI Links (with direction arrows), Backlinks (wiki-links), and Unlinked Mentions.
-- [x] **Local-First Sync Mechanism**: Provide an integrated way to sync vaults across devices without a central server (e.g., generic WebDAV support, Git integration, or peer-to-peer sync). **✅ COMPLETED** - WebDAV sync implemented via `sync.py` and `SyncPage.tsx`
-- [x] **Plugin System Architecture**: Build a secure API bridging the React frontend and Tauri/Python backend to allow community developers to write and distribute plugins. **✅ COMPLETED** - `plugins.py` router with manifest validation, sandboxed subprocess execution, hook system, and `PluginsPage.tsx` UI.
-- [x] **Infinite Canvas / Whiteboard**: Add a spatial canvas tool for brainstorming, allowing users to drop notes, images, and arrows onto a 2D plane. **✅ COMPLETED** - `InfiniteCanvas.tsx` with pan/zoom and note placement
+### Already aligned (good foundation)
+- FastAPI backend and React + TypeScript frontend are in place.
+- Core note CRUD, templates, collections, daily notes, basic versioning, and trash flows exist.
+- Hybrid search and RAG chat endpoints exist.
+- Local Ollama model selection and chat session persistence exist.
+- Knowledge graph, review/spaced repetition, plugins page, and desktop runtime are present.
+- URL import and voice memo/transcription support are already started.
 
-## 3. Advanced AI Capabilities
-- [x] **AI Co-Writer & Contextual Autocomplete**: Inline AI completion in the editor ("Press Tab to complete") and `/ai` commands to summarize, expand, or adjust the tone of specific blocks. **✅ COMPLETED** - `AICoWriter.tsx` with Tab completion and `/ai` command
-- [x] **Automated Ontologies**: AI-driven automatic semantic tagging and relationship suggestions, automatically linking seemingly unrelated notes. **✅ COMPLETED** - `ontology.py` and `OntologyPanel.tsx`
-- [x] **Multi-modal Chat**: Support image and document analysis within the RAG chat using local Vision LLMs (like LLaVA via Ollama). **✅ COMPLETED** - `MultiModalChat.tsx` with image upload and analysis
-- [x] **Smart Prompts Library**: A user-managed library of reusable AI prompts for quick text processing. **✅ COMPLETED** - `PromptsLibrary.tsx` with categories, favorites, search, add/delete, and a run modal with AI execution.
+### Partially aligned (needs upgrades)
+- Hybrid search quality/re-ranking and retrieval controls need improvement.
+- AI chat citations exist but trust UX and grounding transparency are limited.
+- Smart tagging exists, but approval/rejection flow and NER pipeline are incomplete.
+- Analytics and dashboard loops exist, but behavior-driven habit loops are weak.
+- Writing assistant APIs exist, but editor-side integrated UX is incomplete.
+- Export/import exists in parts but not full interoperability targets.
 
-## 4. Production-Grade Open Source Repository
-### Community & Standards
-- [x] **`CONTRIBUTING.md`**: Create clear guidelines on how to run the project locally, architecture overviews, and how to submit PRs.
-- [x] **`CODE_OF_CONDUCT.md`**: Add a standard contributor covenant. **✅ COMPLETED** - Contributor Covenant 2.1 added.
-- [x] **Issue & PR Templates**: Provide `.github/ISSUE_TEMPLATE` (e.g., Bug Report, Feature Request) and a `pull_request_template.md` to ensure high-quality contributions. **✅ COMPLETED** - Bug report, feature request, and PR templates created.
-- [x] **Documentation Website**: Spin up a dedicated docs site (using VitePress or Docusaurus) covering User Guides, API References, and Plugin Development. **✅ COMPLETED** - VitePress site in `docs-site/` with Getting Started, API Reference, and Plugin Dev guides.
+### Not aligned / missing (high gaps vs Prompt)
+- Prompt asks for Postgres + Redis + Celery + full background task architecture; current app is mainly SQLite + immediate calls.
+- Prompt asks for richer ingestion stack (Docling, YouTube deep handling, extension clipper).
+- Prompt asks for streaming AI responses via SSE; current ask flow is mostly non-streaming response.
+- Prompt asks for stronger security model (JWT+refresh, CSRF, rate limiting policy at scale).
+- Prompt asks for stricter CI coverage and broader test matrix.
+- Prompt asks for command-palette-first UX and richer search filters/history.
 
-### CI/CD, Building & Testing
-- [x] **Automated Code Quality Pipeline**: Introduce GitHub Actions to automatically run linting (ESLint, Prettier) and type-checking on every Push/PR. **✅ COMPLETED** - code-quality.yml workflow created.
-- [x] **Backend Testing**: Add comprehensive unit testing for the FastAPI backend using `pytest`. **✅ COMPLETED** - Test suite with conftest.py, test_notes.py, test_api.py, test_services.py.
-- [x] **Frontend Testing**: Add component tests with `Vitest` and basic End-to-End user flow tests with `Playwright`. **✅ COMPLETED** - Vitest setup with testing-library, Playwright E2E tests configured.
-- [x] **Automated Tauri Releases**: Configure GitHub Actions to automatically compile, sign, and release desktop binaries (.exe, .dmg, .AppImage) when a new version tag is pushed. **✅ COMPLETED** - tauri-release.yml workflow created.
-- [x] **Dependency Management**: Set up Dependabot or Renovate to keep frontend packages and Python requirements continuously updated. **✅ COMPLETED** - dependabot.yml configured for npm, pip, and GitHub Actions.
+## Execution Plan (Prioritized)
 
-## 5. Polish, Security & Performance
-- [x] **Stress Testing**: Benchmark and optimize the UI (e.g., window virtualization) and ChromaDB to handle vaults with 10,000+ notes smoothly. **✅ COMPLETED** - `benchmark.py` router at `/api/benchmark/suite` covering notes query, FTS5, and ChromaDB vector search with throughput metrics.
-- [x] **Privacy-First Telemetry (Opt-in)**: Add strictly opt-in, anonymized telemetry so you can make data-driven product decisions based on real usage. **✅ COMPLETED** - Toggle in Settings page with clear privacy disclosure; persisted in localStorage.
-- [x] **Cross-Platform Native Feel**: Ensure the Tauri app respects OS-level dark/light modes, uses native window decorations effectively, and maps standard keyboard shortcuts (Ctrl/Cmd). **✅ COMPLETED** - CSS `prefers-color-scheme` media query, `prefers-reduced-motion` support, focus rings, font-size slider, and keyboard shortcut display in Settings.
+## Phase 1 - Product Trust and UX Baseline (Must do now)
+
+### 1.1 RAG trust and answer quality
+- [ ] Change default global chat retrieval: do not require `@mention` to retrieve context.
+- [ ] Add modes in Ask Brain: `Auto`, `Search only`, `Strict cited answers`.
+- [ ] Show per-answer confidence + retrieval explanation ("why these sources").
+- [ ] Add citation chips linking to exact note anchors/snippets.
+- [ ] Add fallback response policy when grounding is weak (ask clarifying question, suggest related notes).
+
+### 1.2 Remove UX trust breakers
+- [ ] Replace all `alert`, `confirm`, `prompt` with app dialogs/toasts.
+- [ ] Hide or clearly badge unimplemented capture tabs (YouTube/upload/quick) until shipped.
+- [ ] Standardize loading, empty, and error states across Notes, Ask, Dashboard, Review.
+- [ ] Rename misleading labels (example: `NoteList` header "Analytics" -> "Notes").
+
+### 1.3 API consistency and runtime reliability
+- [ ] Replace hardcoded API URLs in frontend with shared `apiUrl()` utility everywhere.
+- [ ] Audit desktop/web behavior for all fetch calls after migration.
+- [ ] Add global fetch error normalization and user-facing retry actions.
+
+## Phase 2 - Habit Loop and User-Friendliness (Must)
+
+### 2.1 Build a clear daily loop
+- [ ] Add "Inbox" as the first-class capture destination.
+- [ ] Add triage actions: summarize, tag, link, schedule review, archive.
+- [ ] Add dashboard "Today" section: Capture -> Connect -> Review progress.
+- [ ] Add "next best action" card to guide users when they open the app.
+
+### 2.2 Onboarding and progressive disclosure
+- [ ] Add first-run onboarding with goal selection (student/researcher/creator/developer).
+- [ ] Import sample notes on first run to demonstrate RAG + graph quickly.
+- [ ] Add beginner mode with only 4 core actions (Capture, Search, Ask, Review).
+- [ ] Move advanced surfaces behind "Advanced" navigation.
+
+### 2.3 Command-driven productivity
+- [ ] Implement global command palette (`Ctrl/Cmd+K`) with actions + search.
+- [ ] Support quick actions: new note, open daily note, ask question, import URL, review due.
+- [ ] Persist recent commands and search history locally.
+
+## Phase 3 - Core Feature Completion vs Prompt (Should)
+
+### 3.1 Ingestion pipeline completion
+- [ ] Implement production-grade URL ingestion with metadata extraction and robust fallback.
+- [ ] Complete YouTube ingestion pipeline (captions -> audio -> transcription fallback).
+- [ ] Complete file upload ingestion pipeline (PDF/DOCX/PPTX/MD/TXT/HTML).
+- [ ] Add ingestion job queue status and progress UI.
+
+### 3.2 Smart tagging and connections
+- [ ] Add NER-powered tag suggestion pipeline.
+- [ ] Add user review flow for tag suggestions (accept/reject/edit).
+- [ ] Add related-notes sidebar in note detail/editor with one-click bidirectional links.
+- [ ] Add stale note resurfacing signals to related suggestions.
+
+### 3.3 Writing assistant in editor
+- [ ] Integrate autocomplete and AI edit APIs in `NoteEditor` UX.
+- [ ] Add "Continue writing", "Rewrite", "Explain", "Translate" actions for selection.
+- [ ] Add keyboard shortcuts for assistant actions and inline accept/reject.
+
+### 3.4 Flashcards + review depth
+- [ ] Add AI flashcard generation from note content.
+- [ ] Add flashcard set management and quality-of-recall analytics.
+- [ ] Add export to Anki-compatible format.
+
+## Phase 4 - Architecture Alignment with Prompt (Should/Longer Track)
+
+### 4.1 Data and job architecture migration
+- [ ] Introduce Postgres as primary store while keeping local-first defaults clear.
+- [ ] Introduce Redis + Celery for ingestion, embedding, summarization, re-indexing jobs.
+- [ ] Add Alembic migration baseline and migration workflow docs.
+- [ ] Move heavy tasks out of request-response path.
+
+### 4.2 Search + RAG pipeline hardening
+- [ ] Implement stronger hybrid pipeline (BM25 + vector + RRF merge).
+- [ ] Add configurable top-k, filters (tags/date/source/summary/flashcards), and rerank tuning.
+- [ ] Add prompt-injection-safe context handling for all ingestion sources.
+- [ ] Add streaming answer transport (SSE) for chat and long AI operations.
+
+### 4.3 Security hardening
+- [ ] Add auth modes: single-user localhost mode and optional multi-user mode.
+- [ ] Add JWT access/refresh flow with secure cookies and CSRF strategy.
+- [ ] Add rate limiting on ingestion and AI endpoints.
+- [ ] Add markdown sanitization and stricter upload validation.
+
+## Phase 5 - Retention and "Addictive" Product Layer (Healthy)
+
+### 5.1 Personal momentum surfaces
+- [ ] Add streaks and small daily targets (e.g., 5-minute knowledge ritual).
+- [ ] Add weekly digest with "what you captured", "what you connected", "what to revisit".
+- [ ] Add "On this day" and "forgotten notes" resurfacing widgets.
+
+### 5.2 Insight-driven delight loops
+- [ ] Add automatic cross-note synthesis notes (weekly).
+- [ ] Add "surprise me" upgrades: random note + why it matters now.
+- [ ] Add milestone moments (first 100 notes, first 50 links, first 7-day streak).
+
+### 5.3 Personalization
+- [ ] Learn user pattern and adapt dashboard cards (writer/researcher/student mode).
+- [ ] Let users configure cadence for resurfacing and digest style.
+- [ ] Add focus mode presets (capture mode, writing mode, review mode).
+
+## Phase 6 - Interoperability and Ecosystem (Could)
+
+### 6.1 Import/export parity
+- [ ] Full Obsidian vault export/import parity with attachments.
+- [ ] Notion/Roam import polish.
+- [ ] Graph export as JSON/SVG with compatibility docs.
+
+### 6.2 Plugin + automation ecosystem
+- [ ] Finalize plugin loading lifecycle and safety boundaries.
+- [ ] Add webhook ingestion endpoints.
+- [ ] Add CLI workflows for ingest/chat/export.
+
+### 6.3 Public garden and extension
+- [ ] Add opt-in public notes/garden mode.
+- [ ] Build browser clipper extension (MV3) with selection/full-page modes.
+
+## Quality Gates (Do for each phase)
+- [ ] Add/expand unit tests for backend services and routers.
+- [ ] Add component and integration tests for key frontend flows.
+- [ ] Add E2E tests for capture -> ask -> review -> export paths.
+- [ ] Update docs for every shipped feature.
+- [ ] Ensure no placeholder UI for unavailable features.
+
+## Immediate Next Sprint (Recommended)
+- [ ] Replace browser dialogs and unify toast/modal UX.
+- [ ] Migrate all frontend API calls to `apiUrl()` path handling.
+- [ ] Improve Ask Brain retrieval defaults + add trust/citation UX.
+- [ ] Ship Inbox + triage flow as the first daily habit loop.
+- [ ] Add onboarding with sample data and guided first "aha".

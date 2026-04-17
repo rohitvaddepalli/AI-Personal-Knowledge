@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import {
   BookOpen, PenTool, RefreshCw, LayoutTemplate, Network,
   HelpCircle, Layers, CheckSquare, Trash2,
-  Settings as SettingsIcon, Plus, Search, Bell, Menu, X,
+  Settings as SettingsIcon, Plus, Menu, X,
   Database, BookMarked, Puzzle, Brain
 } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
