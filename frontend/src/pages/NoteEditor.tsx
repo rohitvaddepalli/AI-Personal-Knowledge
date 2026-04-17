@@ -27,7 +27,10 @@ export default function NoteEditor() {
     const templateContent = sessionStorage.getItem('templateContent');
     if (templateTitle !== null) { setTitle(templateTitle); sessionStorage.removeItem('templateTitle'); }
     if (templateContent !== null) { setContent(templateContent); sessionStorage.removeItem('templateContent'); }
-    fetch('http://localhost:8000/api/templates').then(res => res.json()).then(setTemplates).catch(console.error);
+    fetch('http://localhost:8000/api/templates')
+      .then(res => { if (!res.ok) throw new Error(`Templates fetch failed: ${res.status} ${res.statusText}`); return res.json(); })
+      .then(setTemplates)
+      .catch(console.error);
   }, []);
 
   const handleAutoTag = async () => {
@@ -40,7 +43,7 @@ export default function NoteEditor() {
       });
       if (res.ok) {
         const suggestedTags = await res.json();
-        if (suggestedTags && suggestedTags.length > 0) {
+        if (Array.isArray(suggestedTags) && suggestedTags.length > 0) {
           setTags(tags ? `${tags}, ${suggestedTags.join(', ')}` : suggestedTags.join(', '));
         }
       }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MarkdownPreview } from '../components/Markdown';
 import { RotateCcw, ArrowRight, Zap, BookOpen } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 interface Note {
   id: string;
@@ -23,7 +24,7 @@ export default function Review() {
 
   const fetchDueNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/review/due');
+      const res = await fetch(apiUrl('/api/review/due'));
       const data = await res.json();
       setDueNotes(data);
       setStats(prev => ({ ...prev, total: data.length }));
@@ -34,7 +35,8 @@ export default function Review() {
     if (currentIndex >= dueNotes.length) return;
     const note = dueNotes[currentIndex];
     try {
-      await fetch(`http://localhost:8000/api/review/${note.id}?quality=${quality}`, { method: 'POST' });
+      const res = await fetch(apiUrl(`/api/review/${note.id}?quality=${quality}`), { method: 'POST' });
+      if (!res.ok) throw new Error(`Review failed: ${res.status}`);
       setStats(prev => ({ ...prev, reviewed: prev.reviewed + 1 }));
       setShowAnswer(false);
       setCurrentIndex(prev => prev + 1);
@@ -86,7 +88,7 @@ export default function Review() {
         <p style={{ fontSize: '0.875rem', maxWidth: 360, marginBottom: 24 }}>
           You reviewed {stats.reviewed} notes. Come back tomorrow for more reinforcement.
         </p>
-        <button className="btn" onClick={() => { setCurrentIndex(0); fetchDueNotes(); }}>
+        <button className="btn" onClick={() => { setCurrentIndex(0); setStats(prev => ({ ...prev, reviewed: 0 })); fetchDueNotes(); }}>
           <RotateCcw size={14} /> Start Over
         </button>
       </div>

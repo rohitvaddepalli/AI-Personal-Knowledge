@@ -18,7 +18,10 @@ function getErrorMessage(status: number) {
 }
 
 function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const diff = Date.now() - date.getTime();
+  if (diff <= 0) return 'Just now';
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
@@ -41,6 +44,7 @@ export default function NoteList() {
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
   const [showCaptureModal, setShowCaptureModal] = useState(false);
   const [captureTab, setCaptureTab] = useState('url');
+  const [aiSummarize, setAiSummarize] = useState(true);
 
   const fetchCollections = useCallback(async () => {
     try {
@@ -367,7 +371,7 @@ export default function NoteList() {
                     fontFamily: 'var(--font-mono)', marginBottom: 6,
                     paddingLeft: bulkMode ? 24 : 0,
                   }}>
-                    {note.created_at ? timeAgo(note.created_at) : new Date(note.created_at).toLocaleDateString()}
+                    {note.created_at ? timeAgo(note.created_at) : 'Unknown date'}
                   </div>
 
                   {/* Title */}
@@ -468,63 +472,81 @@ export default function NoteList() {
               ))}
             </div>
 
-            {/* URL Content */}
-            <div>
-              <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Source Link</span>
-              <div style={{
-                display: 'flex', gap: 8, alignItems: 'center',
-              }}>
+            {/* Tab Contents */}
+            {captureTab === 'url' && (
+              <div>
+                <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Source Link</span>
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, flex: 1,
-                  background: 'var(--surface-container-lowest)',
-                  borderRadius: 'var(--radius-md)', padding: '10px 14px',
+                  display: 'flex', gap: 8, alignItems: 'center',
                 }}>
-                  <Link2 size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
-                  <input
-                    value={importUrlStr}
-                    onChange={e => setImportUrlStr(e.target.value)}
-                    placeholder="https://example.com/article-to-save"
-                    style={{
-                      background: 'transparent', border: 'none', outline: 'none',
-                      color: 'var(--on-surface)', fontSize: '0.8125rem',
-                      fontFamily: 'var(--font-body)', width: '100%',
-                    }}
-                  />
-                </div>
-                <button className="btn" onClick={handleImport} disabled={importing} style={{ padding: '10px 16px' }}>
-                  {importing ? 'Fetching...' : 'Fetch & Import'}
-                </button>
-              </div>
-
-              {/* AI toggle */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--outline-variant)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
-                    width: 36, height: 20, borderRadius: 10,
-                    background: 'var(--secondary)', padding: 2,
-                    cursor: 'pointer', transition: 'background 200ms',
+                    display: 'flex', alignItems: 'center', gap: 8, flex: 1,
+                    background: 'var(--surface-container-lowest)',
+                    borderRadius: 'var(--radius-md)', padding: '10px 14px',
                   }}>
-                    <div style={{
-                      width: 16, height: 16, borderRadius: '50%',
-                      background: 'white', marginLeft: 14,
-                      transition: 'margin 200ms',
-                    }} />
+                    <Link2 size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
+                    <input
+                      value={importUrlStr}
+                      onChange={e => setImportUrlStr(e.target.value)}
+                      placeholder="https://example.com/article-to-save"
+                      style={{
+                        background: 'transparent', border: 'none', outline: 'none',
+                        color: 'var(--on-surface)', fontSize: '0.8125rem',
+                        fontFamily: 'var(--font-body)', width: '100%',
+                      }}
+                    />
                   </div>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)' }}>
-                    AI will summarize on import
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-ghost" onClick={() => setShowCaptureModal(false)}>Cancel</button>
-                  <button className="btn" onClick={handleImport} disabled={importing || !importUrlStr.trim()}>
-                    Save to Inbox
+                  <button className="btn" onClick={handleImport} disabled={importing} style={{ padding: '10px 16px' }}>
+                    {importing ? 'Fetching...' : 'Fetch & Import'}
                   </button>
                 </div>
+
+                {/* AI toggle */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--outline-variant)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div 
+                      role="switch"
+                      aria-checked={aiSummarize}
+                      tabIndex={0}
+                      onClick={() => setAiSummarize(!aiSummarize)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setAiSummarize(!aiSummarize);
+                        }
+                      }}
+                      style={{
+                        width: 36, height: 20, borderRadius: 10,
+                        background: aiSummarize ? 'var(--secondary)' : 'var(--surface-container-highest)', padding: 2,
+                        cursor: 'pointer', transition: 'background 200ms',
+                      }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: 'white', marginLeft: aiSummarize ? 14 : 0,
+                        transition: 'margin 200ms',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)' }}>
+                      AI will summarize on import
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn-ghost" onClick={() => setShowCaptureModal(false)}>Cancel</button>
+                    <button className="btn" onClick={handleImport} disabled={importing || !importUrlStr.trim()}>
+                      Save to Inbox
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+            {captureTab !== 'url' && (
+               <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                 <p style={{ color: 'var(--on-surface-dim)', fontSize: '0.875rem' }}>This capture method is coming soon.</p>
+               </div>
+            )}
           </div>
         </div>
       )}

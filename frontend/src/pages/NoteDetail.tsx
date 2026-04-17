@@ -38,8 +38,8 @@ export default function NoteDetail() {
   const desktopRuntime = isDesktopRuntime();
 
   const fetchNote = () => {
-    fetch(`http://localhost:8000/api/notes/${id}`)
-      .then(res => res.json())
+    fetch(apiUrl(`/api/notes/${id}`))
+      .then(res => { if (!res.ok) throw new Error(`${res.status}`); return res.json(); })
       .then(data => { setNote(data); setEditTitle(data.title); setEditContent(data.content); })
       .catch(console.error);
   };
@@ -47,7 +47,7 @@ export default function NoteDetail() {
   const togglePin = async () => {
     if (!note) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}`, {
+      const res = await fetch(apiUrl(`/api/notes/${id}`), {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_pinned: !note.is_pinned }),
       });
@@ -58,7 +58,7 @@ export default function NoteDetail() {
   const fetchAttachments = async () => {
     if (!id) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/attachments`);
+      const res = await fetch(apiUrl(`/api/notes/${id}/attachments`));
       if (res.ok) setAttachments(await res.json());
     } catch (e) { console.error(e); }
   };
@@ -69,7 +69,7 @@ export default function NoteDetail() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/attachments`, { method: 'POST', body: formData });
+      const res = await fetch(apiUrl(`/api/notes/${id}/attachments`), { method: 'POST', body: formData });
       if (res.ok) fetchAttachments();
     } catch (err) { console.error(err); }
     finally { setUploading(false); }
@@ -92,7 +92,7 @@ export default function NoteDetail() {
   const deleteAttachment = async (attachmentId: string) => {
     if (!confirm('Delete attachment?')) return;
     try {
-      await fetch(`http://localhost:8000/api/notes/${id}/attachments/${attachmentId}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/notes/${id}/attachments/${attachmentId}`), { method: 'DELETE' });
       fetchAttachments();
     } catch (e) { console.error(e); }
   };
@@ -100,7 +100,7 @@ export default function NoteDetail() {
   const fetchVersions = async () => {
     if (!id) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/versions`);
+      const res = await fetch(apiUrl(`/api/notes/${id}/versions`));
       if (res.ok) setVersions(await res.json());
     } catch (e) { console.error(e); }
   };
@@ -108,7 +108,7 @@ export default function NoteDetail() {
   const restoreVersion = async (versionId: string) => {
     if (!confirm('Restore? Current state is saved as a new version.')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/versions/${versionId}/restore`, { method: 'POST' });
+      const res = await fetch(apiUrl(`/api/notes/${id}/versions/${versionId}/restore`), { method: 'POST' });
       if (res.ok) { fetchNote(); fetchVersions(); setSelectedVersion(null); }
     } catch (e) { console.error(e); }
   };
@@ -116,34 +116,37 @@ export default function NoteDetail() {
   const fetchNoteTree = async () => {
     if (!id) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/tree`);
+      const res = await fetch(apiUrl(`/api/notes/${id}/tree`));
       if (res.ok) setNoteTree(await res.json());
     } catch (e) { console.error(e); }
   };
 
   const fetchAllNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes');
-      if (res.ok) { const data = await res.json(); setAllNotes(data.filter((n: any) => n.id !== id)); }
+      const res = await fetch(apiUrl('/api/notes'));
+      if (res.ok) {
+        const data = await res.json();
+        setAllNotes(Array.isArray(data) ? data.filter((n: any) => n.id !== id) : []);
+      }
     } catch (e) { console.error(e); }
   };
 
   const setParentNote = async (parentId: string | null) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/parent?parent_id=${parentId || ''}`, { method: 'POST' });
+      const res = await fetch(apiUrl(`/api/notes/${id}/parent?parent_id=${parentId || ''}`), { method: 'POST' });
       if (res.ok) { fetchNote(); fetchNoteTree(); setShowParentSelector(false); }
     } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
     fetchNote(); fetchAttachments(); fetchVersions(); fetchNoteTree(); fetchAllNotes();
-    fetch('http://localhost:8000/api/collections').then(r => r.json()).then(setCollections).catch(console.error);
-    fetch(`http://localhost:8000/api/chat/sessions?note_id=${id}`).then(r => r.json())
+    fetch(apiUrl('/api/collections')).then(r => r.json()).then(setCollections).catch(console.error);
+    fetch(apiUrl(`/api/chat/sessions?note_id=${id}`)).then(r => r.json())
       .then(sessions => {
         if (sessions?.length > 0) {
           const latest = sessions[0];
           setSessionId(latest.id);
-          fetch(`http://localhost:8000/api/chat/sessions/${latest.id}`).then(r => r.json())
+          fetch(apiUrl(`/api/chat/sessions/${latest.id}`)).then(r => r.json())
             .then(data => setChatHistory(data.messages || [])).catch(console.error);
         }
       }).catch(console.error);
@@ -151,7 +154,7 @@ export default function NoteDetail() {
 
   const handleSaveUpdate = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}`, {
+      const res = await fetch(apiUrl(`/api/notes/${id}`), {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: editTitle, content: editContent }),
       });
@@ -162,7 +165,7 @@ export default function NoteDetail() {
   const addToCollection = async () => {
     if (!selectedCol) return;
     try {
-      await fetch(`http://localhost:8000/api/collections/${selectedCol}/notes/${id}`, { method: 'POST' });
+      await fetch(apiUrl(`/api/collections/${selectedCol}/notes/${id}`), { method: 'POST' });
       alert('Added to collection!');
       setSelectedCol('');
     } catch (e) { console.error(e); }
@@ -174,7 +177,7 @@ export default function NoteDetail() {
     setChatHistory(prev => [...prev, { role: 'user', content: chatQuestion }]);
     const q = chatQuestion; setChatQuestion('');
     try {
-      const res = await fetch('http://localhost:8000/api/ask', {
+      const res = await fetch(apiUrl('/api/ask'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: q, note_id: id, session_id: sessionId,
@@ -194,7 +197,7 @@ export default function NoteDetail() {
     if (!id) return;
     setAiLoading(true); setAiResult('');
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/summarize`, {
+      const res = await fetch(apiUrl(`/api/notes/${id}/summarize`), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' })
       });
@@ -216,7 +219,7 @@ export default function NoteDetail() {
     if (!id) return;
     setAiLoading(true); setAiResult('');
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/transform`, {
+      const res = await fetch(apiUrl(`/api/notes/${id}/transform`), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instruction: resolveInstruction(), model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' }),
       });
@@ -304,7 +307,7 @@ export default function NoteDetail() {
             >
               <Sparkles size={14} /> AI Actions
             </button>
-            <button className="btn-ghost" style={{ padding: '6px 8px' }}>
+            <button className="btn-ghost" style={{ padding: '6px 8px' }} title="More options (coming soon)" aria-disabled="true">
               <MoreVertical size={16} />
             </button>
           </div>
@@ -591,8 +594,8 @@ export default function NoteDetail() {
             <span className="label-sm" style={{ marginBottom: 12, display: 'block' }}>Intelligence Panel</span>
             {[
               { icon: <FileText size={16} />, label: 'Summarize', desc: 'Condense to key bullets', action: handleSummarize },
-              { icon: <Tag size={16} />, label: 'Suggest Tags', desc: 'AI taxonomy analysis', action: () => {} },
-              { icon: <Link2 size={16} />, label: 'Find Related', desc: 'Discover semantic links', action: () => {} },
+              { icon: <Tag size={16} />, label: 'Suggest Tags', desc: 'AI taxonomy analysis', action: () => alert('Suggest Tags is coming soon.') },
+              { icon: <Link2 size={16} />, label: 'Find Related', desc: 'Discover semantic links', action: () => alert('Find Related is coming soon.') },
             ].map((item, i) => (
               <button
                 key={i}

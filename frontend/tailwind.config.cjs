@@ -42,7 +42,7 @@ module.exports = {
       },
       borderRadius: {
         organic: '1.25rem',
-        md: '0.75rem',
+        'md-lg': '0.75rem',
       },
       boxShadow: {
         ambient: 'var(--shadow-ambient)',

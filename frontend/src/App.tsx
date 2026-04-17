@@ -243,36 +243,43 @@ function AppContent() {
             padding: '8px 16px', flex: 1, maxWidth: 400,
           }}>
             <Search size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search your knowledge..."
-              onFocus={() => navigate('/notes')}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/notes')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/notes'); }}
               style={{
-                background: 'transparent', border: 'none', outline: 'none',
-                color: 'var(--on-surface)', fontSize: '0.8125rem',
-                fontFamily: 'var(--font-body)', width: '100%',
+                color: 'var(--on-surface-dim)', fontSize: '0.8125rem',
+                fontFamily: 'var(--font-body)', width: '100%', cursor: 'pointer',
               }}
-            />
+            >
+              Search your knowledge...
+            </div>
           </div>
 
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button style={{
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              color: 'var(--on-surface-dim)', padding: 6, borderRadius: 'var(--radius-md)',
-              transition: 'color 200ms',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--on-surface)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--on-surface-dim)')}
+            <button
+              title="Coming soon"
+              aria-disabled="true"
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--on-surface-dim)', padding: 6, borderRadius: 'var(--radius-md)',
+                cursor: 'default', opacity: 0.6,
+              }}
             >
               <Bell size={18} />
             </button>
-            <div style={{
-              width: 32, height: 32, borderRadius: 'var(--radius-full)',
-              background: 'linear-gradient(135deg, var(--primary-container), var(--secondary))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem', fontWeight: 700, color: '#fff', cursor: 'pointer',
-            }}>
+            <div
+              title="Coming soon"
+              aria-disabled="true"
+              style={{
+                width: 32, height: 32, borderRadius: 'var(--radius-full)',
+                background: 'linear-gradient(135deg, var(--primary-container), var(--secondary))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.75rem', fontWeight: 700, color: '#fff', cursor: 'default',
+                opacity: 0.8,
+              }}>
               U
             </div>
           </div>

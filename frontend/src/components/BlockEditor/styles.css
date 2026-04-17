@@ -60,6 +60,12 @@
   color: var(--primary, #CABEFF);
 }
 
+.editor-toolbar button:focus-visible {
+  outline: 2px solid var(--primary, #CABEFF);
+  outline-offset: 1px;
+  background: var(--primary-dim, rgba(202, 190, 255, 0.15));
+}
+
 /* ProseMirror Content */
 .block-editor-container .ProseMirror {
   min-height: 300px;
@@ -183,8 +189,12 @@
   transition: color 200ms;
 }
 
-.block-editor-container .ProseMirror a:hover {
+.block-editor-container .ProseMirror a:hover,
+.block-editor-container .ProseMirror a:focus-visible {
   color: var(--primary-container, #947DFF);
+  outline: 2px solid var(--primary-dim, rgba(202, 190, 255, 0.15));
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Task List */
@@ -266,6 +276,12 @@
 .slash-command-item.is-selected {
   background: var(--primary-dim, rgba(202, 190, 255, 0.15));
   color: var(--primary, #CABEFF);
+}
+
+.slash-command-item:focus-visible {
+  outline: 2px solid var(--primary, #CABEFF);
+  outline-offset: -2px;
+  background: var(--surface-variant, rgba(255, 255, 255, 0.06));
 }
 
 .slash-command-icon {
@@ -350,6 +366,13 @@
 .floating-menu-buttons button.is-active {
   background: var(--primary-dim, rgba(202, 190, 255, 0.15));
   color: var(--primary, #CABEFF);
+}
+
+.bubble-menu-buttons button:focus-visible,
+.floating-menu-buttons button:focus-visible {
+  outline: 2px solid var(--primary, #CABEFF);
+  outline-offset: 1px;
+  background: var(--primary-dim, rgba(202, 190, 255, 0.15));
 }
 
 /* Scrollbar */

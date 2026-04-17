@@ -17,8 +17,8 @@ export default function AskBrain() {
 
   const fetchSessions = () => {
     fetch('http://localhost:8000/api/chat/sessions')
-      .then(res => res.json())
-      .then(data => setSessions(data))
+      .then(res => { if (!res.ok) throw new Error(`Sessions fetch failed: ${res.status}`); return res.json(); })
+      .then(data => { if (Array.isArray(data)) setSessions(data); })
       .catch(console.error);
   };
 
@@ -59,12 +59,16 @@ export default function AskBrain() {
     setLoading(true);
     try {
       const res = await fetch(`http://localhost:8000/api/chat/sessions/${id}`);
+      if (!res.ok) throw new Error(`Failed to load session: ${res.status} ${res.statusText}`);
       const data = await res.json();
       setHistory(data.messages.map((m: any) => ({
         type: m.role === 'user' ? 'user' : 'ai', content: m.content
       })));
       setSessionId(id);
       setLatestSources([]);
+    } catch (e: any) {
+      console.error(e);
+      setHistory(prev => [...prev, { type: 'ai', content: `Error loading session: ${e.message}`, sources: [] }]);
     } finally { setLoading(false); }
   };
 
@@ -85,11 +89,15 @@ export default function AskBrain() {
           model: activeModel
         })
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `API error: ${res.status} ${res.statusText}`);
+      }
       const data = await res.json();
       setHistory(prev => [...prev, { type: 'ai', content: data.answer, sources: data.sources }]);
       if (data.session_id) setSessionId(data.session_id);
       if (data.sources) setLatestSources(data.sources);
-      fetch('http://localhost:8000/api/chat/sessions').then(r => r.json()).then(setSessions);
+      fetchSessions();
     } catch (e: any) {
       setHistory(prev => [...prev, { type: 'ai', content: `Error: ${e.message}`, sources: [] }]);
     } finally { setLoading(false); }
@@ -149,14 +157,18 @@ export default function AskBrain() {
           {sessions.map(s => (
             <div
               key={s.id}
+              role="button"
+              tabIndex={0}
+              aria-current={sessionId === s.id ? 'true' : undefined}
               onClick={() => loadSession(s.id)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadSession(s.id); } }}
               style={{
                 padding: '8px 10px', borderRadius: 'var(--radius-md)',
                 cursor: 'pointer', fontSize: '0.75rem',
                 background: sessionId === s.id ? 'var(--primary-dim)' : 'transparent',
                 color: sessionId === s.id ? 'var(--primary)' : 'var(--on-surface-variant)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                transition: 'all 200ms',
+                transition: 'all 200ms', outline: 'none',
               }}
               onMouseEnter={e => { if (sessionId !== s.id) e.currentTarget.style.background = 'var(--surface-variant)'; }}
               onMouseLeave={e => { if (sessionId !== s.id) e.currentTarget.style.background = 'transparent'; }}
@@ -328,20 +340,24 @@ export default function AskBrain() {
                 <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-dim)', padding: 8 }}>No notes found</p>
               )}
               {filteredNotes.map(n => (
-                <div
+                <button
                   key={n.id}
                   onClick={() => selectNote(n.title)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectNote(n.title); } }}
+                  aria-label={`Reference note: ${n.title}`}
                   style={{
                     padding: '6px 8px', cursor: 'pointer', borderRadius: 'var(--radius-sm)',
                     fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: 6,
-                    transition: 'background 200ms',
+                    transition: 'background 200ms', background: 'transparent',
+                    border: 'none', color: 'inherit', width: '100%', textAlign: 'left',
+                    fontFamily: 'inherit',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-variant)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <FileText size={12} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
                   {n.title}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -351,10 +367,16 @@ export default function AskBrain() {
             background: 'var(--surface-container-lowest)',
             borderRadius: 'var(--radius-lg)', padding: '12px 16px',
           }}>
-            <button style={{
-              background: 'transparent', border: 'none',
-              color: 'var(--on-surface-dim)', cursor: 'pointer', padding: 4,
-            }}>
+            <button
+              disabled
+              title="Attachment support coming soon"
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--on-surface-dim)', cursor: 'default', padding: 4,
+                opacity: 0.5,
+              }}
+            >
+              {/* TODO: implement handleAttach — open file picker */}
               <Paperclip size={18} />
             </button>
             <textarea

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, RotateCcw, Download, ArrowRight } from 'lucide-react';
@@ -8,9 +8,34 @@ export default function KnowledgeGraph() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [filter, setFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('Graph');
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
+
+  const getConnectionCount = (nodeId: string) => {
+    return data.links.filter((l: any) =>
+      (typeof l.source === 'object' ? l.source?.id : l.source) === nodeId ||
+      (typeof l.target === 'object' ? l.target?.id : l.target) === nodeId
+    ).length;
+  };
+
+  const filteredData = useMemo(() => {
+    if (filter === 'all') return data;
+    const filteredNodes = data.nodes.filter((n: any) => {
+      if (filter === 'ai') return n.group === 'ai';
+      if (filter === 'manual') return n.group !== 'ai';
+      if (filter === 'tag') return n.tags && n.tags.length > 0;
+      return true;
+    });
+    const nodeIds = new Set(filteredNodes.map((n: any) => n.id));
+    const filteredLinks = data.links.filter((l: any) => {
+      const srcId = typeof l.source === 'object' ? l.source?.id : l.source;
+      const tgtId = typeof l.target === 'object' ? l.target?.id : l.target;
+      return nodeIds.has(srcId) && nodeIds.has(tgtId);
+    });
+    return { nodes: filteredNodes, links: filteredLinks };
+  }, [data, filter]);
 
   useEffect(() => {
     fetch('http://localhost:8000/api/graph')
@@ -62,19 +87,26 @@ export default function KnowledgeGraph() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>Graph Explorer</h1>
           {/* Tab links */}
           <nav style={{ display: 'flex', gap: 4, fontFamily: 'var(--font-display)', fontSize: '0.8125rem' }}>
-            {['Notes', 'Chat', 'Graph', 'Flashcards', 'Analytics'].map(tab => (
-              <span
-                key={tab}
-                style={{
-                  padding: '4px 10px', borderRadius: 'var(--radius-full)', cursor: 'pointer',
-                  color: tab === 'Graph' ? 'var(--primary)' : 'var(--on-surface-dim)',
-                  borderBottom: tab === 'Graph' ? '2px solid var(--primary)' : 'none',
-                  fontWeight: tab === 'Graph' ? 600 : 400,
-                }}
-              >
-                {tab}
-              </span>
-            ))}
+            {['Notes', 'Chat', 'Graph', 'Flashcards', 'Analytics'].map(tab => {
+              const tabRoutes: Record<string, string> = { Notes: '/notes', Chat: '/ask', Graph: '/graph', Flashcards: '/review', Analytics: '/graph' };
+              return (
+                <span
+                  key={tab}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); } }}
+                  style={{
+                    padding: '4px 10px', borderRadius: 'var(--radius-full)', cursor: 'pointer',
+                    color: activeTab === tab ? 'var(--primary)' : 'var(--on-surface-dim)',
+                    borderBottom: activeTab === tab ? '2px solid var(--primary)' : 'none',
+                    fontWeight: activeTab === tab ? 600 : 400,
+                  }}
+                >
+                  {tab}
+                </span>
+              );
+            })}
           </nav>
         </div>
 
@@ -124,7 +156,7 @@ export default function KnowledgeGraph() {
               ref={graphRef}
               width={dimensions.width}
               height={dimensions.height}
-              graphData={data}
+              graphData={filteredData}
               autoPauseRedraw
               cooldownTicks={80}
               cooldownTime={2500}
@@ -135,20 +167,23 @@ export default function KnowledgeGraph() {
               linkDirectionalArrowRelPos={1}
               onNodeClick={(node: any) => setSelectedNode(node)}
               nodeCanvasObject={(node: any, ctx, globalScale) => {
+                if (typeof node.x !== 'number' || typeof node.y !== 'number') return;
+                const x = node.x;
+                const y = node.y;
                 const size = (node.val || 4) * 1.5;
                 const isSelected = selectedNode?.id === node.id;
 
                 // Node glow
                 if (isSelected) {
                   ctx.beginPath();
-                  ctx.arc(node.x!, node.y!, size + 6, 0, 2 * Math.PI);
+                  ctx.arc(x, y, size + 6, 0, 2 * Math.PI);
                   ctx.fillStyle = 'rgba(202, 190, 255, 0.15)';
                   ctx.fill();
                 }
 
                 // Node circle
                 ctx.beginPath();
-                ctx.arc(node.x!, node.y!, size, 0, 2 * Math.PI);
+                ctx.arc(x, y, size, 0, 2 * Math.PI);
                 const isAI = node.group === 'ai';
                 ctx.fillStyle = isSelected ? '#CABEFF'
                   : isAI ? '#03C6B2'
@@ -158,7 +193,7 @@ export default function KnowledgeGraph() {
                 // White center dot for selected
                 if (isSelected) {
                   ctx.beginPath();
-                  ctx.arc(node.x!, node.y!, size * 0.35, 0, 2 * Math.PI);
+                  ctx.arc(x, y, size * 0.35, 0, 2 * Math.PI);
                   ctx.fillStyle = '#fff';
                   ctx.fill();
                 }
@@ -168,7 +203,7 @@ export default function KnowledgeGraph() {
                   ctx.font = `${isSelected ? 600 : 400} ${11 / globalScale}px Manrope, sans-serif`;
                   ctx.fillStyle = isSelected ? '#E2E2EB' : '#A0A0AB';
                   ctx.textAlign = 'center';
-                  ctx.fillText(node.name || '', node.x!, node.y! + size + 10 / globalScale);
+                  ctx.fillText(node.name || '', x, y + size + 10 / globalScale);
                 }
               }}
               linkColor={() => 'rgba(148, 125, 255, 0.15)'}
@@ -200,14 +235,21 @@ export default function KnowledgeGraph() {
               </button>
             ))}
             <div style={{ height: 8 }} />
-            <button onClick={() => {}} style={{
+            <button onClick={() => {
+              const canvas = containerRef.current?.querySelector('canvas');
+              if (!canvas) { alert('No graph to export.'); return; }
+              const link = document.createElement('a');
+              link.download = 'knowledge-graph.png';
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            }} style={{
               padding: '8px 12px', borderRadius: 'var(--radius-md)',
               background: 'var(--surface-container)', border: '1px solid var(--outline)',
               color: 'var(--on-surface-variant)', cursor: 'pointer',
               fontSize: '0.6875rem', fontFamily: 'var(--font-display)',
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <Download size={13} /> Export SVG
+              <Download size={13} /> Export PNG
             </button>
           </div>
         </div>
@@ -229,7 +271,7 @@ export default function KnowledgeGraph() {
                   fontSize: '0.625rem', color: 'var(--secondary)',
                   fontFamily: 'var(--font-mono)',
                 }}>
-                  ∞ {selectedNode.connections || 0} Connections
+                  ∞ {getConnectionCount(selectedNode.id)} Connections
                 </span>
               </div>
 
@@ -294,7 +336,7 @@ export default function KnowledgeGraph() {
             }}>
               Explore clusters in your knowledge graph to discover hidden connections between concepts.
             </p>
-            <button className="btn-secondary" style={{ width: '100%', fontSize: '0.75rem' }}>
+            <button className="btn-secondary" onClick={() => alert('Suggested links review is coming soon.')} style={{ width: '100%', fontSize: '0.75rem' }}>
               Review Suggested Links
             </button>
           </div>

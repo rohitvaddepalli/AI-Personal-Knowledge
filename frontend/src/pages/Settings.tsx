@@ -82,12 +82,24 @@ export default function Settings() {
 
   const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
     <div
+      role="switch"
+      aria-checked={checked}
+      tabIndex={0}
       onClick={() => onChange(!checked)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
       style={{
         width: 40, height: 22, borderRadius: 11, cursor: 'pointer', flexShrink: 0,
         background: checked ? 'var(--primary)' : 'var(--surface-container-highest)',
-        padding: 2, transition: 'background 200ms',
+        padding: 2, transition: 'background 200ms, outline 200ms',
+        outline: 'none',
       }}
+      onFocus={e => e.currentTarget.style.outline = '2px solid var(--primary)'}
+      onBlur={e => e.currentTarget.style.outline = 'none'}
     >
       <div style={{
         width: 18, height: 18, borderRadius: '50%', background: 'white',

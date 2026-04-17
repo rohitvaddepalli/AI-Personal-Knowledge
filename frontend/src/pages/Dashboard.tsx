@@ -83,11 +83,15 @@ export default function Dashboard() {
 
   const quickActions = [
     { icon: PenTool, label: 'Capture', action: () => navigate('/notes/new') },
-    { icon: Shuffle, label: 'Surprise', action: () => {
-      if (recentNotes.length > 0) {
-        const rand = recentNotes[Math.floor(Math.random() * recentNotes.length)];
+    { icon: Shuffle, label: 'Surprise', action: async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/notes?limit=50');
+        if (!res.ok) throw new Error('Failed to fetch notes');
+        const notes = await res.json();
+        if (!Array.isArray(notes) || notes.length === 0) { alert('No notes yet — create some first!'); return; }
+        const rand = notes[Math.floor(Math.random() * notes.length)];
         navigate(`/notes/${rand.id}`);
-      }
+      } catch { if (recentNotes.length > 0) { navigate(`/notes/${recentNotes[Math.floor(Math.random() * recentNotes.length)].id}`); } else { alert('No notes yet — create some first!'); } }
     }},
     { icon: Search, label: 'Search', action: () => navigate('/notes') },
     { icon: Brain, label: 'Think', action: () => navigate('/ask') },
@@ -128,9 +132,10 @@ export default function Dashboard() {
         <div style={{
           borderRadius: 'var(--radius-md)', padding: '12px 16px',
           background: 'var(--tertiary-container)', fontSize: '0.8125rem',
-          color: 'var(--on-surface)',
+          color: 'var(--on-surface)', display: 'flex', flexDirection: 'column', gap: 4,
         }}>
-          {insightsError ?? recentNotesError}
+          {insightsError && <span>{insightsError}</span>}
+          {recentNotesError && <span>{recentNotesError}</span>}
         </div>
       )}
 
