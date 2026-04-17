@@ -139,6 +139,11 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 - [ ] Add privacy controls: explicit opt-in for cloud providers, with local-only mode as default.
 - [ ] Add cost/usage guardrails (token caps, per-provider limits, warning thresholds).
 - [ ] Add provider fallback chain (preferred provider -> backup provider -> local Ollama fallback).
+- [ ] Refactor backend AI code into `backend/app/llm/` to avoid scattered logic across routers/services.
+- [ ] Create `backend/app/llm/providers/` modules (ollama, openai, anthropic, google, openrouter, custom).
+- [ ] Add shared `backend/app/llm/router.py` for provider selection, fallback chain, and policy checks.
+- [ ] Add `backend/app/llm/prompts.py` and `backend/app/llm/types.py` for reusable prompt templates and typed request/response contracts.
+- [ ] Migrate current AI call sites (`ask.py`, `notes.py`, `rag_service.py`, `insight_engine.py`) to use the new `app.llm` abstraction.
 
 ## Phase 5 - Retention and "Addictive" Product Layer (Healthy)
 
