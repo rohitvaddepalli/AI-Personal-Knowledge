@@ -33,41 +33,41 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 ## Phase 1 - Product Trust and UX Baseline (Must do now)
 
 ### 1.1 RAG trust and answer quality
-- [ ] Support both retrieval styles: default global retrieval across the knowledge base, plus optional `@mention`-scoped retrieval for explicit note targeting.
-- [ ] Add modes in Ask Brain: `Auto`, `Search only`, `Strict cited answers`.
-- [ ] Show per-answer confidence + retrieval explanation ("why these sources").
-- [ ] Add citation chips linking to exact note anchors/snippets.
-- [ ] Add fallback response policy when grounding is weak (ask clarifying question, suggest related notes).
+- [x] Support both retrieval styles: default global retrieval across the knowledge base, plus optional `@mention`-scoped retrieval for explicit note targeting.
+- [x] Add modes in Ask Brain: `Auto`, `Search only`, `Strict cited answers`.
+- [x] Show per-answer confidence + retrieval explanation ("why these sources").
+- [x] Add citation chips linking to exact note anchors/snippets.
+- [x] Add fallback response policy when grounding is weak (ask clarifying question, suggest related notes).
 
 ### 1.2 Remove UX trust breakers
-- [ ] Replace all `alert`, `confirm`, `prompt` with app dialogs/toasts.
-- [ ] Hide or clearly badge unimplemented capture tabs (YouTube/upload/quick) until shipped.
-- [ ] Standardize loading, empty, and error states across Notes, Ask, Dashboard, Review.
-- [ ] Rename misleading labels (example: `NoteList` header "Analytics" -> "Notes").
+- [x] Replace all `alert`, `confirm`, `prompt` with app dialogs/toasts.
+- [x] Hide or clearly badge unimplemented capture tabs (YouTube/upload/quick) until shipped.
+- [x] Standardize loading, empty, and error states across Notes, Ask, Dashboard, Review.
+- [x] Rename misleading labels (example: `NoteList` header "Analytics" -> "Notes").
 
 ### 1.3 API consistency and runtime reliability
-- [ ] Replace hardcoded API URLs in frontend with shared `apiUrl()` utility everywhere.
-- [ ] Audit desktop/web behavior for all fetch calls after migration.
-- [ ] Add global fetch error normalization and user-facing retry actions.
+- [x] Replace hardcoded API URLs in frontend with shared `apiUrl()` utility everywhere.
+- [x] Audit desktop/web behavior for all fetch calls after migration.
+- [x] Add global fetch error normalization and user-facing retry actions.
 
 ## Phase 2 - Habit Loop and User-Friendliness (Must)
 
 ### 2.1 Build a clear daily loop
-- [ ] Add "Inbox" as the first-class capture destination.
-- [ ] Add triage actions: summarize, tag, link, schedule review, archive.
-- [ ] Add dashboard "Today" section: Capture -> Connect -> Review progress.
-- [ ] Add "next best action" card to guide users when they open the app.
+- [x] Add "Inbox" as the first-class capture destination.
+- [x] Add triage actions: summarize, tag, link, schedule review, archive.
+- [x] Add dashboard "Today" section: Capture -> Connect -> Review progress.
+- [x] Add "next best action" card to guide users when they open the app.
 
 ### 2.2 Onboarding and progressive disclosure
-- [ ] Add first-run onboarding with goal selection (student/researcher/creator/developer).
-- [ ] Import sample notes on first run to demonstrate RAG + graph quickly.
-- [ ] Add beginner mode with only 4 core actions (Capture, Search, Ask, Review).
-- [ ] Move advanced surfaces behind "Advanced" navigation.
+- [x] Add first-run onboarding with goal selection (student/researcher/creator/developer).
+- [x] Import sample notes on first run to demonstrate RAG + graph quickly.
+- [x] Add beginner mode with only 4 core actions (Capture, Search, Ask, Review) — core nav always visible; Advanced items behind expander.
+- [x] Move advanced surfaces behind "Advanced" navigation.
 
 ### 2.3 Command-driven productivity
-- [ ] Implement global command palette (`Ctrl/Cmd+K`) with actions + search.
-- [ ] Support quick actions: new note, open daily note, ask question, import URL, review due.
-- [ ] Persist recent commands and search history locally.
+- [x] Implement global command palette (`Ctrl/Cmd+K`) with actions + search.
+- [x] Support quick actions: new note, open daily note, ask question, import URL, review due.
+- [x] Persist recent commands and search history locally.
 
 ## Phase 3 - Core Feature Completion vs Prompt (Should)
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Pin, Trash2, CheckSquare, X, Link2, Upload, FileText, Globe, Plus } from 'lucide-react';
+import { Search, Pin, Trash2, CheckSquare, X, Link2, FileText, Plus, AlertCircle } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 interface Note {
   id: string;
@@ -9,6 +10,77 @@ interface Note {
   tags: string[];
   created_at: string;
   is_pinned: boolean;
+}
+
+// ── Inline confirm dialog ──────────────────────────────────────────────────
+function ConfirmDialog({
+  message,
+  confirmLabel = 'Delete',
+  onConfirm,
+  onCancel,
+}: {
+  message: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        className="animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--surface-container)', borderRadius: 'var(--radius-xl)',
+          padding: 28, maxWidth: 400, width: '90%',
+          border: '1px solid var(--outline)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+          <AlertCircle size={20} style={{ color: 'var(--error)', flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--on-surface)' }}>{message}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button
+            className="btn"
+            style={{ background: 'var(--error)', color: '#fff' }}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Toast notification ─────────────────────────────────────────────────────
+function Toast({ message, type = 'error' }: { message: string; type?: 'error' | 'success' | 'info' }) {
+  const color = type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--secondary)' : 'var(--primary)';
+  return (
+    <div
+      className="animate-fade-in"
+      style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+        padding: '12px 18px', borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface-container-high)',
+        border: `1px solid ${color}`,
+        color: 'var(--on-surface)', fontSize: '0.8125rem',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: 8, maxWidth: 360,
+      }}
+    >
+      <AlertCircle size={14} style={{ color, flexShrink: 0 }} />
+      {message}
+    </div>
+  );
 }
 
 function getErrorMessage(status: number) {
@@ -46,9 +118,19 @@ export default function NoteList() {
   const [captureTab, setCaptureTab] = useState('url');
   const [aiSummarize, setAiSummarize] = useState(true);
 
+  // Dialog / toast state
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState<string | null>(null);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' | 'info' } | null>(null);
+
+  const showToast = (msg: string, type: 'error' | 'success' | 'info' = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const fetchCollections = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/collections');
+      const res = await fetch(apiUrl('/api/collections'));
       if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
       setCollections(Array.isArray(data) ? data : []);
@@ -63,9 +145,9 @@ export default function NoteList() {
   const fetchNotes = useCallback(async (query?: string) => {
     if (query && query.trim()) {
       try {
-        const res = await fetch('http://localhost:8000/api/search', {
+        const res = await fetch(apiUrl('/api/search'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, limit: 20 })
+          body: JSON.stringify({ query, limit: 20 }),
         });
         if (!res.ok) throw new Error(getErrorMessage(res.status));
         const data = await res.json();
@@ -78,7 +160,7 @@ export default function NoteList() {
       }
     } else {
       try {
-        const res = await fetch('http://localhost:8000/api/notes');
+        const res = await fetch(apiUrl('/api/notes'));
         if (!res.ok) throw new Error(getErrorMessage(res.status));
         const data = await res.json();
         setNotes(Array.isArray(data) ? data : []);
@@ -109,30 +191,42 @@ export default function NoteList() {
     if (!importUrlStr.trim()) return;
     setImporting(true);
     try {
-      const res = await fetch('http://localhost:8000/api/import/url', {
+      const res = await fetch(apiUrl('/api/import/url'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: importUrlStr, model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b', ai_summarize: aiSummarize })
+        body: JSON.stringify({
+          url: importUrlStr,
+          model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b',
+          ai_summarize: aiSummarize,
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       setImportUrlStr('');
       setShowCaptureModal(false);
       await fetchNotes(debouncedQuery);
+      showToast('URL imported successfully!', 'success');
     } catch (e: any) {
-      alert(`Import failed: ${e.message}`);
-    } finally { setImporting(false); }
+      showToast(`Import failed: ${e.message}`, 'error');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const deleteNote = async (id: string) => {
-    if (!confirm('Delete this note?')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchNotes(debouncedQuery);
-    } catch (e) { console.error(e); }
+      const res = await fetch(apiUrl(`/api/notes/${id}`), { method: 'DELETE' });
+      if (res.ok) {
+        fetchNotes(debouncedQuery);
+        showToast('Note moved to trash.', 'success');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to delete note.', 'error');
+    }
   };
 
   const togglePin = async (id: string, isPinned: boolean) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}`, {
+      const res = await fetch(apiUrl(`/api/notes/${id}`), {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_pinned: !isPinned }),
       });
@@ -146,25 +240,30 @@ export default function NoteList() {
     setSelectedNotes(newSelected);
   };
 
-  const selectAll = () => setSelectedNotes(new Set(sortedNotes.map(n => n.id)));
+  const selectAll = () => setSelectedNotes(new Set(sortedNotes.map((n) => n.id)));
   const deselectAll = () => setSelectedNotes(new Set());
 
   const bulkDelete = async () => {
-    if (!confirm(`Move ${selectedNotes.size} notes to trash?`)) return;
-    await Promise.all(Array.from(selectedNotes).map(id =>
-      fetch(`http://localhost:8000/api/notes/${id}`, { method: 'DELETE' })
-    ));
+    await Promise.all(
+      Array.from(selectedNotes).map((id) =>
+        fetch(apiUrl(`/api/notes/${id}`), { method: 'DELETE' })
+      )
+    );
+    showToast(`${selectedNotes.size} notes moved to trash.`, 'success');
     setSelectedNotes(new Set());
+    setConfirmBulkDelete(false);
     fetchNotes(debouncedQuery);
   };
 
   const bulkPin = async (pin: boolean) => {
-    await Promise.all(Array.from(selectedNotes).map(id =>
-      fetch(`http://localhost:8000/api/notes/${id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_pinned: pin }),
-      })
-    ));
+    await Promise.all(
+      Array.from(selectedNotes).map((id) =>
+        fetch(apiUrl(`/api/notes/${id}`), {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_pinned: pin }),
+        })
+      )
+    );
     setSelectedNotes(new Set());
     fetchNotes(debouncedQuery);
   };
@@ -181,31 +280,52 @@ export default function NoteList() {
     if (!selectedCol) return notes;
     const noteIds = collectionLookup.get(selectedCol);
     if (!noteIds) return notes;
-    return notes.filter(n => noteIds.has(n.id));
+    return notes.filter((n) => noteIds.has(n.id));
   }, [collectionLookup, notes, selectedCol]);
 
-  const sortedNotes = useMemo(() => [...filteredNotes].sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  }), [filteredNotes]);
+  const sortedNotes = useMemo(
+    () =>
+      [...filteredNotes].sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }),
+    [filteredNotes]
+  );
 
   return (
     <>
+      {/* Dialogs */}
+      {confirmDeleteNote && (
+        <ConfirmDialog
+          message="Move this note to trash? You can restore it later."
+          confirmLabel="Move to Trash"
+          onConfirm={() => { deleteNote(confirmDeleteNote); setConfirmDeleteNote(null); }}
+          onCancel={() => setConfirmDeleteNote(null)}
+        />
+      )}
+      {confirmBulkDelete && (
+        <ConfirmDialog
+          message={`Move ${selectedNotes.size} note${selectedNotes.size > 1 ? 's' : ''} to trash? You can restore them later.`}
+          confirmLabel="Move to Trash"
+          onConfirm={bulkDelete}
+          onCancel={() => setConfirmBulkDelete(false)}
+        />
+      )}
+      {toast && <Toast message={toast.msg} type={toast.type} />}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', marginBottom: 4 }}>Analytics</h1>
+            {/* ✅ 1.2: Fixed misleading label — was "Analytics" */}
+            <h1 style={{ fontFamily: 'var(--font-display)', marginBottom: 4 }}>Notes</h1>
             <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-dim)' }}>
-              Measuring your mental momentum.
+              {sortedNotes.length > 0 ? `${sortedNotes.length} note${sortedNotes.length !== 1 ? 's' : ''}` : 'Your knowledge vault'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn-secondary"
-              onClick={() => setBulkMode(!bulkMode)}
-            >
+            <button className="btn-secondary" onClick={() => setBulkMode(!bulkMode)}>
               <CheckSquare size={14} />
               {bulkMode ? 'Done' : 'Select'}
             </button>
@@ -234,7 +354,11 @@ export default function NoteList() {
               <Pin size={12} /> Pin
             </button>
             <button className="btn-ghost" onClick={() => bulkPin(false)} style={{ fontSize: '0.75rem' }}>Unpin</button>
-            <button className="btn-ghost" onClick={bulkDelete} style={{ fontSize: '0.75rem', color: 'var(--error)' }}>
+            <button
+              className="btn-ghost"
+              onClick={() => setConfirmBulkDelete(true)}
+              style={{ fontSize: '0.75rem', color: 'var(--error)' }}
+            >
               <Trash2 size={12} /> Trash
             </button>
           </div>
@@ -250,7 +374,7 @@ export default function NoteList() {
             <Search size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
             <input
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search semantic + keywords..."
               style={{
                 background: 'transparent', border: 'none', outline: 'none',
@@ -263,24 +387,31 @@ export default function NoteList() {
           <select
             className="input"
             value={selectedCol}
-            onChange={e => setSelectedCol(e.target.value)}
-            style={{
-              width: 180, fontSize: '0.75rem', padding: '8px 12px',
-              borderRadius: 'var(--radius-full)',
-            }}
+            onChange={(e) => setSelectedCol(e.target.value)}
+            style={{ width: 180, fontSize: '0.75rem', padding: '8px 12px', borderRadius: 'var(--radius-full)' }}
           >
             <option value="">All Collections</option>
-            {collections.map(c => <option key={c.id} value={c.id.toString()}>{c.name}</option>)}
+            {collections.map((c) => <option key={c.id} value={c.id.toString()}>{c.name}</option>)}
           </select>
         </div>
 
-        {/* Error */}
+        {/* Error banner */}
         {(collectionsError || notesError) && (
           <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 14px', borderRadius: 'var(--radius-md)',
-            background: 'var(--tertiary-container)', fontSize: '0.8125rem',
+            background: 'var(--error-container)', fontSize: '0.8125rem',
+            color: 'var(--on-surface)',
           }}>
-            {notesError ?? collectionsError}
+            <AlertCircle size={14} style={{ color: 'var(--error)', flexShrink: 0 }} />
+            <span>{notesError ?? collectionsError}</span>
+            <button
+              className="btn-ghost"
+              onClick={() => { fetchNotes(debouncedQuery); fetchCollections(); }}
+              style={{ marginLeft: 'auto', fontSize: '0.75rem' }}
+            >
+              Retry
+            </button>
           </div>
         )}
 
@@ -295,10 +426,10 @@ export default function NoteList() {
               gridColumn: '1 / -1', padding: 48, textAlign: 'center',
               color: 'var(--on-surface-dim)', fontSize: '0.875rem',
             }}>
-              No notes found. Create your first thought.
+              {searchQuery ? 'No notes match your search.' : 'No notes yet. Create your first thought.'}
             </div>
           ) : (
-            sortedNotes.map(note => (
+            sortedNotes.map((note) => (
               <div
                 key={note.id}
                 className="animate-fade-in"
@@ -310,11 +441,11 @@ export default function NoteList() {
                   transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
                   cursor: 'pointer',
                 }}
-                onMouseEnter={e => {
+                onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--surface-container-high)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
-                onMouseLeave={e => {
+                onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'var(--surface-container)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
@@ -334,12 +465,9 @@ export default function NoteList() {
                 )}
 
                 {/* Action buttons */}
-                <div style={{
-                  position: 'absolute', top: 12, right: 12,
-                  display: 'flex', gap: 4,
-                }}>
+                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 4 }}>
                   <button
-                    onClick={e => { e.stopPropagation(); togglePin(note.id, note.is_pinned); }}
+                    onClick={(e) => { e.stopPropagation(); togglePin(note.id, note.is_pinned); }}
                     style={{
                       background: 'transparent', border: 'none',
                       color: note.is_pinned ? 'var(--tertiary)' : 'var(--on-surface-dim)',
@@ -347,25 +475,26 @@ export default function NoteList() {
                       opacity: note.is_pinned ? 1 : 0.4,
                       transition: 'opacity 200ms',
                     }}
+                    title={note.is_pinned ? 'Unpin' : 'Pin'}
                   >
                     <Pin size={13} />
                   </button>
                   <button
-                    onClick={e => { e.stopPropagation(); deleteNote(note.id); }}
+                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteNote(note.id); }}
                     style={{
                       background: 'transparent', border: 'none',
                       color: 'var(--error)', cursor: 'pointer', padding: 4,
                       opacity: 0.4, transition: 'opacity 200ms',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.4')}
+                    title="Move to trash"
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
 
                 <Link to={`/notes/${note.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  {/* Date */}
                   <div style={{
                     fontSize: '0.625rem', color: 'var(--on-surface-dim)',
                     fontFamily: 'var(--font-mono)', marginBottom: 6,
@@ -373,8 +502,6 @@ export default function NoteList() {
                   }}>
                     {note.created_at ? timeAgo(note.created_at) : 'Unknown date'}
                   </div>
-
-                  {/* Title */}
                   <h3 style={{
                     fontFamily: 'var(--font-display)', fontSize: '0.9375rem',
                     fontWeight: 600, marginBottom: 6,
@@ -384,8 +511,6 @@ export default function NoteList() {
                     {note.is_pinned && <Pin size={11} style={{ marginRight: 4, color: 'var(--tertiary)', display: 'inline' }} />}
                     {note.title || 'Untitled'}
                   </h3>
-
-                  {/* Content preview */}
                   <p style={{
                     fontSize: '0.8125rem', color: 'var(--on-surface-variant)',
                     lineHeight: 1.5, marginBottom: 10,
@@ -394,11 +519,9 @@ export default function NoteList() {
                   }}>
                     {note.content?.substring(0, 120)}...
                   </p>
-
-                  {/* Tags */}
                   {note.tags && note.tags.length > 0 && (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {note.tags.slice(0, 3).map(tag => (
+                      {note.tags.slice(0, 3).map((tag) => (
                         <span key={tag} className="tag" style={{ fontSize: '0.5625rem', padding: '1px 6px' }}>
                           {tag}
                         </span>
@@ -417,20 +540,18 @@ export default function NoteList() {
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(12, 14, 20, 0.8)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(12, 14, 20, 0.8)', backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           onClick={() => setShowCaptureModal(false)}
         >
           <div
             className="animate-slide-up"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%', maxWidth: 540,
               background: 'var(--surface-container)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 28, position: 'relative',
+              borderRadius: 'var(--radius-xl)', padding: 28, position: 'relative',
               border: '1px solid var(--outline)',
             }}
           >
@@ -447,38 +568,57 @@ export default function NoteList() {
 
             <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>Capture Knowledge</h2>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: 16, marginBottom: 20, borderBottom: '1px solid var(--outline-variant)', paddingBottom: 8 }}>
+            {/* Tabs — only URL is implemented; others show "Coming soon" badge */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--outline-variant)', paddingBottom: 8 }}>
+              {/* URL — live */}
+              <button
+                onClick={() => setCaptureTab('url')}
+                style={{
+                  background: captureTab === 'url' ? 'var(--primary-dim)' : 'transparent',
+                  border: 'none', borderRadius: 'var(--radius-sm)',
+                  color: captureTab === 'url' ? 'var(--primary)' : 'var(--on-surface-dim)',
+                  fontFamily: 'var(--font-display)', fontWeight: 600,
+                  fontSize: '0.8125rem', cursor: 'pointer', padding: '4px 12px',
+                }}
+              >
+                URL
+              </button>
+
+              {/* Unimplemented tabs — badged */}
               {[
-                { key: 'url', label: 'URL' },
                 { key: 'youtube', label: 'YouTube' },
                 { key: 'upload', label: 'File Upload' },
-                { key: 'quick', label: 'Quick Note' },
-              ].map(tab => (
+              ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setCaptureTab(tab.key)}
+                  disabled
+                  title="Coming soon"
                   style={{
                     background: 'transparent', border: 'none',
-                    color: captureTab === tab.key ? 'var(--on-surface)' : 'var(--on-surface-dim)',
-                    fontFamily: 'var(--font-display)', fontWeight: captureTab === tab.key ? 600 : 400,
-                    fontSize: '0.8125rem', cursor: 'pointer',
-                    borderBottom: captureTab === tab.key ? '2px solid var(--primary)' : 'none',
-                    paddingBottom: 4,
+                    color: 'var(--on-surface-dim)', fontFamily: 'var(--font-display)',
+                    fontSize: '0.8125rem', cursor: 'not-allowed', padding: '4px 12px',
+                    opacity: 0.45, display: 'flex', alignItems: 'center', gap: 5,
+                    position: 'relative',
                   }}
                 >
                   {tab.label}
+                  <span style={{
+                    fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.05em',
+                    padding: '1px 5px', borderRadius: 99,
+                    background: 'var(--surface-container-highest)',
+                    color: 'var(--on-surface-dim)', textTransform: 'uppercase',
+                  }}>
+                    Soon
+                  </span>
                 </button>
               ))}
             </div>
 
-            {/* Tab Contents */}
+            {/* URL tab content */}
             {captureTab === 'url' && (
               <div>
                 <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Source Link</span>
-                <div style={{
-                  display: 'flex', gap: 8, alignItems: 'center',
-                }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8, flex: 1,
                     background: 'var(--surface-container-lowest)',
@@ -487,7 +627,8 @@ export default function NoteList() {
                     <Link2 size={16} style={{ color: 'var(--on-surface-dim)', flexShrink: 0 }} />
                     <input
                       value={importUrlStr}
-                      onChange={e => setImportUrlStr(e.target.value)}
+                      onChange={(e) => setImportUrlStr(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleImport(); }}
                       placeholder="https://example.com/article-to-save"
                       style={{
                         background: 'transparent', border: 'none', outline: 'none',
@@ -512,17 +653,13 @@ export default function NoteList() {
                       aria-checked={aiSummarize}
                       tabIndex={0}
                       onClick={() => setAiSummarize(!aiSummarize)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setAiSummarize(!aiSummarize);
-                        }
-                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAiSummarize(!aiSummarize); } }}
                       style={{
                         width: 36, height: 20, borderRadius: 10,
-                        background: aiSummarize ? 'var(--secondary)' : 'var(--surface-container-highest)', padding: 2,
-                        cursor: 'pointer', transition: 'background 200ms',
-                      }}>
+                        background: aiSummarize ? 'var(--secondary)' : 'var(--surface-container-highest)',
+                        padding: 2, cursor: 'pointer', transition: 'background 200ms',
+                      }}
+                    >
                       <div style={{
                         width: 16, height: 16, borderRadius: '50%',
                         background: 'white', marginLeft: aiSummarize ? 14 : 0,
@@ -540,11 +677,6 @@ export default function NoteList() {
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-            {captureTab !== 'url' && (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <p style={{ color: 'var(--on-surface-dim)', fontSize: '0.875rem' }}>This capture method is coming soon.</p>
               </div>
             )}
           </div>

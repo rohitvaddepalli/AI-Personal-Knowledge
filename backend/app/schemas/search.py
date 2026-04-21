@@ -15,11 +15,14 @@ class AskRequest(BaseModel):
     note_id: Optional[str] = None
     profile_context: Optional[str] = None
     model: Optional[str] = "qwen2.5:0.5b"
-    
+    mode: Optional[str] = "auto"  # "auto" | "search_only" | "strict_cited"
+
 class AskResponse(BaseModel):
     answer: str
     sources: List[dict]
     session_id: Optional[int] = None
+    confidence: Optional[float] = None
+    retrieval_explanation: Optional[str] = None
 
 class AutoSuggestRequest(BaseModel):
     content_before: str

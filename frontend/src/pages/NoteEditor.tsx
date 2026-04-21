@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlockEditor } from '../components/BlockEditor';
 import { VoiceMemo } from '../components/VoiceMemo';
-import { Save, Maximize2, Minimize2, Sparkles, Tag, Mic } from 'lucide-react';
+import { Save, Maximize2, Minimize2, Sparkles, Tag } from 'lucide-react';
 
 interface Template {
   id: number;

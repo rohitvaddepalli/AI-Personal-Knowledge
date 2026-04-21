@@ -7,8 +7,80 @@ import { apiUrl, isDesktopRuntime } from '../lib/api';
 import { pickDesktopFile } from '../lib/desktopFiles';
 import {
   Pin, Edit3, Save, X, ChevronRight, Clock, Paperclip, Download,
-  Sparkles, Tag, MessageSquare, Link2, MoreVertical, FileText
+  Sparkles, Tag, MessageSquare, Link2, MoreVertical, FileText,
+  AlertCircle, CheckCircle,
 } from 'lucide-react';
+
+// ── Confirm dialog ─────────────────────────────────────────────────────────
+function ConfirmDialog({
+  message,
+  confirmLabel = 'Confirm',
+  onConfirm,
+  onCancel,
+}: {
+  message: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        className="animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--surface-container)', borderRadius: 'var(--radius-xl)',
+          padding: 28, maxWidth: 400, width: '90%', border: '1px solid var(--outline)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+          <AlertCircle size={20} style={{ color: 'var(--error)', flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--on-surface)' }}>{message}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button
+            className="btn"
+            style={{ background: 'var(--error)', color: '#fff' }}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function Toast({ message, type = 'success' }: { message: string; type?: 'success' | 'error' | 'info' }) {
+  const color = type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--secondary)' : 'var(--primary)';
+  const Icon = type === 'error' ? AlertCircle : CheckCircle;
+  return (
+    <div
+      className="animate-fade-in"
+      style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+        padding: '12px 18px', borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface-container-high)',
+        border: `1px solid ${color}`,
+        color: 'var(--on-surface)', fontSize: '0.8125rem',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', gap: 8, maxWidth: 360,
+      }}
+    >
+      <Icon size={14} style={{ color, flexShrink: 0 }} />
+      {message}
+    </div>
+  );
+}
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -36,6 +108,16 @@ export default function NoteDetail() {
   const [showParentSelector, setShowParentSelector] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const desktopRuntime = isDesktopRuntime();
+
+  // Dialog / toast state
+  const [confirmDeleteAtt, setConfirmDeleteAtt] = useState<string | null>(null);
+  const [confirmRestoreVer, setConfirmRestoreVer] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchNote = () => {
     fetch(apiUrl(`/api/notes/${id}`))
@@ -90,11 +172,15 @@ export default function NoteDetail() {
   };
 
   const deleteAttachment = async (attachmentId: string) => {
-    if (!confirm('Delete attachment?')) return;
+    setConfirmDeleteAtt(attachmentId);
+  };
+
+  const confirmDeleteAttachment = async (attachmentId: string) => {
     try {
       await fetch(apiUrl(`/api/notes/${id}/attachments/${attachmentId}`), { method: 'DELETE' });
       fetchAttachments();
-    } catch (e) { console.error(e); }
+      showToast('Attachment deleted.', 'success');
+    } catch (e) { console.error(e); showToast('Failed to delete attachment.', 'error'); }
   };
 
   const fetchVersions = async () => {
@@ -106,11 +192,14 @@ export default function NoteDetail() {
   };
 
   const restoreVersion = async (versionId: string) => {
-    if (!confirm('Restore? Current state is saved as a new version.')) return;
+    setConfirmRestoreVer(versionId);
+  };
+
+  const confirmRestoreVersion = async (versionId: string) => {
     try {
       const res = await fetch(apiUrl(`/api/notes/${id}/versions/${versionId}/restore`), { method: 'POST' });
-      if (res.ok) { fetchNote(); fetchVersions(); setSelectedVersion(null); }
-    } catch (e) { console.error(e); }
+      if (res.ok) { fetchNote(); fetchVersions(); setSelectedVersion(null); showToast('Version restored.', 'success'); }
+    } catch (e) { console.error(e); showToast('Failed to restore version.', 'error'); }
   };
 
   const fetchNoteTree = async () => {
@@ -166,9 +255,9 @@ export default function NoteDetail() {
     if (!selectedCol) return;
     try {
       await fetch(apiUrl(`/api/collections/${selectedCol}/notes/${id}`), { method: 'POST' });
-      alert('Added to collection!');
+      showToast('Added to collection!', 'success');
       setSelectedCol('');
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); showToast('Failed to add to collection.', 'error'); }
   };
 
   const handleChat = async () => {
@@ -231,8 +320,9 @@ export default function NoteDetail() {
   };
 
   if (!note) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--on-surface-dim)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--on-surface-dim)', gap: 12 }}>
       <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--primary-dim)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite' }} />
+      <span style={{ fontSize: '0.8125rem' }}>Loading note...</span>
     </div>
   );
 
@@ -241,6 +331,24 @@ export default function NoteDetail() {
 
   return (
     <div style={{ display: 'flex', height: '100%', gap: 0 }}>
+      {/* Dialogs + Toast */}
+      {confirmDeleteAtt && (
+        <ConfirmDialog
+          message="Delete this attachment? This cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={() => { confirmDeleteAttachment(confirmDeleteAtt); setConfirmDeleteAtt(null); }}
+          onCancel={() => setConfirmDeleteAtt(null)}
+        />
+      )}
+      {confirmRestoreVer && (
+        <ConfirmDialog
+          message="Restore this version? The current state will be saved as a new version first."
+          confirmLabel="Restore"
+          onConfirm={() => { confirmRestoreVersion(confirmRestoreVer); setConfirmRestoreVer(null); }}
+          onCancel={() => setConfirmRestoreVer(null)}
+        />
+      )}
+      {toast && <Toast message={toast.msg} type={toast.type} />}
       {/* ═══ Main Editor ═══ */}
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: 20 }}>
         {/* Breadcrumb */}
@@ -250,7 +358,7 @@ export default function NoteDetail() {
         }}>
           <span>■</span>
           <span>Vault</span>
-          {noteTree?.ancestors?.map((ancestor: any, idx: number) => (
+          {noteTree?.ancestors?.map((ancestor: any) => (
             <span key={ancestor.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ChevronRight size={12} style={{ opacity: 0.4 }} />
               <Link to={`/notes/${ancestor.id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.8125rem' }}>
@@ -594,8 +702,8 @@ export default function NoteDetail() {
             <span className="label-sm" style={{ marginBottom: 12, display: 'block' }}>Intelligence Panel</span>
             {[
               { icon: <FileText size={16} />, label: 'Summarize', desc: 'Condense to key bullets', action: handleSummarize },
-              { icon: <Tag size={16} />, label: 'Suggest Tags', desc: 'AI taxonomy analysis', action: () => alert('Suggest Tags is coming soon.') },
-              { icon: <Link2 size={16} />, label: 'Find Related', desc: 'Discover semantic links', action: () => alert('Find Related is coming soon.') },
+              { icon: <Tag size={16} />, label: 'Suggest Tags', desc: 'AI taxonomy analysis', action: () => showToast('Suggest Tags — coming soon.', 'info') },
+              { icon: <Link2 size={16} />, label: 'Find Related', desc: 'Discover semantic links', action: () => showToast('Find Related — coming soon.', 'info') },
             ].map((item, i) => (
               <button
                 key={i}

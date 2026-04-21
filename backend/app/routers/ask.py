@@ -28,12 +28,13 @@ async def get_models():
 @router.post("", response_model=AskResponse)
 async def ask_question(req: AskRequest, db: Session = Depends(get_db)):
     result = await ask_brain(
-        db, 
-        req.question, 
-        session_id=req.session_id, 
+        db,
+        req.question,
+        session_id=req.session_id,
         note_id=req.note_id,
         profile_context=req.profile_context,
-        model=req.model
+        model=req.model,
+        mode=req.mode or "auto"
     )
     return result
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, X, PenTool, Shuffle, Search, Brain } from 'lucide-react';
+import { Sparkles, X, PenTool, Shuffle, Search, Brain, AlertCircle, Inbox, RefreshCw, Zap, ArrowRight } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 function getErrorMessage(status: number) {
   if (status === 401) return 'Sign in required to load dashboard.';
@@ -8,15 +9,6 @@ function getErrorMessage(status: number) {
   return `Request failed with status ${status}.`;
 }
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -25,15 +17,25 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [recentNotesError, setRecentNotesError] = useState<string | null>(null);
+  const [todayStats, setTodayStats] = useState<{
+    captured_today: number;
+    connected_notes: number;
+    due_review: number;
+    total_notes: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchInsights();
     fetchRecentNotes();
+    fetch(apiUrl('/api/inbox/stats'))
+      .then((r) => r.json())
+      .then(setTodayStats)
+      .catch(console.error);
   }, []);
 
   const fetchInsights = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/insights');
+      const res = await fetch(apiUrl('/api/insights'));
       if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
       setInsights(Array.isArray(data) ? data : []);
@@ -47,7 +49,7 @@ export default function Dashboard() {
 
   const fetchRecentNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes?limit=10');
+      const res = await fetch(apiUrl('/api/notes?limit=10'));
       if (!res.ok) throw new Error(getErrorMessage(res.status));
       const data = await res.json();
       const notes = Array.isArray(data) ? data.slice(0, 10) : [];
@@ -63,7 +65,7 @@ export default function Dashboard() {
   const generateDigest = async () => {
     setGenerating(true);
     try {
-      await fetch('http://localhost:8000/api/insights/generate', { method: 'POST' });
+      await fetch(apiUrl('/api/insights/generate'), { method: 'POST' });
       await fetchInsights();
       setTimeout(() => setGenerating(false), 2000);
     } catch (e) {
@@ -74,7 +76,7 @@ export default function Dashboard() {
 
   const dismissInsight = async (id: number) => {
     try {
-      await fetch(`http://localhost:8000/api/insights/${id}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/insights/${id}`), { method: 'DELETE' });
       fetchInsights();
     } catch (e) {
       console.error(e);
@@ -85,13 +87,22 @@ export default function Dashboard() {
     { icon: PenTool, label: 'Capture', action: () => navigate('/notes/new') },
     { icon: Shuffle, label: 'Surprise', action: async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/notes?limit=50');
+        const res = await fetch(apiUrl('/api/notes?limit=50'));
         if (!res.ok) throw new Error('Failed to fetch notes');
         const notes = await res.json();
-        if (!Array.isArray(notes) || notes.length === 0) { alert('No notes yet — create some first!'); return; }
+        if (!Array.isArray(notes) || notes.length === 0) {
+          navigate('/notes');
+          return;
+        }
         const rand = notes[Math.floor(Math.random() * notes.length)];
         navigate(`/notes/${rand.id}`);
-      } catch { if (recentNotes.length > 0) { navigate(`/notes/${recentNotes[Math.floor(Math.random() * recentNotes.length)].id}`); } else { alert('No notes yet — create some first!'); } }
+      } catch {
+        if (recentNotes.length > 0) {
+          navigate(`/notes/${recentNotes[Math.floor(Math.random() * recentNotes.length)].id}`);
+        } else {
+          navigate('/notes');
+        }
+      }
     }},
     { icon: Search, label: 'Search', action: () => navigate('/notes') },
     { icon: Brain, label: 'Think', action: () => navigate('/ask') },
@@ -131,11 +142,18 @@ export default function Dashboard() {
       {(insightsError || recentNotesError) && (
         <div style={{
           borderRadius: 'var(--radius-md)', padding: '12px 16px',
-          background: 'var(--tertiary-container)', fontSize: '0.8125rem',
-          color: 'var(--on-surface)', display: 'flex', flexDirection: 'column', gap: 4,
+          background: 'var(--error-container)', fontSize: '0.8125rem',
+          color: 'var(--on-surface)', display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          {insightsError && <span>{insightsError}</span>}
-          {recentNotesError && <span>{recentNotesError}</span>}
+          <AlertCircle size={14} style={{ color: 'var(--error)', flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>{insightsError ?? recentNotesError}</span>
+          <button
+            className="btn-ghost"
+            onClick={() => { fetchInsights(); fetchRecentNotes(); }}
+            style={{ fontSize: '0.75rem', flexShrink: 0 }}
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -151,6 +169,125 @@ export default function Dashboard() {
           A calm environment for capturing, connecting, and deep thinking.
         </p>
       </div>
+
+      {/* ═══ Today's Progress Pipeline ═══ */}
+      {todayStats && (
+        <div style={{
+          borderRadius: 'var(--radius-xl)', overflow: 'hidden',
+          border: '1px solid var(--outline-variant)',
+          background: 'var(--surface-container)',
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '14px 18px',
+            borderBottom: '1px solid var(--outline-variant)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Zap size={16} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem' }}>
+              Today's Progress
+            </span>
+            <span style={{
+              marginLeft: 'auto', fontSize: '0.625rem', fontFamily: 'var(--font-mono)',
+              color: 'var(--on-surface-dim)', fontWeight: 600,
+            }}>
+              {todayStats.total_notes} total notes
+            </span>
+          </div>
+
+          {/* 3-step pipeline */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr',
+            padding: '16px 20px', gap: 8, alignItems: 'center',
+          }}>
+            {/* Capture */}
+            <div onClick={() => navigate('/notes/new')} style={{ textAlign: 'center', cursor: 'pointer' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 'var(--radius-lg)',
+                margin: '0 auto 8px',
+                background: todayStats.captured_today > 0 ? 'var(--primary)' : 'var(--surface-container-high)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 200ms',
+              }}>
+                <PenTool size={20} style={{ color: todayStats.captured_today > 0 ? 'var(--on-primary)' : 'var(--on-surface-dim)' }} />
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)', marginBottom: 2 }}>Capture</div>
+              <div style={{ fontSize: '0.6875rem', color: todayStats.captured_today > 0 ? 'var(--secondary)' : 'var(--on-surface-dim)' }}>
+                {todayStats.captured_today > 0 ? `${todayStats.captured_today} today ✓` : '+ Add notes'}
+              </div>
+            </div>
+
+            <ArrowRight size={14} style={{ color: 'var(--on-surface-dim)', opacity: 0.4 }} />
+
+            {/* Connect */}
+            <div onClick={() => navigate('/notes')} style={{ textAlign: 'center', cursor: 'pointer' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 'var(--radius-lg)',
+                margin: '0 auto 8px',
+                background: todayStats.connected_notes > 0 ? 'var(--secondary)' : 'var(--surface-container-high)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 200ms',
+              }}>
+                <Inbox size={20} style={{ color: todayStats.connected_notes > 0 ? '#fff' : 'var(--on-surface-dim)' }} />
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)', marginBottom: 2 }}>Connect</div>
+              <div style={{ fontSize: '0.6875rem', color: todayStats.connected_notes > 0 ? 'var(--secondary)' : 'var(--on-surface-dim)' }}>
+                {todayStats.connected_notes > 0 ? `${todayStats.connected_notes} linked ✓` : 'Tag & link notes'}
+              </div>
+            </div>
+
+            <ArrowRight size={14} style={{ color: 'var(--on-surface-dim)', opacity: 0.4 }} />
+
+            {/* Review */}
+            <div onClick={() => navigate('/review')} style={{ textAlign: 'center', cursor: 'pointer' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 'var(--radius-lg)',
+                margin: '0 auto 8px',
+                background: todayStats.due_review === 0 ? 'var(--tertiary)' : 'var(--surface-container-high)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 200ms',
+              }}>
+                <RefreshCw size={20} style={{ color: todayStats.due_review === 0 ? '#fff' : 'var(--error)' }} />
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)', marginBottom: 2 }}>Review</div>
+              <div style={{ fontSize: '0.6875rem', color: todayStats.due_review > 0 ? 'var(--error)' : 'var(--secondary)' }}>
+                {todayStats.due_review > 0 ? `${todayStats.due_review} due` : 'All caught up ✓'}
+              </div>
+            </div>
+          </div>
+
+          {/* Next best action */}
+          {(() => {
+            let action = { icon: <PenTool size={14} />, label: 'Start capturing your first note', href: '/notes/new', cta: 'Write now' };
+            if (todayStats.captured_today > 0 && todayStats.connected_notes === 0)
+              action = { icon: <Inbox size={14} />, label: 'You have unprocessed notes in Inbox', href: '/inbox', cta: 'Open Inbox' };
+            else if (todayStats.due_review > 0)
+              action = { icon: <RefreshCw size={14} />, label: `${todayStats.due_review} note${todayStats.due_review > 1 ? 's' : ''} due for review`, href: '/review', cta: 'Review now' };
+            else if (todayStats.captured_today > 0)
+              action = { icon: <Brain size={14} />, label: 'Ask your brain about today\'s captures', href: '/ask', cta: 'Ask Brain' };
+            return (
+              <div style={{
+                margin: '0 16px 16px',
+                padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                background: 'var(--primary-container)',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{ color: 'var(--primary)' }}>{action.icon}</span>
+                <span style={{ flex: 1, fontSize: '0.8125rem', color: 'var(--on-surface)', fontFamily: 'var(--font-display)' }}>
+                  {action.label}
+                </span>
+                <button
+                  className="btn"
+                  onClick={() => navigate(action.href)}
+                  style={{ fontSize: '0.75rem', padding: '6px 12px', gap: 6 }}
+                >
+                  {action.cta} <ArrowRight size={12} />
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* ═══ Quick Actions ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
