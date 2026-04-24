@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { apiUrl } from '../lib/api';
 
 interface DownloadContextType {
   pulling: boolean;
@@ -21,7 +22,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setPullProgress(0);
 
     try {
-      const res = await fetch('http://localhost:8000/api/ask/pull-model', {
+      const res = await fetch(apiUrl('/api/ask/pull-model'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: modelName })

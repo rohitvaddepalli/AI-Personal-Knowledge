@@ -1,22 +1,26 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
-from app.database import Base, engine
+from app.db_init import initialize_database
 from app.routers import (
     notes, connections, graph, ask, search, import_, collections,
     insights, chat as chat_router, tasks, templates, attachments,
     note_versions, review, export, system, voice, plugins, benchmark, inbox,
+    ingest, flashcards, auth,
 )
 from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
-from sqlalchemy import text
 from app.config import settings
 from app.runtime import ensure_app_directories, load_runtime_settings
+from app.utils.auth import ACCESS_COOKIE_NAME, decode_token
+from app.utils.rate_limit import check_rate_limit
 import ipaddress
 import secrets
+import time
 
 ensure_app_directories()
 load_runtime_settings()
+startup_started_at = time.perf_counter()
 
 
 def _is_loopback_host(host: str) -> bool:
@@ -33,61 +37,8 @@ def _is_local_only_binding() -> bool:
     return _is_loopback_host(settings.api_host)
 
 
-# Create all database tables
-Base.metadata.create_all(bind=engine)
-
-with engine.begin() as conn:
-    try:
-        existing_columns = {
-            row[1]
-            for row in conn.execute(text("PRAGMA table_info('notes')")).fetchall()
-        }
-
-        needed_columns = [
-            ("is_pinned", "is_pinned BOOLEAN DEFAULT 0"),
-            ("deleted_at", "deleted_at DATETIME"),
-            ("review_count", "review_count INTEGER DEFAULT 0"),
-            ("next_review_at", "next_review_at DATETIME"),
-            ("last_reviewed_at", "last_reviewed_at DATETIME"),
-            ("parent_note_id", "parent_note_id VARCHAR"),
-            ("order", '"order" INTEGER DEFAULT 0'),
-        ]
-
-        for name, column_sql in needed_columns:
-            if name in existing_columns:
-                continue
-            conn.execute(text(f"ALTER TABLE notes ADD COLUMN {column_sql}"))
-    except Exception as e:
-        print(f"DB migration check error: {e}")
-
-# FTS5 Setup
-with engine.begin() as conn:
-    try:
-        conn.execute(text("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(id UNINDEXED, title, content, tags);"))
-
-        conn.execute(text("""
-            INSERT INTO notes_fts(id, title, content, tags)
-            SELECT id, title, content, tags FROM notes
-            WHERE id NOT IN (SELECT id FROM notes_fts);
-        """))
-
-        conn.execute(text("""
-        CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
-            INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
-        END;"""))
-
-        conn.execute(text("""
-        CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
-            DELETE FROM notes_fts WHERE id=old.id;
-        END;"""))
-
-        conn.execute(text("""
-        CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
-            DELETE FROM notes_fts WHERE id=old.id;
-            INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
-        END;"""))
-    except Exception as e:
-        print(f"FTS Table setup error: {e}")
+initialize_database()
+startup_completed_at = time.perf_counter()
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -120,6 +71,36 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
                 host = (request.client.host if request.client else "") or ""
                 if not _is_loopback_host(host):
                     return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
+
+            if settings.auth_mode == "multi_user" and not request.url.path.startswith("/api/auth"):
+                access_token = request.cookies.get(ACCESS_COOKIE_NAME)
+                if not access_token:
+                    return JSONResponse({"detail": "Authentication required"}, status_code=401)
+                try:
+                    decode_token(access_token, "access")
+                except Exception as exc:
+                    return JSONResponse({"detail": str(exc)}, status_code=401)
+        return await call_next(request)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+
+        host = (request.client.host if request.client else "unknown") or "unknown"
+        path = request.url.path
+        if path.startswith("/api/ask") or path.startswith("/api/notes/suggest-tags"):
+            ok = check_rate_limit(f"ai:{host}", settings.rate_limit_ai_per_minute)
+        elif path.startswith("/api/import") or path.startswith("/api/ingest") or path.startswith("/api/voice"):
+            ok = check_rate_limit(f"ingest:{host}", settings.rate_limit_ingest_per_minute)
+        elif path.startswith("/api/auth"):
+            ok = check_rate_limit(f"auth:{host}", settings.rate_limit_auth_per_minute)
+        else:
+            ok = True
+
+        if not ok:
+            return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
         return await call_next(request)
 
 
@@ -128,7 +109,11 @@ app = FastAPI(
     description="AI-Powered Personal Knowledge System MVP API",
     version="0.1.0",
 )
+app.state.startup_profile = {
+    "bootDurationMs": round((startup_completed_at - startup_started_at) * 1000, 2),
+}
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AccessControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -170,6 +155,9 @@ app.include_router(voice.router)
 app.include_router(plugins.router)
 app.include_router(benchmark.router)
 app.include_router(inbox.router)
+app.include_router(ingest.router)
+app.include_router(flashcards.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
@@ -183,4 +171,6 @@ def health():
         "status": "ok",
         "port": settings.api_port,
         "sidecarMode": settings.sidecar_mode,
+        "databaseBackend": settings.database_backend,
+        "databaseMode": settings.database_mode,
     }

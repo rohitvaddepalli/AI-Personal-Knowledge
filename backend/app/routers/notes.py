@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List
 import json
 from pydantic import BaseModel
-import httpx
 from app.database import get_db
+from app.llm.router import generate_text
+from app.llm.types import LLMRequest
 from app.models.note import Note as NoteModel
 from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, NoteTransformRequest, NoteTransformResponse, NoteSummarizeRequest
 from app.services.embedding_service import add_note_embedding, delete_note_embedding, update_note_embedding
@@ -21,7 +22,7 @@ class TagSuggestionRequest(BaseModel):
     model: str = "qwen2.5:0.5b"
 
 @router.post("/suggest-tags", response_model=List[str])
-def suggest_tags(req: TagSuggestionRequest):
+async def suggest_tags(req: TagSuggestionRequest):
     safe_title = sanitize_content_for_prompt(req.title)
     safe_content = sanitize_content_for_prompt(req.content)
     
@@ -35,20 +36,8 @@ def suggest_tags(req: TagSuggestionRequest):
         "Tags:"
     )
     try:
-        with httpx.Client() as client:
-            response = client.post(
-                f"{settings.ollama_base_url}/api/generate",
-                json={
-                    "model": req.model,
-                    "system": "You extract tags for the user.",
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=30.0,
-            )
-        if response.status_code != 200:
-            return []
-        result_text = response.json().get("response", "").strip()
+        response = await generate_text(LLMRequest(feature="summarize", model=req.model, prompt=prompt, system="You extract tags for the user.", max_tokens=64))
+        result_text = response.content.strip()
         tags = [t.strip().lower() for t in result_text.split(",") if t.strip()]
         return tags[:5]
     except:
@@ -393,8 +382,135 @@ def get_full_tree(db: Session = Depends(get_db)):
     return roots
 
 
+# ── 3.2 Related notes sidebar ──────────────────────────────────────────────
+
+@router.get("/{note_id}/related")
+def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db)):
+    """
+    Returns notes related to the given note.
+    Strategy: try vector similarity first, fall back to shared-tag keyword overlap.
+    """
+    note = db.query(NoteModel).filter(NoteModel.id == note_id, NoteModel.deleted_at == None).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    # ── Vector similarity via embedding service ──
+    try:
+        from app.services.embedding_service import search_similar
+        results = search_similar(note.title + " " + note.content[:500], top_k=limit + 1)
+        related_ids = [r["id"] for r in results if r["id"] != note_id][:limit]
+        if related_ids:
+            related = db.query(NoteModel).filter(
+                NoteModel.id.in_(related_ids),
+                NoteModel.is_archived == False,
+                NoteModel.deleted_at == None,
+            ).all()
+            for n in related:
+                n.tags = json.loads(n.tags) if n.tags else []
+            return [{"id": n.id, "title": n.title, "tags": n.tags, "updated_at": n.updated_at, "source": "vector"} for n in related]
+    except Exception:
+        pass
+
+    # ── Fallback: shared tags + title keyword overlap ──
+    note_tags = set(json.loads(note.tags) if note.tags else [])
+    note_words = set(note.title.lower().split())
+    candidates = db.query(NoteModel).filter(
+        NoteModel.id != note_id,
+        NoteModel.is_archived == False,
+        NoteModel.deleted_at == None,
+    ).limit(200).all()
+
+    scored = []
+    for c in candidates:
+        c_tags = set(json.loads(c.tags) if c.tags else [])
+        c_words = set(c.title.lower().split())
+        score = len(note_tags & c_tags) * 3 + len(note_words & c_words)
+        if score > 0:
+            scored.append((score, c))
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    out = []
+    for _, n in scored[:limit]:
+        n.tags = json.loads(n.tags) if n.tags else []
+        out.append({"id": n.id, "title": n.title, "tags": n.tags, "updated_at": n.updated_at, "source": "keyword"})
+    return out
+
+
+# ── 3.3 Writing assistant ──────────────────────────────────────────────────
+
+class AiAssistRequest(BaseModel):
+    action: str          # continue | rewrite | explain | translate | custom
+    selection: str       # selected text or full content
+    context: str = ""    # surrounding context / note title
+    model: str = "qwen2.5:0.5b"
+    language: str = "English"   # for translate action
+    custom_instruction: str = ""
+
+ACTION_PROMPTS = {
+    "continue": (
+        "You are a writing assistant. Continue the following text naturally, "
+        "matching the author's voice and style. Return ONLY the continuation text, "
+        "no preamble.\n\n"
+        "Context: {context}\n\n"
+        "Text to continue:\n{selection}\n\nContinuation:"
+    ),
+    "rewrite": (
+        "You are a writing assistant. Rewrite the following text to improve clarity "
+        "and flow while preserving meaning. Return ONLY the rewritten text.\n\n"
+        "Text:\n{selection}\n\nRewritten:"
+    ),
+    "explain": (
+        "You are a knowledgeable assistant. Explain the following text in simple, "
+        "accessible terms. Use bullet points when helpful. Return ONLY the explanation.\n\n"
+        "Text:\n{selection}\n\nExplanation:"
+    ),
+    "translate": (
+        "Translate the following text to {language}. Return ONLY the translated text.\n\n"
+        "Text:\n{selection}\n\nTranslation:"
+    ),
+    "custom": (
+        "You are a writing assistant. Follow the instruction below exactly.\n"
+        "Instruction: {custom_instruction}\n\n"
+        "Text:\n{selection}\n\nResult:"
+    ),
+}
+
+@router.post("/{note_id}/ai-assist")
+async def ai_assist(note_id: str, req: AiAssistRequest, db: Session = Depends(get_db)):
+    """Writing assistant: continue / rewrite / explain / translate a text selection."""
+    note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    if req.action not in ACTION_PROMPTS:
+        raise HTTPException(status_code=400, detail=f"Unknown action: {req.action}")
+
+    safe_selection = sanitize_content_for_prompt(req.selection[:4000])
+    safe_context = sanitize_content_for_prompt(req.context[:500])
+
+    prompt_tpl = ACTION_PROMPTS[req.action]
+    prompt = prompt_tpl.format(
+        selection=safe_selection,
+        context=safe_context or note.title,
+        language=req.language,
+        custom_instruction=sanitize_content_for_prompt(req.custom_instruction[:500]),
+    )
+
+    try:
+        response = await generate_text(LLMRequest(feature="edit", model=req.model, prompt=prompt, max_tokens=512))
+        text = response.content.strip()
+        if not text:
+            raise HTTPException(status_code=500, detail="Empty response from LLM")
+        return {"result": text, "action": req.action}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{note_id}", response_model=NoteResponse)
 def read_note(note_id: str, db: Session = Depends(get_db)):
+
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -412,7 +528,7 @@ def read_note(note_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{note_id}/summarize", response_model=NoteTransformResponse)
-def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session = Depends(get_db)):
+async def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session = Depends(get_db)):
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -431,20 +547,8 @@ def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session = Depen
         "Summary:\n"
     )
     try:
-        with httpx.Client() as client:
-            response = client.post(
-                f"{settings.ollama_base_url}/api/generate",
-                json={
-                    "model": body.model,
-                    "system": "You summarize notes for the user.",
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=30.0,
-            )
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail=f"LLM error: {response.text}")
-        result_text = response.json().get("response", "").strip()
+        response = await generate_text(LLMRequest(feature="summarize", model=body.model, prompt=prompt, system="You summarize notes for the user.", max_tokens=512))
+        result_text = response.content.strip()
         if not result_text:
             raise HTTPException(status_code=500, detail="Empty response from LLM")
         return NoteTransformResponse(result=result_text)
@@ -455,7 +559,7 @@ def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session = Depen
 
 
 @router.post("/{note_id}/transform", response_model=NoteTransformResponse)
-def transform_note(note_id: str, body: NoteTransformRequest, db: Session = Depends(get_db)):
+async def transform_note(note_id: str, body: NoteTransformRequest, db: Session = Depends(get_db)):
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -475,20 +579,8 @@ def transform_note(note_id: str, body: NoteTransformRequest, db: Session = Depen
         "Transformed content:\n"
     )
     try:
-        with httpx.Client() as client:
-            response = client.post(
-                f"{settings.ollama_base_url}/api/generate",
-                json={
-                    "model": body.model,
-                    "system": "You rewrite and refactor notes for the user.",
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=45.0,
-            )
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail=f"LLM error: {response.text}")
-        result_text = response.json().get("response", "").strip()
+        response = await generate_text(LLMRequest(feature="edit", model=body.model, prompt=prompt, system="You rewrite and refactor notes for the user.", max_tokens=1024))
+        result_text = response.content.strip()
         if not result_text:
             raise HTTPException(status_code=500, detail="Empty response from LLM")
         return NoteTransformResponse(result=result_text)

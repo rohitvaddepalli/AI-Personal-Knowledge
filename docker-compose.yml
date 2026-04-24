@@ -11,13 +11,17 @@ services:
       - ./data:/app/data
       - ./backend/app:/app/app
     environment:
-      - SECOND_BRAIN_DATABASE_URL=sqlite:///./data/brain.db
+      - SECOND_BRAIN_DATABASE_MODE=postgres
+      - SECOND_BRAIN_DATABASE_URL=postgresql+psycopg://second_brain:second_brain@postgres:5432/second_brain
+      - SECOND_BRAIN_REDIS_URL=redis://redis:6379/0
       - SECOND_BRAIN_CHROMA_PERSIST_DIR=./data/chroma
       - SECOND_BRAIN_LLM_PROVIDER=ollama
       - SECOND_BRAIN_OLLAMA_BASE_URL=http://ollama:11434
       - SECOND_BRAIN_ALLOW_REMOTE_CLIENTS=true
     depends_on:
       - ollama
+      - postgres
+      - redis
 
   frontend:
     build: 
@@ -37,7 +41,40 @@ services:
     volumes:
       - second-brain_ollama_data:/root/.ollama
 
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=second_brain
+      - POSTGRES_USER=second_brain
+      - POSTGRES_PASSWORD=second_brain
+    volumes:
+      - second-brain_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.job_queue.celery_app worker --loglevel=info
+    environment:
+      - SECOND_BRAIN_DATABASE_MODE=postgres
+      - SECOND_BRAIN_DATABASE_URL=postgresql+psycopg://second_brain:second_brain@postgres:5432/second_brain
+      - SECOND_BRAIN_REDIS_URL=redis://redis:6379/0
+      - SECOND_BRAIN_CHROMA_PERSIST_DIR=./data/chroma
+      - SECOND_BRAIN_OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - backend
+      - redis
+      - postgres
+
 volumes:
   # Using the existing volume from before the folder move
   second-brain_ollama_data:
     external: true
+  second-brain_postgres_data:

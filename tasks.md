@@ -72,78 +72,78 @@ This task list aligns the current project with `Prompt.md` and adds the product 
 ## Phase 3 - Core Feature Completion vs Prompt (Should)
 
 ### 3.1 Ingestion pipeline completion
-- [ ] Implement production-grade URL ingestion with metadata extraction and robust fallback.
-- [ ] Complete YouTube ingestion pipeline (captions -> audio -> transcription fallback).
-- [ ] Complete file upload ingestion pipeline (PDF/DOCX/PPTX/MD/TXT/HTML).
-- [ ] Add voice dictation note capture (speech-to-text): user dictates, sees live transcript, and saves directly to a new note or Inbox.
-- [ ] Add push-to-talk and hands-free modes with pause/resume, punctuation assist, and language/accent selection.
-- [ ] Add optional post-processing on dictated text (cleanup, paragraph formatting, title suggestion, tag suggestion).
-- [ ] Add ingestion job queue status and progress UI.
+- [x] Implement production-grade URL ingestion with metadata extraction and robust fallback.
+- [x] Complete YouTube ingestion pipeline (captions -> audio -> transcription fallback).
+- [x] Complete file upload ingestion pipeline (PDF/DOCX/PPTX/MD/TXT/HTML).
+- [x] Add voice dictation note capture (speech-to-text): user dictates, sees live transcript, and saves directly to a new note or Inbox.
+- [x] Add push-to-talk and hands-free modes with pause/resume, punctuation assist, and language/accent selection.
+- [x] Add optional post-processing on dictated text (cleanup, paragraph formatting, title suggestion, tag suggestion).
+- [x] Add ingestion job queue status and progress UI.
 
 ### 3.2 Smart tagging and connections
-- [ ] Add NER-powered tag suggestion pipeline.
-- [ ] Add user review flow for tag suggestions (accept/reject/edit).
-- [ ] Add related-notes sidebar in note detail/editor with one-click bidirectional links.
-- [ ] Add stale note resurfacing signals to related suggestions.
+- [x] Add NER-powered tag suggestion pipeline.
+- [x] Add user review flow for tag suggestions (accept/reject/edit).
+- [x] Add related-notes sidebar in note detail/editor with one-click bidirectional links.
+- [x] Add stale note resurfacing signals to related suggestions.
 
 ### 3.3 Writing assistant in editor
-- [ ] Integrate autocomplete and AI edit APIs in `NoteEditor` UX.
-- [ ] Add "Continue writing", "Rewrite", "Explain", "Translate" actions for selection.
-- [ ] Add keyboard shortcuts for assistant actions and inline accept/reject.
+- [x] Integrate autocomplete and AI edit APIs in `NoteEditor` UX.
+- [x] Add "Continue writing", "Rewrite", "Explain", "Translate" actions for selection.
+- [x] Add keyboard shortcuts for assistant actions and inline accept/reject.
 
 ### 3.4 Flashcards + review depth
-- [ ] Add AI flashcard generation from note content.
-- [ ] Add flashcard set management and quality-of-recall analytics.
-- [ ] Add export to Anki-compatible format.
+- [x] Add AI flashcard generation from note content.
+- [x] Add flashcard set management and quality-of-recall analytics.
+- [x] Add export to Anki-compatible format.
 
 ## Phase 4 - Architecture Alignment with Prompt (Should/Longer Track)
 
 ### 4.1 Data and job architecture migration
-- [ ] Introduce Postgres as primary store while keeping local-first defaults clear.
-- [ ] Introduce Redis + Celery for ingestion, embedding, summarization, re-indexing jobs.
-- [ ] Add Alembic migration baseline and migration workflow docs.
-- [ ] Move heavy tasks out of request-response path.
+- [x] Introduce Postgres as primary store while keeping local-first defaults clear.
+- [x] Introduce Redis + Celery for ingestion, embedding, summarization, re-indexing jobs.
+- [x] Add Alembic migration baseline and migration workflow docs.
+- [x] Move heavy tasks out of request-response path.
 
 ### 4.2 Search + RAG pipeline hardening
-- [ ] Implement stronger hybrid pipeline (BM25 + vector + RRF merge).
-- [ ] Add configurable top-k, filters (tags/date/source/summary/flashcards), and rerank tuning.
-- [ ] Add prompt-injection-safe context handling for all ingestion sources.
-- [ ] Add streaming answer transport (SSE) for chat and long AI operations.
+- [x] Implement stronger hybrid pipeline (BM25 + vector + RRF merge).
+- [x] Add configurable top-k, filters (tags/date/source/summary/flashcards), and rerank tuning.
+- [x] Add prompt-injection-safe context handling for all ingestion sources.
+- [x] Add streaming answer transport (SSE) for chat and long AI operations.
 
 ### 4.4 Low-end PC optimization track
-- [ ] Add "Low Resource Mode" toggle (smaller models, lower context window, reduced concurrency).
-- [ ] Provide model presets by RAM tier (4 GB / 8 GB / 16 GB+) with safe defaults.
-- [ ] Defer heavy embeddings/summarization to background queue and throttle CPU usage.
-- [ ] Add lazy loading and route-level code splitting checks for all heavy frontend pages.
-- [ ] Add lightweight graph mode (cap nodes/edges, progressive rendering, optional static preview).
-- [ ] Add "battery/performance saver" UI mode (reduced animations, lower refresh frequency).
-- [ ] Add startup profiling and memory budget checks in desktop runtime.
-- [ ] Add a compact always-visible resource monitor widget pinned to a screen corner (user-configurable corner).
-- [ ] Show quick stats in collapsed state (CPU, RAM, active model/task indicator) with very low polling overhead.
-- [ ] Expand on click into detailed panel (CPU/RAM history, queue depth, model usage, embedding/indexing status, recent heavy operations).
-- [ ] Add thresholds and visual warnings (yellow/red) for high CPU/RAM and suggest one-click actions (pause indexing, switch to low resource mode).
-- [ ] Ensure monitor works in both web and desktop runtime with graceful fallback where system metrics are unavailable.
+- [x] Add "Low Resource Mode" toggle (smaller models, lower context window, reduced concurrency).
+- [x] Provide model presets by RAM tier (4 GB / 8 GB / 16 GB+) with safe defaults.
+- [x] Defer heavy embeddings/summarization to background queue and throttle CPU usage.
+- [x] Add lazy loading and route-level code splitting checks for all heavy frontend pages.
+- [x] Add lightweight graph mode (cap nodes/edges, progressive rendering, optional static preview).
+- [x] Add "battery/performance saver" UI mode (reduced animations, lower refresh frequency).
+- [x] Add startup profiling and memory budget checks in desktop runtime.
+- [x] Add a compact always-visible resource monitor widget pinned to a screen corner (user-configurable corner).
+- [x] Show quick stats in collapsed state (CPU, RAM, active model/task indicator) with very low polling overhead.
+- [x] Expand on click into detailed panel (CPU/RAM history, queue depth, model usage, embedding/indexing status, recent heavy operations).
+- [x] Add thresholds and visual warnings (yellow/red) for high CPU/RAM and suggest one-click actions (pause indexing, switch to low resource mode).
+- [x] Ensure monitor works in both web and desktop runtime with graceful fallback where system metrics are unavailable.
 
 ### 4.3 Security hardening
-- [ ] Add auth modes: single-user localhost mode and optional multi-user mode.
-- [ ] Add JWT access/refresh flow with secure cookies and CSRF strategy.
-- [ ] Add rate limiting on ingestion and AI endpoints.
-- [ ] Add markdown sanitization and stricter upload validation.
+- [x] Add auth modes: single-user localhost mode and optional multi-user mode.
+- [x] Add JWT access/refresh flow with secure cookies and CSRF strategy.
+- [x] Add rate limiting on ingestion and AI endpoints.
+- [x] Add markdown sanitization and stricter upload validation.
 
 ### 4.5 Multi-provider API key support (user-managed)
-- [ ] Add provider abstraction layer for LLM calls (Ollama local + external providers).
-- [ ] Add settings UI for user-provided API keys: Google, OpenAI, OpenRouter, Anthropic, and extensible custom providers.
-- [ ] Add per-feature provider/model routing (chat, summarize, embeddings, edit, transcription assist).
-- [ ] Store secrets securely (desktop secure storage/keychain where available; encrypted-at-rest fallback).
-- [ ] Add key validation and health checks without exposing keys in logs/errors.
-- [ ] Add privacy controls: explicit opt-in for cloud providers, with local-only mode as default.
-- [ ] Add cost/usage guardrails (token caps, per-provider limits, warning thresholds).
-- [ ] Add provider fallback chain (preferred provider -> backup provider -> local Ollama fallback).
-- [ ] Refactor backend AI code into `backend/app/llm/` to avoid scattered logic across routers/services.
-- [ ] Create `backend/app/llm/providers/` modules (ollama, openai, anthropic, google, openrouter, custom).
-- [ ] Add shared `backend/app/llm/router.py` for provider selection, fallback chain, and policy checks.
-- [ ] Add `backend/app/llm/prompts.py` and `backend/app/llm/types.py` for reusable prompt templates and typed request/response contracts.
-- [ ] Migrate current AI call sites (`ask.py`, `notes.py`, `rag_service.py`, `insight_engine.py`) to use the new `app.llm` abstraction.
+- [x] Add provider abstraction layer for LLM calls (Ollama local + external providers).
+- [x] Add settings UI for user-provided API keys: Google, OpenAI, OpenRouter, Anthropic, and extensible custom providers.
+- [x] Add per-feature provider/model routing (chat, summarize, embeddings, edit, transcription assist).
+- [x] Store secrets securely (desktop secure storage/keychain where available; encrypted-at-rest fallback).
+- [x] Add key validation and health checks without exposing keys in logs/errors.
+- [x] Add privacy controls: explicit opt-in for cloud providers, with local-only mode as default.
+- [x] Add cost/usage guardrails (token caps, per-provider limits, warning thresholds).
+- [x] Add provider fallback chain (preferred provider -> backup provider -> local Ollama fallback).
+- [x] Refactor backend AI code into `backend/app/llm/` to avoid scattered logic across routers/services.
+- [x] Create `backend/app/llm/providers/` modules (ollama, openai, anthropic, google, openrouter, custom).
+- [x] Add shared `backend/app/llm/router.py` for provider selection, fallback chain, and policy checks.
+- [x] Add `backend/app/llm/prompts.py` and `backend/app/llm/types.py` for reusable prompt templates and typed request/response contracts.
+- [x] Migrate current AI call sites (`ask.py`, `notes.py`, `rag_service.py`, `insight_engine.py`) to use the new `app.llm` abstraction.
 
 ## Phase 5 - Retention and "Addictive" Product Layer (Healthy)
 

@@ -7,3 +7,4 @@ from .task import Task
 from .template import Template
 from .attachment import Attachment
 from .note_version import NoteVersion
+from .user import User

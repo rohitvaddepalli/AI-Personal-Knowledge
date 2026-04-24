@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, RotateCcw, Download, ArrowRight } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 export default function KnowledgeGraph() {
   const [data, setData] = useState({ nodes: [], links: [] });
@@ -12,6 +13,7 @@ export default function KnowledgeGraph() {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
+  const lowResourceMode = localStorage.getItem('sb_low_resource_mode') === '1';
 
 
   const filteredData = useMemo(() => {
@@ -39,11 +41,23 @@ export default function KnowledgeGraph() {
   };
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/graph')
+    fetch(apiUrl('/api/graph'))
       .then(res => res.json())
       .then(setData)
       .catch(console.error);
   }, []);
+
+  const renderData = useMemo(() => {
+    if (!lowResourceMode) return filteredData;
+    const nodes = filteredData.nodes.slice(0, 120);
+    const nodeIds = new Set(nodes.map((node: any) => node.id));
+    const links = filteredData.links.filter((link: any) => {
+      const srcId = typeof link.source === 'object' ? link.source?.id : link.source;
+      const tgtId = typeof link.target === 'object' ? link.target?.id : link.target;
+      return nodeIds.has(srcId) && nodeIds.has(tgtId);
+    }).slice(0, 220);
+    return { nodes, links };
+  }, [filteredData, lowResourceMode]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -117,7 +131,7 @@ export default function KnowledgeGraph() {
           fontFamily: 'var(--font-mono)', fontSize: '0.6875rem',
           color: 'var(--on-surface-dim)',
         }}>
-          {data.nodes.length} Nodes • {data.links.length} Connections
+          {renderData.nodes.length} Nodes • {renderData.links.length} Connections
         </div>
       </div>
 
@@ -157,11 +171,11 @@ export default function KnowledgeGraph() {
               ref={graphRef}
               width={dimensions.width}
               height={dimensions.height}
-              graphData={filteredData}
+              graphData={renderData}
               autoPauseRedraw
-              cooldownTicks={80}
-              cooldownTime={2500}
-              d3AlphaDecay={0.08}
+              cooldownTicks={lowResourceMode ? 30 : 80}
+              cooldownTime={lowResourceMode ? 1200 : 2500}
+              d3AlphaDecay={lowResourceMode ? 0.18 : 0.08}
               nodeLabel="name"
               nodeVal="val"
               linkDirectionalArrowLength={3.5}
@@ -238,7 +252,7 @@ export default function KnowledgeGraph() {
             <div style={{ height: 8 }} />
             <button onClick={() => {
               const canvas = containerRef.current?.querySelector('canvas');
-              if (!canvas) { alert('No graph to export.'); return; }
+              if (!canvas) { return; }
               const link = document.createElement('a');
               link.download = 'knowledge-graph.png';
               link.href = canvas.toDataURL('image/png');
@@ -336,8 +350,9 @@ export default function KnowledgeGraph() {
               lineHeight: 1.5, marginBottom: 12,
             }}>
               Explore clusters in your knowledge graph to discover hidden connections between concepts.
+              {lowResourceMode ? ' Lightweight rendering is active.' : ''}
             </p>
-            <button className="btn-secondary" onClick={() => alert('Suggested links review is coming soon.')} style={{ width: '100%', fontSize: '0.75rem' }}>
+            <button className="btn-secondary" onClick={() => navigate('/inbox')} style={{ width: '100%', fontSize: '0.75rem' }}>
               Review Suggested Links
             </button>
           </div>

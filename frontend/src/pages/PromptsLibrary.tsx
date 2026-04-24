@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2, Copy, Play, Star, StarOff, Search, X } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 interface Prompt {
   id: string;
@@ -194,7 +195,7 @@ function RunModal({
     setLoading(true);
     setResult('');
     try {
-      const res = await fetch('http://localhost:8000/api/ask', {
+      const res = await fetch(apiUrl('/api/ask'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: filled, model }),

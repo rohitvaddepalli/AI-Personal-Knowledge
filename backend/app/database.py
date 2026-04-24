@@ -7,14 +7,30 @@ from .runtime import ensure_app_directories
 
 ensure_app_directories()
 
-database_dir = os.path.dirname(str(settings.database_path))
-if database_dir:
-    os.makedirs(database_dir, exist_ok=True)
+
+def _engine_kwargs() -> dict:
+    if settings.is_sqlite:
+        kwargs = {"connect_args": {"check_same_thread": False}}
+        if settings.database_url.endswith(":memory:"):
+            kwargs["poolclass"] = StaticPool
+        return kwargs
+
+    if settings.is_postgres:
+        return {
+            "pool_pre_ping": True,
+        }
+
+    return {}
+
+
+if settings.is_sqlite:
+    database_dir = os.path.dirname(str(settings.database_path))
+    if database_dir:
+        os.makedirs(database_dir, exist_ok=True)
 
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    **_engine_kwargs(),
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

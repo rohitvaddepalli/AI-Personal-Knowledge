@@ -5,12 +5,14 @@ import {
   HelpCircle, Layers, CheckSquare, Trash2,
   Settings as SettingsIcon, Plus, Menu, X,
   Database, BookMarked, Puzzle, Brain,
-  Inbox, ChevronDown, ChevronUp, Command,
+  Inbox, ChevronDown, ChevronUp, Command, GraduationCap, Upload,
 } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
 import CommandPalette from './components/CommandPalette';
 import OnboardingModal from './components/OnboardingModal';
+import FileUploadModal from './components/FileUploadModal';
+import ResourceMonitorWidget from './components/ResourceMonitorWidget';
 import './index.css';
 
 const Dashboard    = lazy(() => import('./pages/Dashboard'));
@@ -29,6 +31,7 @@ const DatabaseView = lazy(() => import('./pages/DatabaseView'));
 const PromptsLibrary = lazy(() => import('./pages/PromptsLibrary'));
 const PluginsPage  = lazy(() => import('./pages/PluginsPage'));
 const InboxPage    = lazy(() => import('./pages/InboxPage'));
+const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'));
 
 // ── Navigation structure ───────────────────────────────────────────────────
 // "core" = always visible in beginner mode
@@ -45,6 +48,7 @@ const ADVANCED_ITEMS = [
   { path: '/graph',       label: 'Graph',       icon: Network },
   { path: '/collections', label: 'Collections', icon: Layers },
   { path: '/tasks',       label: 'Tasks',       icon: CheckSquare },
+  { path: '/flashcards',  label: 'Flashcards',  icon: GraduationCap },
   { path: '/templates',   label: 'Templates',   icon: LayoutTemplate },
   { path: '/database',    label: 'Database',    icon: Database },
   { path: '/prompts',     label: 'Prompts',     icon: BookMarked },
@@ -89,6 +93,7 @@ function AnimatedRoutes() {
         <Route path="/database"   element={<PageWrapper><DatabaseView /></PageWrapper>} />
         <Route path="/prompts"    element={<PageWrapper><PromptsLibrary /></PageWrapper>} />
         <Route path="/plugins"    element={<PageWrapper><PluginsPage /></PageWrapper>} />
+        <Route path="/flashcards" element={<PageWrapper><FlashcardsPage /></PageWrapper>} />
         <Route path="/trash"      element={<PageWrapper><Trash /></PageWrapper>} />
         <Route path="/settings"   element={<PageWrapper><Settings /></PageWrapper>} />
       </Routes>
@@ -133,6 +138,7 @@ function AppContent() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const { pulling, pullResult, pullProgress } = useDownload();
 
@@ -212,6 +218,8 @@ function AppContent() {
       {/* Overlays */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
       {showOnboarding && <OnboardingModal onDone={() => setShowOnboarding(false)} />}
+      {showUpload && <FileUploadModal onClose={() => setShowUpload(false)} />}
+      <ResourceMonitorWidget />
 
       {/* Mobile toggle */}
       <button
@@ -306,6 +314,13 @@ function AppContent() {
               <div style={{ marginTop: 4, color: 'var(--on-surface-dim)', fontSize: '0.625rem' }}>{pullResult}</div>
             </div>
           )}
+          <button
+            className="btn-ghost"
+            onClick={() => setShowUpload(true)}
+            style={{ margin: '0 12px 6px', width: 'calc(100% - 24px)', fontSize: '0.75rem', gap: 6, justifyContent: 'center' }}
+          >
+            <Upload size={13} /> Import File
+          </button>
           <button
             className="nv-quick-capture"
             onClick={() => { navigate('/notes/new'); setMobileOpen(false); }}

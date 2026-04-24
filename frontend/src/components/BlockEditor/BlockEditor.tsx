@@ -400,7 +400,8 @@ export const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(
 
     return (
       <div className={`block-editor-container ${className || ''}`}>
-        <div className="editor-toolbar">
+        {editable && (
+          <div className="editor-toolbar">
           <div className="toolbar-group">
             <button
               type="button"
@@ -532,7 +533,8 @@ export const BlockEditor = forwardRef<BlockEditorRef, BlockEditorProps>(
               🔗 Link
             </button>
           </div>
-        </div>
+          </div>
+        )}
 
         <EditorContent editor={editor} />
       </div>

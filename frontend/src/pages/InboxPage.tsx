@@ -17,8 +17,11 @@ interface InboxNote {
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
@@ -248,7 +251,7 @@ export default function InboxPage() {
               width: 36, height: 36, borderRadius: 'var(--radius-md)', flexShrink: 0,
               background: note.source_type === 'url' ? 'var(--secondary-container)'
                 : note.source_type === 'guide' ? 'var(--tertiary-container)'
-                : 'var(--surface-container-high)',
+                  : 'var(--surface-container-high)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <FileText size={16} style={{ color: 'var(--on-surface-variant)' }} />

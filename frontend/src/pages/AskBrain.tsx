@@ -218,9 +218,12 @@ export default function AskBrain() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const showToast = (msg: string, type: 'info' | 'error' | 'success' = 'info') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 3000);
   };
 
   const fetchSessions = () => {
@@ -320,9 +323,20 @@ export default function AskBrain() {
     const currentQuestion = question;
     setQuestion('');
     setMentionOpen(false);
+    const aiIndex = history.length + 1;
+    setHistory((prev) => [
+      ...prev,
+      {
+        type: 'ai',
+        content: '',
+        sources: [],
+        confidence: null,
+        retrieval_explanation: 'Starting streamed response...',
+      },
+    ]);
 
     try {
-      const res = await fetch(apiUrl('/api/ask'), {
+      const res = await fetch(apiUrl('/api/ask/stream'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -333,29 +347,45 @@ export default function AskBrain() {
           mode: retrievalMode,
         }),
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || `API error: ${res.status} ${res.statusText}`);
+      if (!res.ok || !res.body) {
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
       }
-      const data = await res.json();
-      setHistory((prev) => [
-        ...prev,
-        {
-          type: 'ai',
-          content: data.answer,
-          sources: data.sources,
-          confidence: data.confidence,
-          retrieval_explanation: data.retrieval_explanation,
-        },
-      ]);
-      if (data.session_id) setSessionId(data.session_id);
-      if (data.sources) setLatestSources(data.sources);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answer = '';
+      let lastMeta: any = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() || '';
+
+        for (const chunk of chunks) {
+          const line = chunk.split('\n').find((entry) => entry.startsWith('data: '));
+          if (!line) continue;
+          const payload = JSON.parse(line.slice(6));
+          lastMeta = payload;
+          if (payload.type === 'token' && payload.content) {
+            answer += payload.content;
+          }
+          setHistory((prev) => prev.map((entry, idx) => idx === aiIndex ? {
+            ...entry,
+            content: answer,
+            sources: payload.sources || entry.sources,
+            confidence: payload.confidence ?? entry.confidence,
+            retrieval_explanation: payload.retrieval_explanation || entry.retrieval_explanation,
+          } : entry));
+        }
+      }
+
+      if (lastMeta?.session_id) setSessionId(lastMeta.session_id);
+      if (lastMeta?.sources) setLatestSources(lastMeta.sources);
       fetchSessions();
     } catch (e: any) {
-      setHistory((prev) => [
-        ...prev,
-        { type: 'ai', content: `Error: ${e.message}`, sources: [] },
-      ]);
+      setHistory((prev) => prev.map((entry, idx) => idx === aiIndex ? { ...entry, content: `Error: ${e.message}`, sources: [] } : entry));
     } finally {
       setLoading(false);
     }
@@ -740,8 +770,8 @@ export default function AskBrain() {
                 retrievalMode === 'search_only'
                   ? 'Search your notes...'
                   : retrievalMode === 'strict_cited'
-                  ? 'Ask — I\'ll only answer from your notes...'
-                  : 'Ask anything, or type @ to target a note...'
+                    ? 'Ask — I\'ll only answer from your notes...'
+                    : 'Ask anything, or type @ to target a note...'
               }
               rows={1}
               style={{

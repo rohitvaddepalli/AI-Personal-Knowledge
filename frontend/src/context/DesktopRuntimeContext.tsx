@@ -1,5 +1,46 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { apiUrl, getApiBaseUrl, isDesktopRuntime, resolveDesktopRuntime, setApiBaseUrl } from '../lib/api';
+import { apiUrl, isDesktopRuntime, resolveDesktopRuntime, setApiBaseUrl } from '../lib/api';
+
+export interface ProviderConfig {
+  enabled: boolean;
+  base_url?: string;
+  api_key?: string;
+  models?: string[];
+}
+
+export interface RuntimeSettings {
+  ollama_base_url: string;
+  low_resource_mode: boolean;
+  model_ram_tier: string;
+  max_ai_concurrency: number;
+  ai_context_window: number;
+  battery_saver_mode: boolean;
+  reduced_animations: boolean;
+  resource_monitor_enabled: boolean;
+  resource_monitor_corner: string;
+  auth_mode: string;
+  llm: {
+    default_provider: string;
+    default_model: string;
+    cloud_opt_in: boolean;
+    fallback_chain: string[];
+    feature_routing: Record<string, { provider: string; model: string }>;
+    providers: Record<string, ProviderConfig>;
+  };
+}
+
+export interface ResourceMetrics {
+  cpuPercent: number;
+  ramPercent: number;
+  processMemoryMb: number;
+  cpuHistory: number[];
+  ramHistory: number[];
+  queueDepth: number;
+  activeTasks: Array<{ id: string; job_type: string; status: string; progress?: number }>;
+  activeModel: string;
+  activeProvider: string;
+  warnings: { cpu: string; ram: string };
+}
 
 interface DesktopStatus {
   apiBaseUrl: string;
@@ -7,6 +48,11 @@ interface DesktopStatus {
   ollamaBaseUrl: string;
   ollamaReachable: boolean;
   sidecarMode: boolean;
+  databaseMode?: string;
+  databaseBackend?: string;
+  runtime: RuntimeSettings;
+  metrics: ResourceMetrics;
+  providerHealth: Record<string, boolean>;
 }
 
 interface DesktopRuntimeContextValue {
@@ -15,8 +61,9 @@ interface DesktopRuntimeContextValue {
   isDesktop: boolean;
   status: DesktopStatus | null;
   refreshStatus: () => Promise<void>;
+  refreshMetrics: () => Promise<void>;
   retryStartup: () => Promise<void>;
-  saveSystemSettings: (payload: { ollamaBaseUrl: string }) => Promise<DesktopStatus>;
+  saveSystemSettings: (payload: Partial<RuntimeSettings> & { llm?: RuntimeSettings['llm'] }) => Promise<DesktopStatus>;
 }
 
 const DesktopRuntimeContext = createContext<DesktopRuntimeContextValue | undefined>(undefined);
@@ -26,10 +73,7 @@ const RETRY_INTERVAL_MS = 750;
 
 async function fetchStatus() {
   const response = await fetch(apiUrl('/api/system/status'));
-  if (!response.ok) {
-    throw new Error('Failed to fetch desktop status');
-  }
-
+  if (!response.ok) throw new Error('Failed to fetch desktop status');
   return response.json() as Promise<DesktopStatus>;
 }
 
@@ -44,6 +88,13 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
     setStatus(nextStatus);
   };
 
+  const refreshMetrics = async () => {
+    const response = await fetch(apiUrl('/api/system/metrics'));
+    if (!response.ok) throw new Error('Failed to fetch metrics');
+    const metrics = await response.json() as ResourceMetrics;
+    setStatus((current) => current ? { ...current, metrics } : current);
+  };
+
   const bootstrap = async () => {
     setInitializing(true);
     setError(null);
@@ -56,7 +107,7 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
       try {
         await refreshStatus();
       } catch {
-        // Keep web mode non-blocking if the backend is offline.
+        // Keep web mode non-blocking.
       }
       return;
     }
@@ -71,9 +122,8 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
           return;
         }
       } catch {
-        // Sidecar is still booting.
+        // Sidecar still booting.
       }
-
       await new Promise((resolve) => window.setTimeout(resolve, RETRY_INTERVAL_MS));
     }
 
@@ -81,27 +131,20 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
     setInitializing(false);
   };
 
-  const saveSystemSettings = async ({ ollamaBaseUrl }: { ollamaBaseUrl: string }) => {
+  const saveSystemSettings = async (payload: Partial<RuntimeSettings> & { llm?: RuntimeSettings['llm'] }) => {
     const response = await fetch(apiUrl('/api/system/settings'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ollama_base_url: ollamaBaseUrl }),
+      body: JSON.stringify(payload),
     });
-
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(detail || 'Failed to save system settings');
     }
-
-    const nextPartial = await response.json() as Pick<DesktopStatus, 'ollamaBaseUrl' | 'ollamaReachable'>;
-    const nextStatus = {
-      apiBaseUrl: status?.apiBaseUrl || getApiBaseUrl(),
-      appDataDir: status?.appDataDir || '',
-      sidecarMode: status?.sidecarMode || desktop,
-      ...nextPartial,
-    };
-    setStatus(nextStatus);
-    return nextStatus;
+    await refreshStatus();
+    const next = await fetchStatus();
+    setStatus(next);
+    return next;
   };
 
   useEffect(() => {
@@ -111,18 +154,16 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  useEffect(() => {
+    if (!status?.runtime.resource_monitor_enabled) return;
+    const timer = window.setInterval(() => {
+      refreshMetrics().catch(() => {});
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [status?.runtime.resource_monitor_enabled]);
+
   return (
-    <DesktopRuntimeContext.Provider
-      value={{
-        error,
-        initializing,
-        isDesktop: desktop,
-        status,
-        refreshStatus,
-        retryStartup: bootstrap,
-        saveSystemSettings,
-      }}
-    >
+    <DesktopRuntimeContext.Provider value={{ error, initializing, isDesktop: desktop, status, refreshStatus, refreshMetrics, retryStartup: bootstrap, saveSystemSettings }}>
       {children}
     </DesktopRuntimeContext.Provider>
   );
@@ -130,9 +171,6 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
 
 export function useDesktopRuntime() {
   const context = useContext(DesktopRuntimeContext);
-  if (!context) {
-    throw new Error('useDesktopRuntime must be used within DesktopRuntimeProvider');
-  }
-
+  if (!context) throw new Error('useDesktopRuntime must be used within DesktopRuntimeProvider');
   return context;
 }

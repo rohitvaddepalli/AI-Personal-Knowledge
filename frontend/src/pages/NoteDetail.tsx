@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import ConnectionsSidebar from '../components/ConnectionsSidebar';
 import { BlockEditor } from '../components/BlockEditor';
 import { MarkdownPreview } from '../components/Markdown';
@@ -8,7 +8,7 @@ import { pickDesktopFile } from '../lib/desktopFiles';
 import {
   Pin, Edit3, Save, X, ChevronRight, Clock, Paperclip, Download,
   Sparkles, Tag, MessageSquare, Link2, MoreVertical, FileText,
-  AlertCircle, CheckCircle,
+  AlertCircle, CheckCircle, Trash2,
 } from 'lucide-react';
 
 // ── Confirm dialog ─────────────────────────────────────────────────────────
@@ -107,7 +107,10 @@ export default function NoteDetail() {
   const [allNotes, setAllNotes] = useState<any[]>([]);
   const [showParentSelector, setShowParentSelector] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState(false);
   const desktopRuntime = isDesktopRuntime();
+  const navigate = useNavigate();
 
   // Dialog / toast state
   const [confirmDeleteAtt, setConfirmDeleteAtt] = useState<string | null>(null);
@@ -135,6 +138,20 @@ export default function NoteDetail() {
       });
       if (res.ok) fetchNote();
     } catch (e) { console.error(e); }
+  };
+
+  const deleteNote = async () => {
+    try {
+      const res = await fetch(apiUrl(`/api/notes/${id}`), { method: 'DELETE' });
+      if (res.ok) {
+        navigate('/notes');
+      } else {
+        showToast('Failed to delete note.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to delete note.', 'error');
+    }
   };
 
   const fetchAttachments = async () => {
@@ -348,6 +365,14 @@ export default function NoteDetail() {
           onCancel={() => setConfirmRestoreVer(null)}
         />
       )}
+      {confirmDeleteNote && (
+        <ConfirmDialog
+          message="Move this note to trash? You can restore it later."
+          confirmLabel="Move to Trash"
+          onConfirm={() => { deleteNote(); setConfirmDeleteNote(false); }}
+          onCancel={() => setConfirmDeleteNote(false)}
+        />
+      )}
       {toast && <Toast message={toast.msg} type={toast.type} />}
       {/* ═══ Main Editor ═══ */}
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: 20 }}>
@@ -415,9 +440,40 @@ export default function NoteDetail() {
             >
               <Sparkles size={14} /> AI Actions
             </button>
-            <button className="btn-ghost" style={{ padding: '6px 8px' }} title="More options (coming soon)" disabled>
-              <MoreVertical size={16} />
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="btn-ghost" 
+                style={{ padding: '6px 8px' }} 
+                title="Options"
+                onClick={() => setShowOptions(!showOptions)}
+              >
+                <MoreVertical size={16} />
+              </button>
+              {showOptions && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                  background: 'var(--surface-container-high)',
+                  border: '1px solid var(--outline)', borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50,
+                  minWidth: 120, padding: 4
+                }}>
+                  <button 
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '8px 12px',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: 'var(--error)', fontSize: '0.8125rem',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      borderRadius: 'var(--radius-sm)'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-container-highest)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    onClick={() => { setShowOptions(false); setConfirmDeleteNote(true); }}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -496,11 +552,11 @@ export default function NoteDetail() {
             <BlockEditor value={editContent} onChange={val => setEditContent(val)} />
           </div>
         ) : (
-          <div style={{
+          <div className="prose prose-lg dark:prose-invert max-w-none" style={{
             fontSize: '0.9375rem', lineHeight: 1.75,
             maxWidth: 700,
           }}>
-            <BlockEditor value={note.content || ''} onChange={() => { }} editable={false} />
+            <MarkdownPreview source={note.content || ''} skipHtml={false} />
           </div>
         )}
 

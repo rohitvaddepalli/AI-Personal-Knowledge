@@ -1,4 +1,11 @@
 import re
+import bleach
+
+ALLOWED_UPLOAD_EXTENSIONS = {".pdf", ".docx", ".pptx", ".md", ".txt", ".html", ".htm", ".webm", ".wav", ".mp3", ".ogg", ".m4a", ".flac"}
+ALLOWED_MARKDOWN_TAGS = [
+    "p", "pre", "code", "blockquote", "ul", "ol", "li", "strong", "em", "a",
+    "h1", "h2", "h3", "h4", "h5", "h6", "hr", "br",
+]
 
 def sanitize_content_for_prompt(content: str) -> str:
     """
@@ -28,3 +35,14 @@ def sanitize_content_for_prompt(content: str) -> str:
         sanitized = re.sub(pattern, "[STRIPPED]", sanitized)
         
     return sanitized.strip()
+
+
+def sanitize_markdown(content: str) -> str:
+    if not content:
+        return ""
+    return bleach.clean(content, tags=ALLOWED_MARKDOWN_TAGS, attributes={"a": ["href", "title"]}, strip=True)
+
+
+def validate_upload_filename(filename: str) -> bool:
+    match = re.search(r"(\.[a-z0-9]+)$", (filename or "").lower())
+    return bool(match and match.group(1) in ALLOWED_UPLOAD_EXTENSIONS)

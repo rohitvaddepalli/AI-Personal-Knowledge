@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Pin, Trash2, CheckSquare, X, Link2, FileText, Plus, AlertCircle } from 'lucide-react';
 import { apiUrl } from '../lib/api';
+import FileUploadModal from '../components/FileUploadModal';
 
 interface Note {
   id: string;
@@ -117,6 +118,7 @@ export default function NoteList() {
   const [showCaptureModal, setShowCaptureModal] = useState(false);
   const [captureTab, setCaptureTab] = useState('url');
   const [aiSummarize, setAiSummarize] = useState(true);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   // Dialog / toast state
   const [confirmDeleteNote, setConfirmDeleteNote] = useState<string | null>(null);
@@ -244,19 +246,26 @@ export default function NoteList() {
   const deselectAll = () => setSelectedNotes(new Set());
 
   const bulkDelete = async () => {
-    await Promise.all(
+    const results = await Promise.allSettled(
       Array.from(selectedNotes).map((id) =>
         fetch(apiUrl(`/api/notes/${id}`), { method: 'DELETE' })
       )
     );
-    showToast(`${selectedNotes.size} notes moved to trash.`, 'success');
+    const failed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok)).length;
+    if (failed === 0) {
+      showToast(`${selectedNotes.size} notes moved to trash.`, 'success');
+    } else if (failed < selectedNotes.size) {
+      showToast(`${selectedNotes.size - failed} moved, ${failed} failed.`, 'error');
+    } else {
+      showToast('Failed to delete notes.', 'error');
+    }
     setSelectedNotes(new Set());
     setConfirmBulkDelete(false);
     fetchNotes(debouncedQuery);
   };
 
   const bulkPin = async (pin: boolean) => {
-    await Promise.all(
+    const results = await Promise.allSettled(
       Array.from(selectedNotes).map((id) =>
         fetch(apiUrl(`/api/notes/${id}`), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -264,6 +273,10 @@ export default function NoteList() {
         })
       )
     );
+    const failed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok)).length;
+    if (failed > 0) {
+      showToast(`${failed} note${failed > 1 ? 's' : ''} failed to ${pin ? 'pin' : 'unpin'}.`, 'error');
+    }
     setSelectedNotes(new Set());
     fetchNotes(debouncedQuery);
   };
@@ -517,7 +530,7 @@ export default function NoteList() {
                     overflow: 'hidden', display: '-webkit-box',
                     WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any,
                   }}>
-                    {note.content?.substring(0, 120)}...
+                    {note.content ? (note.content.length > 120 ? `${note.content.substring(0, 120)}...` : note.content) : ''}
                   </p>
                   {note.tags && note.tags.length > 0 && (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -584,40 +597,39 @@ export default function NoteList() {
                 URL
               </button>
 
-              {/* Unimplemented tabs — badged */}
               {[
                 { key: 'youtube', label: 'YouTube' },
                 { key: 'upload', label: 'File Upload' },
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  disabled
-                  title="Coming soon"
+                  onClick={() => {
+                    if (tab.key === 'upload') {
+                      setShowCaptureModal(false);
+                      setUploadModalOpen(true);
+                    } else {
+                      setCaptureTab(tab.key);
+                    }
+                  }}
                   style={{
-                    background: 'transparent', border: 'none',
-                    color: 'var(--on-surface-dim)', fontFamily: 'var(--font-display)',
-                    fontSize: '0.8125rem', cursor: 'not-allowed', padding: '4px 12px',
-                    opacity: 0.45, display: 'flex', alignItems: 'center', gap: 5,
+                    background: captureTab === tab.key ? 'var(--primary-dim)' : 'transparent',
+                    border: 'none', borderRadius: 'var(--radius-sm)',
+                    color: captureTab === tab.key ? 'var(--primary)' : 'var(--on-surface-dim)',
+                    fontFamily: 'var(--font-display)', fontWeight: 600,
+                    fontSize: '0.8125rem', cursor: 'pointer', padding: '4px 12px',
+                    display: 'flex', alignItems: 'center', gap: 5,
                     position: 'relative',
                   }}
                 >
                   {tab.label}
-                  <span style={{
-                    fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.05em',
-                    padding: '1px 5px', borderRadius: 99,
-                    background: 'var(--surface-container-highest)',
-                    color: 'var(--on-surface-dim)', textTransform: 'uppercase',
-                  }}>
-                    Soon
-                  </span>
                 </button>
               ))}
             </div>
 
-            {/* URL tab content */}
-            {captureTab === 'url' && (
+            {/* URL & YouTube tab content */}
+            {(captureTab === 'url' || captureTab === 'youtube') && (
               <div>
-                <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Source Link</span>
+                <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>{captureTab === 'youtube' ? 'YouTube Link' : 'Source Link'}</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8, flex: 1,
@@ -629,7 +641,7 @@ export default function NoteList() {
                       value={importUrlStr}
                       onChange={(e) => setImportUrlStr(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleImport(); }}
-                      placeholder="https://example.com/article-to-save"
+                      placeholder={captureTab === 'youtube' ? "https://youtube.com/watch?v=..." : "https://example.com/article-to-save"}
                       style={{
                         background: 'transparent', border: 'none', outline: 'none',
                         color: 'var(--on-surface)', fontSize: '0.8125rem',
@@ -681,6 +693,10 @@ export default function NoteList() {
             )}
           </div>
         </div>
+      )}
+
+      {uploadModalOpen && (
+        <FileUploadModal onClose={() => setUploadModalOpen(false)} />
       )}
     </>
   );
