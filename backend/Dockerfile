@@ -10,12 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY requirements.txt .
 
-# Install dependencies using pip 
-RUN pip install --no-cache-dir hatchling \
-    && pip install --no-cache-dir . \
-    || (pip install --no-cache-dir -e . || pip install fastapi uvicorn sqlalchemy chromadb networkx pydantic-settings httpx beautifulsoup4 youtube-transcript-api yt-dlp python-multipart)
+# Install backend dependencies from requirements.
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app /app/app
 
