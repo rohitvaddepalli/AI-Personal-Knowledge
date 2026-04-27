@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, X, PenTool, Shuffle, Search, Brain, AlertCircle, Inbox, RefreshCw, Zap, ArrowRight } from 'lucide-react';
+import { Sparkles, X, PenTool, Shuffle, Search, Brain, AlertCircle, Inbox, RefreshCw, Zap, ArrowRight, BookOpen } from 'lucide-react';
 import { apiUrl } from '../lib/api';
+import MomentumPanel from '../components/MomentumPanel';
+import ResurfacingWidgets from '../components/ResurfacingWidgets';
+import WeeklyDigest from '../components/WeeklyDigest';
+import FocusModeBar from '../components/FocusModeBar';
 
 function getErrorMessage(status: number) {
   if (status === 401) return 'Sign in required to load dashboard.';
@@ -13,6 +17,7 @@ function getErrorMessage(status: number) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [insights, setInsights] = useState<any[]>([]);
+  const [showWeeklyDigest, setShowWeeklyDigest] = useState(false);
   const [recentNotes, setRecentNotes] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
@@ -121,19 +126,28 @@ export default function Dashboard() {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <FocusModeBar />
+          <button
+            onClick={() => setShowWeeklyDigest(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px',
+              background: 'var(--surface-container)',
+              border: '1px solid var(--outline-variant)',
+              borderRadius: 'var(--radius-full)',
+              color: 'var(--on-surface-variant)',
+              fontSize: '0.75rem', fontFamily: 'var(--font-display)', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 200ms',
+            }}
+          >
+            <BookOpen size={12} /> Weekly Digest
+          </button>
           <span style={{
             fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
             fontFamily: 'var(--font-mono)', padding: '4px 8px',
             background: 'var(--surface-container)', borderRadius: 'var(--radius-sm)',
           }}>
             Ctrl K <span style={{ opacity: 0.5 }}>Open notes</span>
-          </span>
-          <span style={{
-            fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
-            fontFamily: 'var(--font-mono)', padding: '4px 8px',
-            background: 'var(--surface-container)', borderRadius: 'var(--radius-sm)',
-          }}>
-            Ctrl N <span style={{ opacity: 0.5 }}>New note</span>
           </span>
         </div>
       </div>
@@ -289,6 +303,9 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ═══ Momentum Panel ═══ */}
+      <MomentumPanel />
+
       {/* ═══ Quick Actions ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {quickActions.map((action) => {
@@ -323,6 +340,9 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* ═══ Resurfacing Widgets ═══ */}
+      <ResurfacingWidgets />
 
       {/* ═══ Two Column: Recent Notes + Deep Insights ═══ */}
       <div style={{ display: 'flex', gap: 24, flex: 1, minHeight: 0 }}>
@@ -476,6 +496,11 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ═══ Weekly Digest Modal ═══ */}
+      {showWeeklyDigest && (
+        <WeeklyDigest onClose={() => setShowWeeklyDigest(false)} />
+      )}
     </div>
   );
 }

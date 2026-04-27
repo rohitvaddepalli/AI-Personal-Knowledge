@@ -7,9 +7,10 @@ from app.routers import (
     notes, connections, graph, ask, search, import_, collections,
     insights, chat as chat_router, tasks, templates, attachments,
     note_versions, review, export, system, voice, plugins, benchmark, inbox,
-    ingest, flashcards, auth,
+    ingest, flashcards, auth, momentum, synthesis_personalization,
+    interop, webhooks, garden,
 )
-from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version
+from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version, user_activity
 from app.config import settings
 from app.runtime import ensure_app_directories, load_runtime_settings
 from app.utils.auth import ACCESS_COOKIE_NAME, decode_token
@@ -158,6 +159,11 @@ app.include_router(inbox.router)
 app.include_router(ingest.router)
 app.include_router(flashcards.router)
 app.include_router(auth.router)
+app.include_router(momentum.router)
+app.include_router(synthesis_personalization.router)
+app.include_router(interop.router)
+app.include_router(webhooks.router)
+app.include_router(garden.router)
 
 
 @app.get("/")

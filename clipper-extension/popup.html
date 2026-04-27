@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second Brain Clipper</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a2e;
+    --surface-hi: #1e1e3a;
+    --border: #2a2a4a;
+    --primary: #6366f1;
+    --primary-dim: rgba(99,102,241,.15);
+    --on-primary: #fff;
+    --fg: #e2e8f0;
+    --dim: #94a3b8;
+    --success: #22c55e;
+    --error: #ef4444;
+    --radius: 10px;
+    --font: system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 13px;
+    width: 340px;
+    min-height: 200px;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-size: 16px; }
+  .header-title { font-weight: 700; font-size: 14px; flex: 1; }
+  .settings-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--dim); font-size: 16px; padding: 2px 4px;
+    border-radius: 4px; transition: color 200ms;
+  }
+  .settings-btn:hover { color: var(--fg); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    flex: 1; padding: 8px; text-align: center; cursor: pointer;
+    font-size: 11px; font-weight: 600; color: var(--dim);
+    border: none; background: none;
+    border-bottom: 2px solid transparent;
+    transition: all 150ms;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab:hover:not(.active) { color: var(--fg); }
+
+  /* ── Body ── */
+  .body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── Page info ── */
+  .page-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .page-title {
+    font-weight: 600; font-size: 12px; margin-bottom: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .page-url { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Form ── */
+  label { font-size: 11px; color: var(--dim); margin-bottom: 3px; display: block; }
+  input, textarea, select {
+    width: 100%; padding: 7px 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--fg);
+    font-family: var(--font); font-size: 12px;
+    outline: none; transition: border-color 150ms;
+    resize: vertical;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+  .selection-box {
+    background: var(--primary-dim); border: 1px solid rgba(99,102,241,.3);
+    border-radius: var(--radius); padding: 8px 10px;
+    font-size: 11px; color: var(--fg); line-height: 1.5;
+    max-height: 80px; overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  .selection-label { font-size: 10px; color: var(--primary); margin-bottom: 4px; font-weight: 600; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; padding: 8px 12px; border-radius: var(--radius);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; transition: all 150ms; display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--fg); }
+  .btn-secondary:hover { border-color: var(--primary); }
+
+  /* ── Status ── */
+  .status {
+    padding: 8px 12px; border-radius: var(--radius);
+    font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .status.success { background: rgba(34,197,94,.1); color: var(--success); border: 1px solid rgba(34,197,94,.2); }
+  .status.error { background: rgba(239,68,68,.1); color: var(--error); border: 1px solid rgba(239,68,68,.2); }
+
+  /* ── Settings panel ── */
+  .settings-panel { display: none; padding: 14px; flex-direction: column; gap: 10px; }
+  .settings-panel.visible { display: flex; }
+  .settings-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">🧠</span>
+  <span class="header-title">Second Brain Clipper</span>
+  <button class="settings-btn" id="settingsToggle" title="Settings">⚙</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="clip">📋 Clip</button>
+  <button class="tab" data-tab="page">🌐 Full Page</button>
+  <button class="tab" data-tab="settings">⚙ Settings</button>
+</div>
+
+<!-- ── Clip tab ── -->
+<div class="body" id="tab-clip">
+  <div class="page-info">
+    <div class="page-title" id="pageTitle">Loading…</div>
+    <div class="page-url" id="pageUrl"></div>
+  </div>
+
+  <div id="selectionSection" style="display:none">
+    <div class="selection-label">✦ Selection detected</div>
+    <div class="selection-box" id="selectionPreview"></div>
+  </div>
+
+  <div>
+    <label for="noteTitle">Note title</label>
+    <input type="text" id="noteTitle" placeholder="Auto-filled from page…">
+  </div>
+  <div>
+    <label for="noteTags">Tags (comma-separated)</label>
+    <input type="text" id="noteTags" placeholder="e.g. research, ai, reading">
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnClipSelection">Clip Selection</button>
+    <button class="btn btn-secondary" id="btnImportUrl">Import URL</button>
+  </div>
+
+  <div id="statusArea"></div>
+</div>
+
+<!-- ── Full page tab ── -->
+<div class="body" id="tab-page" style="display:none">
+  <div class="page-info">
+    <div class="page-title" id="pageTitle2">Loading…</div>
+    <div class="page-url" id="pageUrl2"></div>
+  </div>
+  <p style="font-size:11px;color:var(--dim)">Extracts readable text from the current page and saves it as a note.</p>
+  <button class="btn btn-primary" id="btnClipFullPage">Save Full Page</button>
+  <div id="statusArea2"></div>
+</div>
+
+<!-- ── Settings tab ── -->
+<div class="body" id="tab-settings" style="display:none">
+  <div style="font-weight:700;font-size:13px">Settings</div>
+  <div>
+    <label for="apiUrlInput">Second Brain API URL</label>
+    <input type="text" id="apiUrlInput" placeholder="http://localhost:8000">
+  </div>
+  <button class="btn btn-primary" id="btnSaveSettings">Save Settings</button>
+  <div id="settingsStatus"></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

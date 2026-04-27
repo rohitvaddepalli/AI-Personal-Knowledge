@@ -11,6 +11,9 @@ def initialize_database() -> None:
 
     _apply_sqlite_legacy_columns()
     _initialize_sqlite_fts()
+    _initialize_phase5_tables()
+    _initialize_phase6_schema()
+
 
 
 def _apply_sqlite_legacy_columns() -> None:
@@ -68,3 +71,67 @@ def _initialize_sqlite_fts() -> None:
             END;"""))
         except Exception as exc:
             print(f"FTS Table setup error: {exc}")
+
+
+def _initialize_phase5_tables() -> None:
+    """Ensure Phase 5 tables exist (user_activity, user_preferences, milestones)."""
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS user_activity (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date VARCHAR NOT NULL,
+                    notes_captured INTEGER DEFAULT 0,
+                    notes_reviewed INTEGER DEFAULT 0,
+                    notes_connected INTEGER DEFAULT 0,
+                    minutes_active INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_activity_date ON user_activity(date);"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key VARCHAR UNIQUE NOT NULL,
+                    value TEXT NOT NULL,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_preferences_key ON user_preferences(key);"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS milestones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    milestone_type VARCHAR NOT NULL,
+                    achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    is_seen INTEGER DEFAULT 0
+                );
+            """))
+        except Exception as exc:
+            print(f"Phase 5 table setup error: {exc}")
+
+
+def _initialize_phase6_schema() -> None:
+    """Phase 6 — add is_public to notes + webhook_calls audit table."""
+    with engine.begin() as conn:
+        try:
+            inspector = inspect(conn)
+            existing = {c["name"] for c in inspector.get_columns("notes")}
+            if "is_public" not in existing:
+                conn.execute(text("ALTER TABLE notes ADD COLUMN is_public BOOLEAN DEFAULT 0"))
+
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS webhook_calls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    hook_id VARCHAR NOT NULL,
+                    note_id VARCHAR,
+                    payload_size INTEGER DEFAULT 0,
+                    called_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"
+            ))
+        except Exception as exc:
+            print(f"Phase 6 schema error: {exc}")
+

@@ -25,3 +25,7 @@ class Note(Base):
     # Hierarchical notes
     parent_note_id = Column(String, ForeignKey('notes.id', ondelete='CASCADE'), nullable=True)
     order = Column(Integer, default=0)
+
+    # Phase 6.3 — Public garden
+    is_public = Column(Boolean, default=False)
+

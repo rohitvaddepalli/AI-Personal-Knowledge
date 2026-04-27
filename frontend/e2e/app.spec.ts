@@ -30,8 +30,8 @@ test.describe('AI Personal Knowledge App - E2E Tests', () => {
 
   test('should display the knowledge graph', async ({ page }) => {
     await page.goto('http://localhost:3000/graph');
-    // Check that the graph canvas or container exists
-    await expect(page.locator('canvas, .force-graph-container')).toBeVisible();
+    // Check that the graph container exists
+    await expect(page.locator('.force-graph-container').first()).toBeVisible();
   });
 
   test('should access settings page', async ({ page }) => {

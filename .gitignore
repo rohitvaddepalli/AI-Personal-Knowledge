@@ -4,13 +4,16 @@
 .env*
 !.env.example
 node_modules/
+CLAUDE.md
 
 # Tools & AI
 .agent/
+.agents/
 .gemini/
 .qwen
 UIs
 .claude/
+graphify-out
 
 # Python & Backend
 __pycache__/
@@ -50,6 +53,9 @@ dist-ssr/
 coverage/
 tsconfig.tsbuildinfo
 tsconfig.node.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
 
 # IDEs
 .vscode/
