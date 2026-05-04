@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 """
 Voice transcription router using Whisper via Ollama or local whisper model.
 Falls back gracefully when whisper is not available.
@@ -68,7 +70,7 @@ async def transcribe_audio(
                 elapsed = int((time.time() - start) * 1000)
                 return TranscriptionResponse(text=result, model="whisper", duration_ms=elapsed)
         except Exception as ollama_err:
-            print(f"Ollama whisper unavailable: {ollama_err}")
+            logger.info(f"Ollama whisper unavailable: {ollama_err}")
 
         # Fallback: try faster-whisper or openai-whisper if installed
         try:
@@ -81,7 +83,7 @@ async def transcribe_audio(
         except ImportError:
             pass
         except Exception as whisper_err:
-            print(f"Local whisper failed: {whisper_err}")
+            logger.info(f"Local whisper failed: {whisper_err}")
 
         # Final fallback
         raise HTTPException(

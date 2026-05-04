@@ -1,63 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Inter:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════
-   NeuronVault Design System — "The Digital Sanctuary"
-   Based on DESIGN.md specification
+   NeuronVault Design System — "Productivity"
+   Clean, minimal, distraction-free workspace theme
    ═══════════════════════════════════════════════════ */
 
 :root {
   /* ── Typography ── */
-  --font-display: "Manrope", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "Geist Mono", "SF Mono", monospace;
+  --font-display: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: ui-monospace, monospace;
 
-  /* ── Surface Hierarchy (Tonal Layering) ── */
-  --surface: #111319;
-  --surface-container-lowest: #0C0E14;
-  --surface-container-low: #161820;
-  --surface-container: #1E1F26;
-  --surface-container-high: #282930;
-  --surface-container-highest: #33343B;
-  --surface-bright: #3E3F47;
-  --surface-variant: rgba(255, 255, 255, 0.06);
+  /* ── Surface Hierarchy (Warm Neutral Layering) ── */
+  --surface: #F7F7F5;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-low: #F2F2EF;
+  --surface-container: #ECEAE6;
+  --surface-container-high: #E4E2DE;
+  --surface-container-highest: #D8D6D1;
+  --surface-bright: #CFCDC8;
+  --surface-variant: rgba(0, 0, 0, 0.04);
 
-  /* ── Primary Accent (Lavender) ── */
-  --primary: #CABEFF;
-  --primary-container: #947DFF;
-  --primary-dim: rgba(202, 190, 255, 0.15);
-  --primary-glow: rgba(148, 125, 255, 0.25);
-  --on-primary: #1A1528;
+  /* ── Primary Accent (Slate Blue — Focus) ── */
+  --primary: #2D6BE4;
+  --primary-container: #1A56CC;
+  --primary-dim: rgba(45, 107, 228, 0.10);
+  --primary-glow: rgba(45, 107, 228, 0.18);
+  --on-primary: #FFFFFF;
 
-  /* ── Secondary (Teal — AI Signals) ── */
-  --secondary: #03C6B2;
-  --secondary-container: #024D44;
-  --secondary-dim: rgba(3, 198, 178, 0.12);
-  --on-secondary: #00332D;
+  /* ── Secondary (Sage Green — Done/Progress) ── */
+  --secondary: #37996B;
+  --secondary-container: #D3F0E3;
+  --secondary-dim: rgba(55, 153, 107, 0.10);
+  --on-secondary: #FFFFFF;
 
-  /* ── Tertiary (Amber — Warnings/Highlights) ── */
-  --tertiary: #F0A856;
-  --tertiary-container: #3D2E14;
+  /* ── Tertiary (Warm Amber — Highlights) ── */
+  --tertiary: #D97706;
+  --tertiary-container: #FEF3C7;
 
   /* ── Text ── */
-  --on-surface: #E2E2EB;
-  --on-surface-variant: #A0A0AB;
-  --on-surface-dim: #6B6B78;
+  --on-surface: #1A1918;
+  --on-surface-variant: #4d4c4b;
+  --on-surface-dim: #474646;
 
   /* ── Outline ── */
-  --outline: rgba(255, 255, 255, 0.08);
-  --outline-variant: rgba(255, 255, 255, 0.04);
+  --outline: rgba(0, 0, 0, 0.09);
+  --outline-variant: rgba(0, 0, 0, 0.05);
 
   /* ── Error ── */
-  --error: #FF6B6B;
-  --error-container: #3D1A1A;
+  --error: #DC2626;
+  --error-container: #FEE2E2;
 
-  /* ── Elevation (Ambient Shadows — tinted, not black) ── */
-  --shadow-ambient: 0 4px 40px rgba(17, 19, 25, 0.6);
-  --shadow-float: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 1px rgba(226, 226, 235, 0.06);
+  /* ── Elevation (Soft Shadows) ── */
+  --shadow-ambient: 0 2px 20px rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.10), 0 0 1px rgba(0, 0, 0, 0.06);
 
   /* ── Spacing Scale ── */
   --space-xs: 4px;
@@ -70,16 +70,68 @@
 
   /* ── Border Radius ── */
   --radius-sm: 4px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-full: 9999px;
 
   /* ── Transition ── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration: 200ms;
+  --duration: 160ms;
 
   /* ── Legacy compat (keep tailwind mappings working) ── */
+  --bg-color: var(--surface);
+  --surface-color: var(--surface-container);
+  --text-main: var(--on-surface);
+  --text-muted: var(--on-surface-variant);
+  --accent-color: var(--primary);
+  --accent-amber: var(--tertiary);
+  --border-color: var(--outline);
+  --highlight-color: var(--surface-container-low);
+}
+
+/* ═══════════════════════════════════════════════════
+   Dark Mode — Productivity Dark
+   Applied via [data-theme="dark"] on <html>
+   ═══════════════════════════════════════════════════ */
+
+[data-theme="dark"] {
+  --surface: #18181A;
+  --surface-container-lowest: #111113;
+  --surface-container-low: #1E1E21;
+  --surface-container: #252528;
+  --surface-container-high: #2E2E32;
+  --surface-container-highest: #38383D;
+  --surface-bright: #424247;
+  --surface-variant: rgba(255, 255, 255, 0.04);
+
+  --primary: #5B8FF5;
+  --primary-container: #3D72D9;
+  --primary-dim: rgba(91, 143, 245, 0.12);
+  --primary-glow: rgba(91, 143, 245, 0.20);
+  --on-primary: #FFFFFF;
+
+  --secondary: #4AB17E;
+  --secondary-container: rgba(74, 177, 126, 0.12);
+  --secondary-dim: rgba(74, 177, 126, 0.08);
+  --on-secondary: #FFFFFF;
+
+  --tertiary: #F59E3B;
+  --tertiary-container: rgba(245, 158, 59, 0.12);
+
+  --on-surface: #E8E8E6;
+  --on-surface-variant: #A8A8A5;
+  --on-surface-dim: #7A7A78;
+
+  --outline: rgba(255, 255, 255, 0.08);
+  --outline-variant: rgba(255, 255, 255, 0.04);
+
+  --error: #F87171;
+  --error-container: rgba(248, 113, 113, 0.12);
+
+  --shadow-ambient: 0 2px 20px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
+
   --bg-color: var(--surface);
   --surface-color: var(--surface-container);
   --text-main: var(--on-surface);
@@ -159,7 +211,7 @@ a:hover {
   letter-spacing: 0.01em;
   border: none;
   cursor: pointer;
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out), filter var(--duration) var(--ease-out);
   background: linear-gradient(135deg, var(--primary), var(--primary-container));
   color: var(--on-primary);
   white-space: nowrap;
@@ -189,14 +241,14 @@ a:hover {
   font-size: 0.8125rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out), color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out);
   background: var(--surface-container-high);
   color: var(--primary);
   white-space: nowrap;
 }
 .btn-secondary:hover {
   background: var(--surface-container-highest);
-  border-color: rgba(202, 190, 255, 0.2);
+  border-color: rgba(45, 107, 228, 0.25);
 }
 
 /* Tertiary button — ghost */
@@ -212,7 +264,7 @@ a:hover {
   font-size: 0.8125rem;
   border: none;
   cursor: pointer;
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
   background: transparent;
   color: var(--on-surface-variant);
   white-space: nowrap;
@@ -233,7 +285,7 @@ a:hover {
   font-family: var(--font-body);
   font-size: 0.875rem;
   line-height: 1.5;
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
   outline: none;
 }
 .input:focus, .textarea:focus {
@@ -251,7 +303,7 @@ a:hover {
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   border: 1px solid var(--outline-variant);
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
 }
 .card:hover {
   background: var(--surface-container-high);
@@ -259,9 +311,9 @@ a:hover {
 
 /* Glass Panel */
 .glass-panel {
-  background: rgba(30, 31, 38, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--outline);
   border-radius: var(--radius-lg);
 }
@@ -377,7 +429,7 @@ a:hover {
   font-size: 0.8125rem;
   font-weight: 500;
   font-family: var(--font-display);
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), color var(--duration) var(--ease-out), transform var(--duration) var(--ease-out);
   cursor: pointer;
   border: none;
   background: transparent;
@@ -427,7 +479,7 @@ a:hover {
   letter-spacing: 0.06em;
   border: none;
   cursor: pointer;
-  transition: all var(--duration) var(--ease-out);
+  transition: background var(--duration) var(--ease-out), transform var(--duration) var(--ease-out), filter var(--duration) var(--ease-out);
   margin: 0 var(--space-xs);
 }
 .nv-quick-capture:hover {
@@ -559,6 +611,18 @@ a:hover {
 .surface-mid { background: var(--surface-container); }
 .surface-high { background: var(--surface-container-high); }
 .surface-highest { background: var(--surface-container-highest); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
 
 /* ═══════════════════════════════════════════════════
    Responsive — Mobile sidebar overlay

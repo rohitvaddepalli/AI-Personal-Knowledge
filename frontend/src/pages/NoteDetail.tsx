@@ -8,7 +8,7 @@ import { pickDesktopFile } from '../lib/desktopFiles';
 import {
   Pin, Edit3, Save, X, ChevronRight, Clock, Paperclip, Download,
   Sparkles, Tag, MessageSquare, Link2, MoreVertical, FileText,
-  AlertCircle, CheckCircle, Trash2,
+  AlertCircle, CheckCircle, Trash2, ArrowLeft,
 } from 'lucide-react';
 
 // ── Confirm dialog ─────────────────────────────────────────────────────────
@@ -381,8 +381,22 @@ export default function NoteDetail() {
           display: 'flex', alignItems: 'center', gap: 6,
           marginBottom: 16, fontSize: '0.8125rem', color: 'var(--on-surface-dim)',
         }}>
-          <span>■</span>
-          <span>Vault</span>
+          <button
+            onClick={() => navigate('/')}
+            title="Back to Dashboard"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'transparent', border: 'none',
+              color: 'var(--on-surface-dim)', cursor: 'pointer',
+              padding: '2px 6px', borderRadius: 'var(--radius-sm)',
+              fontSize: '0.8125rem', transition: 'all 160ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-container)'; e.currentTarget.style.color = 'var(--primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--on-surface-dim)'; }}
+          >
+            <ArrowLeft size={14} />
+            <span>Dashboard</span>
+          </button>
           {noteTree?.ancestors?.map((ancestor: any) => (
             <span key={ancestor.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ChevronRight size={12} style={{ opacity: 0.4 }} />

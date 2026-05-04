@@ -168,7 +168,9 @@ export default function FileUploadModal({ onClose }: Props) {
             <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-dim)' }}>
               PDF, DOCX, PPTX, MD, TXT, HTML — up to {MAX_MB} MB each
             </p>
+            <label htmlFor="file-upload-input" style={{ display: 'none' }}>Upload Files</label>
             <input
+              id="file-upload-input"
               ref={fileRef}
               type="file"
               multiple

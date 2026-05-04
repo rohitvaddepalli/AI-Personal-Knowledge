@@ -247,6 +247,18 @@ export default function AskBrain() {
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history]);
 
+  // Auto-resize textarea between 3 and 5 lines
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = 24; // matches lineHeight: 1.5 at 0.875rem (~14px)
+    const minH = lineHeight * 3; // 72px — 3 lines
+    const maxH = lineHeight * 5; // 120px — 5 lines
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, minH), maxH)}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+  }, [question]);
+
   useEffect(() => {
     if (!mentionOpen && textareaRef.current) {
       textareaRef.current.focus();
@@ -773,12 +785,13 @@ export default function AskBrain() {
                     ? 'Ask — I\'ll only answer from your notes...'
                     : 'Ask anything, or type @ to target a note...'
               }
-              rows={1}
+              rows={3}
               style={{
                 flex: 1, background: 'transparent', border: 'none', outline: 'none',
                 color: 'var(--on-surface)', fontSize: '0.875rem',
                 fontFamily: 'var(--font-body)', resize: 'none',
-                minHeight: 24, maxHeight: 120, lineHeight: 1.5,
+                minHeight: 72, maxHeight: 120, lineHeight: 1.5,
+                overflowY: 'hidden', transition: 'height 0.1s ease',
               }}
             />
             <button

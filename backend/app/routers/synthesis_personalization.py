@@ -1,15 +1,6 @@
-"""
-Phase 5.2 — Synthesis router
-- POST /api/synthesis/weekly     — generate weekly cross-note synthesis note
-- GET  /api/synthesis/latest     — get latest synthesis insight
-
-Phase 5.3 — Personalization router
-- GET  /api/personalization/preferences          — all preferences
-- PUT  /api/personalization/preferences/{key}    — upsert a preference
-- GET  /api/personalization/focus-presets        — list focus presets
-"""
-
 from __future__ import annotations
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 
 import json
 from datetime import datetime, timedelta
@@ -80,7 +71,7 @@ def _run_synthesis(db: Session) -> None:
         db.add(insight)
         db.commit()
     except Exception as e:
-        print(f"[Synthesis] Error: {e}")
+        logger.info(f"[Synthesis] Error: {e}")
 
 
 @synthesis_router.post("/weekly")

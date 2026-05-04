@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -286,7 +288,7 @@ def seed_sample_notes(req: SeedRequest, db: Session = Depends(get_db)):
         try:
             add_note_embedding(db_note.id, db_note.title, db_note.content)
         except Exception as e:
-            print(f"Embedding failed for seeded note: {e}")
+            logger.info(f"Embedding failed for seeded note: {e}")
 
         created.append(db_note.id)
 

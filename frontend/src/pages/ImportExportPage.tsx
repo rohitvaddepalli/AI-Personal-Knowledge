@@ -14,17 +14,17 @@ interface ImportResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const IMPORT_FORMATS: { id: ImportFormat; label: string; icon: string; hint: string }[] = [
   { id: 'obsidian', label: 'Obsidian', icon: '🔮', hint: 'ZIP of your Obsidian vault folder' },
-  { id: 'notion',   label: 'Notion',   icon: '◼', hint: 'Notion HTML/MD export ZIP' },
-  { id: 'roam',     label: 'Roam Research', icon: '🌀', hint: 'Roam JSON export file' },
+  { id: 'notion', label: 'Notion', icon: '◼', hint: 'Notion HTML/MD export ZIP' },
+  { id: 'roam', label: 'Roam Research', icon: '🌀', hint: 'Roam JSON export file' },
   { id: 'markdown', label: 'Markdown', icon: '📝', hint: 'ZIP of .md files or single .md' },
 ];
 
 const EXPORT_FORMATS: { id: ExportFormat; label: string; icon: string; desc: string; ext: string }[] = [
-  { id: 'obsidian',    label: 'Obsidian Vault', icon: '🔮', desc: 'Full vault ZIP with YAML frontmatter & backlinks', ext: 'zip' },
-  { id: 'graph-json',  label: 'Graph JSON',     icon: '🕸', desc: 'Knowledge graph as machine-readable JSON', ext: 'json' },
-  { id: 'graph-svg',   label: 'Graph SVG',      icon: '🎨', desc: 'Static knowledge graph visualization', ext: 'svg' },
-  { id: 'json',        label: 'All Notes JSON', icon: '📦', desc: 'Raw JSON export of all notes', ext: 'json' },
-  { id: 'markdown',    label: 'Markdown ZIP',   icon: '📝', desc: 'Plain Markdown files in a ZIP archive', ext: 'zip' },
+  { id: 'obsidian', label: 'Obsidian Vault', icon: '🔮', desc: 'Full vault ZIP with YAML frontmatter & backlinks', ext: 'zip' },
+  { id: 'graph-json', label: 'Graph JSON', icon: '🕸', desc: 'Knowledge graph as machine-readable JSON', ext: 'json' },
+  { id: 'graph-svg', label: 'Graph SVG', icon: '🎨', desc: 'Static knowledge graph visualization', ext: 'svg' },
+  { id: 'json', label: 'All Notes JSON', icon: '📦', desc: 'Raw JSON export of all notes', ext: 'json' },
+  { id: 'markdown', label: 'Markdown ZIP', icon: '📝', desc: 'Plain Markdown files in a ZIP archive', ext: 'zip' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -61,8 +61,8 @@ const ImportExportPage: React.FC = () => {
 
     const endpointMap: Record<ImportFormat, string> = {
       obsidian: '/api/interop/import/obsidian',
-      notion:   '/api/interop/import/notion',
-      roam:     '/api/interop/import/roam',
+      notion: '/api/interop/import/notion',
+      roam: '/api/interop/import/roam',
       markdown: '/api/interop/import/markdown',
     };
 
@@ -85,28 +85,28 @@ const ImportExportPage: React.FC = () => {
   const runExport = async (fmt: ExportFormat) => {
     setExportingId(fmt);
     const urlMap: Record<ExportFormat, string> = {
-      obsidian:   '/api/interop/export/obsidian',
+      obsidian: '/api/interop/export/obsidian',
       'graph-json': '/api/interop/export/graph/json',
-      'graph-svg':  '/api/interop/export/graph/svg',
-      json:       '/api/notes?format=json&limit=10000',
-      markdown:   '/api/export/markdown',
+      'graph-svg': '/api/interop/export/graph/svg',
+      json: '/api/notes?format=json&limit=10000',
+      markdown: '/api/export/markdown',
     };
     const extMap = Object.fromEntries(EXPORT_FORMATS.map(f => [f.id, f.ext]));
     const nameMap: Record<ExportFormat, string> = {
-      obsidian:   'second_brain_obsidian',
+      obsidian: 'second_brain_obsidian',
       'graph-json': 'knowledge_graph',
-      'graph-svg':  'knowledge_graph',
-      json:       'second_brain_notes',
-      markdown:   'second_brain_markdown',
+      'graph-svg': 'knowledge_graph',
+      json: 'second_brain_notes',
+      markdown: 'second_brain_markdown',
     };
 
     try {
       const res = await fetch(urlMap[fmt]);
       if (!res.ok) throw new Error(await res.text());
       const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       a.download = `${nameMap[fmt]}_${new Date().toISOString().slice(0, 10)}.${extMap[fmt]}`;
       a.click();
       URL.revokeObjectURL(url);
@@ -163,7 +163,8 @@ const ImportExportPage: React.FC = () => {
             onDrop={handleFileDrop}
             onClick={() => fileRef.current?.click()}
           >
-            <input ref={fileRef} type="file" hidden accept=".zip,.json,.md" onChange={handleFileSelect} />
+            <label htmlFor="import-file-input" style={{ display: 'none' }}>Import File</label>
+            <input id="import-file-input" ref={fileRef} type="file" hidden accept=".zip,.json,.md" onChange={handleFileSelect} />
             {importing ? (
               <div className="drop-loading"><div className="spinner" /><span>Importing…</span></div>
             ) : (

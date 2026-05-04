@@ -9,7 +9,6 @@ export default function KnowledgeGraph() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [filter, setFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('Graph');
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
@@ -100,29 +99,6 @@ export default function KnowledgeGraph() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>Graph Explorer</h1>
-          {/* Tab links */}
-          <nav style={{ display: 'flex', gap: 4, fontFamily: 'var(--font-display)', fontSize: '0.8125rem' }}>
-            {['Notes', 'Chat', 'Graph', 'Flashcards', 'Analytics'].map(tab => {
-              const tabRoutes: Record<string, string> = { Notes: '/notes', Chat: '/ask', Graph: '/graph', Flashcards: '/review', Analytics: '/analytics' };
-              return (
-                <span
-                  key={tab}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => { setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); }}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab(tab); if (tab !== 'Graph') navigate(tabRoutes[tab] || '/graph'); } }}
-                  style={{
-                    padding: '4px 10px', borderRadius: 'var(--radius-full)', cursor: 'pointer',
-                    color: activeTab === tab ? 'var(--primary)' : 'var(--on-surface-dim)',
-                    borderBottom: activeTab === tab ? '2px solid var(--primary)' : 'none',
-                    fontWeight: activeTab === tab ? 600 : 400,
-                  }}
-                >
-                  {tab}
-                </span>
-              );
-            })}
-          </nav>
         </div>
 
         {/* Stats badge */}

@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 from sqlalchemy import inspect, text
 
 from app.config import settings
@@ -6,17 +8,20 @@ from app.database import Base, engine
 
 def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
+    
+    # Run migrations even for non-sqlite (Postgres)
+    _apply_generic_migrations()
+    
     if not settings.is_sqlite:
         return
 
-    _apply_sqlite_legacy_columns()
     _initialize_sqlite_fts()
     _initialize_phase5_tables()
     _initialize_phase6_schema()
 
 
-
-def _apply_sqlite_legacy_columns() -> None:
+def _apply_generic_migrations() -> None:
+    """Apply migrations that work on both SQLite and Postgres."""
     with engine.begin() as conn:
         try:
             inspector = inspect(conn)
@@ -25,29 +30,57 @@ def _apply_sqlite_legacy_columns() -> None:
                 for column in inspector.get_columns("notes")
             }
 
-            needed_columns = [
-                ("is_pinned", "is_pinned BOOLEAN DEFAULT 0"),
-                ("deleted_at", "deleted_at DATETIME"),
-                ("review_count", "review_count INTEGER DEFAULT 0"),
-                ("next_review_at", "next_review_at DATETIME"),
-                ("last_reviewed_at", "last_reviewed_at DATETIME"),
-                ("parent_note_id", "parent_note_id VARCHAR"),
-                ("order", '"order" INTEGER DEFAULT 0'),
+            # Columns needed for various phases
+            migrations = [
+                ("is_pinned", "BOOLEAN DEFAULT FALSE"),
+                ("deleted_at", "TIMESTAMP" if not settings.is_sqlite else "DATETIME"),
+                ("review_count", "INTEGER DEFAULT 0"),
+                ("next_review_at", "TIMESTAMP" if not settings.is_sqlite else "DATETIME"),
+                ("last_reviewed_at", "TIMESTAMP" if not settings.is_sqlite else "DATETIME"),
+                ("parent_note_id", "VARCHAR"),
+                ("order", 'INTEGER DEFAULT 0'),
+                ("is_public", "BOOLEAN DEFAULT FALSE")
             ]
 
-            for name, column_sql in needed_columns:
+            for name, col_type in migrations:
                 if name in existing_columns:
                     continue
-                conn.execute(text(f"ALTER TABLE notes ADD COLUMN {column_sql}"))
+                
+                # Handle "order" reserved keyword in some DBs
+                col_name = f'"{name}"' if name == "order" else name
+                try:
+                    conn.execute(text(f"ALTER TABLE notes ADD COLUMN {col_name} {col_type}"))
+                    logger.info(f"Migration: Added column {name} to notes")
+                except Exception as e:
+                    logger.warning(f"Failed to add column {name}: {e}")
+
+            # Also ensure webhook_calls table exists for non-sqlite
+            if not settings.is_sqlite:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS webhook_calls (
+                        id SERIAL PRIMARY KEY,
+                        hook_id VARCHAR NOT NULL,
+                        note_id VARCHAR,
+                        payload_size INTEGER DEFAULT 0,
+                        called_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"))
+
         except Exception as exc:
-            print(f"DB migration check error: {exc}")
+            logger.error(f"Generic migration check error: {exc}")
+
+
+def _apply_sqlite_legacy_columns() -> None:
+    # Deprecated in favor of _apply_generic_migrations
+    pass
 
 
 def _initialize_sqlite_fts() -> None:
     with engine.begin() as conn:
         try:
             conn.execute(text("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(id UNINDEXED, title, content, tags);"))
-
+            # ... (rest of the FTS logic)
             conn.execute(text("""
                 INSERT INTO notes_fts(id, title, content, tags)
                 SELECT id, title, content, tags FROM notes
@@ -70,7 +103,7 @@ def _initialize_sqlite_fts() -> None:
                 INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
             END;"""))
         except Exception as exc:
-            print(f"FTS Table setup error: {exc}")
+            logger.info(f"FTS Table setup error: {exc}")
 
 
 def _initialize_phase5_tables() -> None:
@@ -108,18 +141,13 @@ def _initialize_phase5_tables() -> None:
                 );
             """))
         except Exception as exc:
-            print(f"Phase 5 table setup error: {exc}")
+            logger.info(f"Phase 5 table setup error: {exc}")
 
 
 def _initialize_phase6_schema() -> None:
-    """Phase 6 — add is_public to notes + webhook_calls audit table."""
+    """SQLite specific Phase 6 schema."""
     with engine.begin() as conn:
         try:
-            inspector = inspect(conn)
-            existing = {c["name"] for c in inspector.get_columns("notes")}
-            if "is_public" not in existing:
-                conn.execute(text("ALTER TABLE notes ADD COLUMN is_public BOOLEAN DEFAULT 0"))
-
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS webhook_calls (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,5 +161,5 @@ def _initialize_phase6_schema() -> None:
                 "CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"
             ))
         except Exception as exc:
-            print(f"Phase 6 schema error: {exc}")
+            logger.info(f"Phase 6 schema error: {exc}")
 

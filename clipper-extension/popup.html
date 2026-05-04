@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Second Brain Clipper - Capture research and notes directly into your AI-powered knowledge base.">
+<!-- Open Graph -->
+<meta property="og:title" content="Second Brain Clipper">
+<meta property="og:description" content="Capture research and notes directly into your AI-powered knowledge base.">
+<meta property="og:type" content="website">
 <title>Second Brain Clipper</title>
 <style>
   :root {
@@ -10,36 +15,42 @@
     --surface: #1a1a2e;
     --surface-hi: #1e1e3a;
     --border: #2a2a4a;
-    --primary: #6366f1;
-    --primary-dim: rgba(99,102,241,.15);
-    --on-primary: #fff;
+    --primary: #0ea5e9;
+    --primary-dim: rgba(14, 165, 233, .15);
+    --on-primary: #082f49;
     --fg: #e2e8f0;
     --dim: #94a3b8;
-    --success: #22c55e;
+    --success: #10b981;
     --error: #ef4444;
-    --radius: 10px;
-    --font: system-ui, -apple-system, sans-serif;
+    --radius: 12px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    * { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, background-color 0.2s ease; }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
     color: var(--fg);
     font-family: var(--font);
-    font-size: 13px;
-    width: 340px;
-    min-height: 200px;
+    font-size: clamp(12px, 1.5vw, 14px);
+    width: 360px;
+    min-height: 220px;
     padding: 0;
+    line-height: 1.5;
   }
 
   /* ── Header ── */
   .header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,0.2);
   }
-  .logo { font-size: 16px; }
-  .header-title { font-weight: 700; font-size: 14px; flex: 1; }
+  .logo { font-size: 18px; filter: drop-shadow(0 0 8px var(--primary-dim)); }
+  .header-title { font-weight: 800; font-size: 16px; flex: 1; letter-spacing: -0.02em; color: var(--primary); }
+  .brand-tagline { font-size: 10px; color: var(--dim); margin-top: -2px; font-weight: 400; }
   .settings-btn {
     background: none; border: none; cursor: pointer;
     color: var(--dim); font-size: 16px; padding: 2px 4px;
@@ -54,64 +65,65 @@
     background: var(--surface);
   }
   .tab {
-    flex: 1; padding: 8px; text-align: center; cursor: pointer;
-    font-size: 11px; font-weight: 600; color: var(--dim);
+    flex: 1; padding: 10px; text-align: center; cursor: pointer;
+    font-size: 11px; font-weight: 500; color: var(--dim);
     border: none; background: none;
     border-bottom: 2px solid transparent;
     transition: all 150ms;
   }
-  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
   .tab:hover:not(.active) { color: var(--fg); }
 
   /* ── Body ── */
-  .body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 
   /* ── Page info ── */
   .page-info {
-    background: var(--surface);
+    background: var(--surface-hi);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 10px 12px;
+    padding: 12px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
   }
   .page-title {
-    font-weight: 600; font-size: 12px; margin-bottom: 3px;
+    font-weight: 700; font-size: 13px; margin-bottom: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .page-url { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .page-url { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace; }
 
   /* ── Form ── */
-  label { font-size: 11px; color: var(--dim); margin-bottom: 3px; display: block; }
+  label { font-size: 11px; color: var(--dim); margin-bottom: 4px; display: block; font-weight: 500; }
   input, textarea, select {
-    width: 100%; padding: 7px 10px;
+    width: 100%; padding: 8px 12px;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); color: var(--fg);
     font-family: var(--font); font-size: 12px;
-    outline: none; transition: border-color 150ms;
+    outline: none; transition: border-color 150ms, box-shadow 150ms;
     resize: vertical;
   }
-  input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-dim); }
 
   .selection-box {
-    background: var(--primary-dim); border: 1px solid rgba(99,102,241,.3);
-    border-radius: var(--radius); padding: 8px 10px;
-    font-size: 11px; color: var(--fg); line-height: 1.5;
-    max-height: 80px; overflow-y: auto;
-    white-space: pre-wrap;
+    background: var(--primary-dim); border: 1px solid rgba(14, 165, 233, .3);
+    border-radius: var(--radius); padding: 10px 12px;
+    font-size: 11px; color: var(--fg); line-height: 1.6;
+    max-height: 100px; overflow-y: auto;
+    white-space: pre-wrap; font-style: italic;
   }
-  .selection-label { font-size: 10px; color: var(--primary); margin-bottom: 4px; font-weight: 600; }
+  .selection-label { font-size: 10px; color: var(--primary); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
   /* ── Buttons ── */
   .btn-row { display: flex; gap: 8px; }
   .btn {
-    flex: 1; padding: 8px 12px; border-radius: var(--radius);
-    font-size: 12px; font-weight: 600; cursor: pointer;
-    border: none; transition: all 150ms; display: flex; align-items: center; justify-content: center; gap: 5px;
+    flex: 1; padding: 10px 14px; border-radius: var(--radius);
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    border: none; transition: all 150ms; display: flex; align-items: center; justify-content: center; gap: 6px;
   }
-  .btn-primary { background: var(--primary); color: var(--on-primary); }
-  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dim)); color: var(--on-primary); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--fg); }
-  .btn-secondary:hover { border-color: var(--primary); }
+  .btn-secondary { background: var(--surface-hi); border: 1px solid var(--border); color: var(--fg); }
+  .btn-secondary:hover { border-color: var(--primary); background: var(--surface); }
 
   /* ── Status ── */
   .status {
@@ -119,20 +131,35 @@
     font-size: 11px; font-weight: 600;
     display: flex; align-items: center; gap: 6px;
   }
-  .status.success { background: rgba(34,197,94,.1); color: var(--success); border: 1px solid rgba(34,197,94,.2); }
-  .status.error { background: rgba(239,68,68,.1); color: var(--error); border: 1px solid rgba(239,68,68,.2); }
+  .status.success { background: rgba(16, 185, 129, .1); color: var(--success); border: 1px solid rgba(16, 185, 129, .2); }
+  .status.error { background: rgba(239, 68, 68, .1); color: var(--error); border: 1px solid rgba(239, 68, 68, .2); }
 
   /* ── Settings panel ── */
-  .settings-panel { display: none; padding: 14px; flex-direction: column; gap: 10px; }
+  .settings-panel { display: none; padding: 16px; flex-direction: column; gap: 12px; }
   .settings-panel.visible { display: flex; }
-  .settings-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .settings-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+
+  /* ── Footer / About ── */
+  .footer {
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    line-height: 1.4;
+  }
+  .footer b { color: var(--fg); font-weight: 600; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <span class="logo">🧠</span>
-  <span class="header-title">Second Brain Clipper</span>
+  <div style="flex: 1; display: flex; flex-direction: column;">
+    <span class="header-title">Second Brain</span>
+    <span class="brand-tagline">Your external cortex, everywhere.</span>
+  </div>
   <button class="settings-btn" id="settingsToggle" title="Settings">⚙</button>
 </div>
 
@@ -191,6 +218,11 @@
   </div>
   <button class="btn btn-primary" id="btnSaveSettings">Save Settings</button>
   <div id="settingsStatus"></div>
+</div>
+
+<div class="footer">
+  <b>Second Brain Clipper</b> is designed to help you build a durable external cortex. 
+  Every clip is encrypted and synchronized to your private knowledge base.
 </div>
 
 <script src="popup.js"></script>

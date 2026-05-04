@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 """
 Plugin System Architecture — Secure API Bridge for community plugins.
 
@@ -224,6 +226,6 @@ def get_plugin_sdk_info():
             "payload = json.loads(sys.stdin.read())\n\n"
             "# Your plugin logic here\n"
             "result = {'status': 'ok', 'processed': True}\n"
-            "print(json.dumps(result))\n"
+            "logger.info(json.dumps(result))\n"
         )
     }

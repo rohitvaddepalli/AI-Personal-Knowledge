@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 """
 Phase 6.2 — CLI tool for Second Brain
 
@@ -48,11 +50,11 @@ def _get(path: str, **kwargs) -> dict:
         r.raise_for_status()
         return r.json()
     except httpx.ConnectError:
-        rprint(f"[red]✗ Cannot connect to Second Brain API at {API_URL}[/red]")
-        rprint("[dim]Is the backend running? Start with: uvicorn app.main:app --reload[/dim]")
+        logger.info(f"[red]✗ Cannot connect to Second Brain API at {API_URL}[/red]")
+        logger.info("[dim]Is the backend running? Start with: uvicorn app.main:app --reload[/dim]")
         raise typer.Exit(1)
     except httpx.HTTPStatusError as e:
-        rprint(f"[red]✗ API error {e.response.status_code}: {e.response.text[:200]}[/red]")
+        logger.info(f"[red]✗ API error {e.response.status_code}: {e.response.text[:200]}[/red]")
         raise typer.Exit(1)
 
 
@@ -62,10 +64,10 @@ def _post(path: str, **kwargs) -> dict:
         r.raise_for_status()
         return r.json()
     except httpx.ConnectError:
-        rprint(f"[red]✗ Cannot connect to Second Brain API at {API_URL}[/red]")
+        logger.info(f"[red]✗ Cannot connect to Second Brain API at {API_URL}[/red]")
         raise typer.Exit(1)
     except httpx.HTTPStatusError as e:
-        rprint(f"[red]✗ API error {e.response.status_code}: {e.response.text[:200]}[/red]")
+        logger.info(f"[red]✗ API error {e.response.status_code}: {e.response.text[:200]}[/red]")
         raise typer.Exit(1)
 
 
@@ -83,23 +85,23 @@ def notes_list(limit: int = typer.Option(20, "--limit", "-n", help="Max notes to
     data = _get(f"/api/notes?limit={limit}")
     notes = data if isinstance(data, list) else data.get("notes", [])
     if not notes:
-        rprint("[dim]No notes found.[/dim]")
+        logger.info("[dim]No notes found.[/dim]")
         return
     t = Table("ID", "Title", "Tags", "Created", show_header=True, header_style="bold cyan")
     for n in notes:
         tags = ", ".join(n.get("tags", []))
         created = (n.get("created_at") or "")[:10]
         t.add_row(str(n.get("id", ""))[:8], (n.get("title") or "Untitled")[:60], tags, created)
-    console.print(t)
+    console.logger.info(t)
 
 
 @notes_app.command("show")
 def notes_show(note_id: str = typer.Argument(..., help="Note ID.")):
     """Show a single note."""
     data = _get(f"/api/notes/{note_id}")
-    rprint(f"\n[bold]{data.get('title', 'Untitled')}[/bold]")
-    rprint(f"[dim]ID: {data.get('id')} | Tags: {', '.join(data.get('tags', []))} | {(data.get('created_at') or '')[:10]}[/dim]\n")
-    rprint(data.get("content", ""))
+    logger.info(f"\n[bold]{data.get('title', 'Untitled')}[/bold]")
+    logger.info(f"[dim]ID: {data.get('id')} | Tags: {', '.join(data.get('tags', []))} | {(data.get('created_at') or '')[:10]}[/dim]\n")
+    logger.info(data.get("content", ""))
 
 
 @notes_app.command("search")
@@ -108,14 +110,14 @@ def notes_search(query: str = typer.Argument(..., help="Search query.")):
     data = _post("/api/search", json={"query": query, "limit": 10})
     results = data.get("results", data) if isinstance(data, dict) else data
     if not results:
-        rprint("[dim]No results found.[/dim]")
+        logger.info("[dim]No results found.[/dim]")
         return
     t = Table("Score", "Title", "Excerpt", show_header=True, header_style="bold cyan")
     for r in results:
         score = f"{r.get('score', 0):.2f}" if "score" in r else "—"
         excerpt = (r.get("content") or "")[:80].replace("\n", " ")
         t.add_row(score, (r.get("title") or "Untitled")[:50], excerpt)
-    console.print(t)
+    console.logger.info(t)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -129,18 +131,18 @@ def ingest(
 ):
     """Ingest a URL or file into your Second Brain."""
     if source.startswith("http://") or source.startswith("https://"):
-        rprint(f"[cyan]Importing URL:[/cyan] {source}")
+        logger.info(f"[cyan]Importing URL:[/cyan] {source}")
         data = _post("/api/import/url", json={"url": source, "model": model})
-        rprint(f"[green]✓[/green] Created note [bold]{data.get('title')}[/bold] (ID: {data.get('id')})")
+        logger.info(f"[green]✓[/green] Created note [bold]{data.get('title')}[/bold] (ID: {data.get('id')})")
     else:
         p = Path(source)
         if not p.exists():
-            rprint(f"[red]✗ File not found: {source}[/red]")
+            logger.info(f"[red]✗ File not found: {source}[/red]")
             raise typer.Exit(1)
-        rprint(f"[cyan]Uploading file:[/cyan] {p.name}")
+        logger.info(f"[cyan]Uploading file:[/cyan] {p.name}")
         with open(p, "rb") as f:
             data = _post("/api/ingest/file", files={"file": (p.name, f)})
-        rprint(f"[green]✓[/green] Ingested: {json.dumps(data, indent=2)}")
+        logger.info(f"[green]✓[/green] Ingested: {json.dumps(data, indent=2)}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,13 +155,13 @@ def chat(
     mode: str = typer.Option("auto", "--mode", help="Retrieval mode: auto|search_only|strict_cited"),
 ):
     """Ask your Second Brain a question and get a grounded answer."""
-    rprint(f"[cyan]Asking:[/cyan] {question}\n")
+    logger.info(f"[cyan]Asking:[/cyan] {question}\n")
     data = _post("/api/ask", json={"query": question, "mode": mode})
     answer = data.get("answer") or data.get("response") or json.dumps(data)
-    rprint(f"[bold green]Answer:[/bold green]\n{answer}")
+    logger.info(f"[bold green]Answer:[/bold green]\n{answer}")
     sources = data.get("sources", [])
     if sources:
-        rprint(f"\n[dim]Sources: {', '.join(s.get('title', '?') for s in sources[:5])}[/dim]")
+        logger.info(f"\n[dim]Sources: {', '.join(s.get('title', '?') for s in sources[:5])}[/dim]")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -175,14 +177,14 @@ def export_obsidian(
     out: Path = typer.Option(Path("second_brain_obsidian_vault.zip"), "--out", "-o"),
 ):
     """Export full Obsidian vault ZIP with YAML frontmatter and backlinks."""
-    rprint("[cyan]Exporting Obsidian vault...[/cyan]")
+    logger.info("[cyan]Exporting Obsidian vault...[/cyan]")
     try:
         r = httpx.get(_api("/api/interop/export/obsidian"), timeout=120)
         r.raise_for_status()
         out.write_bytes(r.content)
-        rprint(f"[green]✓[/green] Saved {len(r.content) // 1024} KB → [bold]{out}[/bold]")
+        logger.info(f"[green]✓[/green] Saved {len(r.content) // 1024} KB → [bold]{out}[/bold]")
     except Exception as e:
-        rprint(f"[red]✗ Export failed: {e}[/red]")
+        logger.info(f"[red]✗ Export failed: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -193,7 +195,7 @@ def export_graph_json(
     """Export the knowledge graph as JSON."""
     data = _get("/api/interop/export/graph/json")
     out.write_text(json.dumps(data, indent=2))
-    rprint(f"[green]✓[/green] Graph: {data['meta']['note_count']} nodes, {data['meta']['edge_count']} edges → [bold]{out}[/bold]")
+    logger.info(f"[green]✓[/green] Graph: {data['meta']['note_count']} nodes, {data['meta']['edge_count']} edges → [bold]{out}[/bold]")
 
 
 @export_app.command("graph-svg")
@@ -205,9 +207,9 @@ def export_graph_svg(
         r = httpx.get(_api("/api/interop/export/graph/svg"), timeout=60)
         r.raise_for_status()
         out.write_bytes(r.content)
-        rprint(f"[green]✓[/green] Saved SVG → [bold]{out}[/bold]")
+        logger.info(f"[green]✓[/green] Saved SVG → [bold]{out}[/bold]")
     except Exception as e:
-        rprint(f"[red]✗ Export failed: {e}[/red]")
+        logger.info(f"[red]✗ Export failed: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -236,11 +238,11 @@ def webhook_register(
         "extract_body_field": body_field,
     }
     data = _post("/api/webhooks/register", json=payload)
-    rprint(f"\n[green]✓ Webhook registered[/green]")
-    rprint(f"  [bold]ID:[/bold]         {data['id']}")
-    rprint(f"  [bold]Token:[/bold]      {data['token']}")
-    rprint(f"  [bold]Ingest URL:[/bold] {API_URL}{data['ingest_url']}")
-    rprint(f"\n[dim]POST JSON to the ingest URL from any external tool (Zapier, n8n, Slack bot, etc.)[/dim]\n")
+    logger.info(f"\n[green]✓ Webhook registered[/green]")
+    logger.info(f"  [bold]ID:[/bold]         {data['id']}")
+    logger.info(f"  [bold]Token:[/bold]      {data['token']}")
+    logger.info(f"  [bold]Ingest URL:[/bold] {API_URL}{data['ingest_url']}")
+    logger.info(f"\n[dim]POST JSON to the ingest URL from any external tool (Zapier, n8n, Slack bot, etc.)[/dim]\n")
 
 
 @webhook_app.command("list")
@@ -249,7 +251,7 @@ def webhook_list():
     data = _get("/api/webhooks")
     hooks = data.get("webhooks", [])
     if not hooks:
-        rprint("[dim]No webhooks registered.[/dim]")
+        logger.info("[dim]No webhooks registered.[/dim]")
         return
     t = Table("ID", "Name", "Label", "Calls", "Last Called", show_header=True, header_style="bold cyan")
     for h in hooks:
@@ -260,7 +262,7 @@ def webhook_list():
             str(h.get("call_count", 0)),
             (h.get("last_called") or "never")[:16],
         )
-    console.print(t)
+    console.logger.info(t)
 
 
 if __name__ == "__main__":

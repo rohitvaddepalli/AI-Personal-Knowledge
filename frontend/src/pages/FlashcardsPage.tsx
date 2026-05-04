@@ -35,7 +35,7 @@ const QUALITY_OPTS = [
   { q: 2, label: 'Hard',      emoji: '😣', color: '#eab308' },
   { q: 3, label: 'Good',      emoji: '😊', color: '#22c55e' },
   { q: 4, label: 'Easy',      emoji: '😄', color: '#3b82f6' },
-  { q: 5, label: 'Perfect',   emoji: '🌟', color: '#8b5cf6' },
+  { q: 5, label: 'Perfect',   emoji: '🌟', color: '#2563eb' },
 ];
 
 export default function FlashcardsPage() {

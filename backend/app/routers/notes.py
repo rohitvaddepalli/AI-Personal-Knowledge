@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,6 +12,7 @@ from app.models.note import Note as NoteModel
 from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, NoteTransformRequest, NoteTransformResponse, NoteSummarizeRequest
 from app.services.embedding_service import add_note_embedding, delete_note_embedding, update_note_embedding
 from app.services.connection_engine import auto_connect_note
+from app.services.note_service import NoteService
 from app.routers.note_versions import save_version
 from app.config import settings
 from app.utils.security import sanitize_content_for_prompt
@@ -43,81 +46,23 @@ async def suggest_tags(req: TagSuggestionRequest):
     except:
         return []
 
-def extract_wikilinks(content: str) -> list:
-    """Extract [[note titles]] from content"""
-    import re
-    pattern = r'\[\[(.*?)\]\]'
-    return re.findall(pattern, content)
-
-def create_wikilink_connections(note_id: str, content: str, db: Session):
-    """Create connections for wikilinks in content"""
-    from app.models.connection import Connection
-    from app.models.note import Note
-    
-    titles = extract_wikilinks(content)
-    for title in titles:
-        # Find target note by title
-        target = db.query(Note).filter(
-            Note.title.ilike(title.strip()),
-            Note.is_archived == False,
-            Note.deleted_at == None
-        ).first()
-        
-        if target and target.id != note_id:
-            # Check if connection already exists
-            existing = db.query(Connection).filter(
-                Connection.source_note_id == note_id,
-                Connection.target_note_id == target.id
-            ).first()
-            
-            if not existing:
-                conn = Connection(
-                    source_note_id=note_id,
-                    target_note_id=target.id,
-                    relationship_type='references',
-                    strength=1.0,
-                    ai_explanation='WikiLink reference'
-                )
-                db.add(conn)
-    db.commit()
-
 
 @router.post("", response_model=NoteResponse)
 def create_note(note: NoteCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    db_note = NoteModel(
-        title=note.title,
-        content=note.content,
-        source=note.source,
-        source_type=note.source_type,
-        tags=json.dumps(note.tags) if note.tags else "[]",
-        is_archived=note.is_archived,
-        is_pinned=note.is_pinned
-    )
-    db.add(db_note)
-    db.commit()
-    db.refresh(db_note)
-
-    try:
-        add_note_embedding(db_note.id, db_note.title, db_note.content)
-    except Exception as e:
-        print(f"Failed to generate embedding: {e}")
-
-    # Create wikilink connections
-    create_wikilink_connections(db_note.id, db_note.content, db)
-
+    db_note = NoteService.create_note(db, note)
     background_tasks.add_task(auto_connect_note, db_note.id)
-
-    db_note.tags = json.loads(db_note.tags) if db_note.tags else []
     return db_note
 
 
 @router.get("/random", response_model=NoteResponse)
 def get_random_note(db: Session = Depends(get_db)):
     import random
-    notes = db.query(NoteModel).filter(NoteModel.is_archived == False).all()
-    if not notes:
+    query = db.query(NoteModel).filter(NoteModel.is_archived == False)
+    count = query.count()
+    if count == 0:
         raise HTTPException(status_code=404, detail="No notes available")
-    note = random.choice(notes)
+    offset = random.randint(0, count - 1)
+    note = query.offset(offset).first()
     note.tags = json.loads(note.tags) if note.tags else []
     return note
 
@@ -156,7 +101,7 @@ def get_or_create_daily_note(db: Session = Depends(get_db)):
     try:
         add_note_embedding(db_note.id, db_note.title, db_note.content)
     except Exception as e:
-        print(f"Failed to generate embedding: {e}")
+        logger.info(f"Failed to generate embedding: {e}")
     
     return db_note
 
@@ -187,43 +132,15 @@ def read_notes(skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
 
 @router.put("/{note_id}", response_model=NoteResponse)
 def update_note(note_id: str, note_update: NoteUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    db_note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
-    if db_note is None:
-        raise HTTPException(status_code=404, detail="Note not found")
-
-    update_data = note_update.dict(exclude_unset=True)
-    if "tags" in update_data:
-        update_data["tags"] = json.dumps(update_data["tags"])
-
-    needs_embedding_update = False
-    content_changed = False
-    if "title" in update_data or "content" in update_data:
-        needs_embedding_update = True
-    if "content" in update_data:
-        content_changed = True
-
-    for key, value in update_data.items():
-        setattr(db_note, key, value)
-
-    db.commit()
-    db.refresh(db_note)
-
-    # Save version if content or title changed
-    if content_changed or "title" in update_data:
-        save_version(db, note_id, db_note.title, db_note.content, db_note.tags or "[]")
-
-    # Update wikilink connections if content changed
-    if content_changed:
-        create_wikilink_connections(db_note.id, db_note.content, db)
-
+    db_note, needs_embedding_update = NoteService.update_note(db, note_id, note_update)
+    
     if needs_embedding_update:
         try:
             update_note_embedding(db_note.id, db_note.title, db_note.content)
             background_tasks.add_task(auto_connect_note, db_note.id)
         except Exception as e:
-            print(f"Failed to update embedding: {e}")
+            logger.info(f"Failed to update embedding: {e}")
 
-    db_note.tags = json.loads(db_note.tags) if db_note.tags else []
     return db_note
 
 
@@ -273,7 +190,7 @@ def permanent_delete_note(note_id: str, db: Session = Depends(get_db)):
         from app.services.embedding_service import delete_note_embedding
         delete_note_embedding(note_id)
     except Exception as e:
-        print(f"Failed to delete embedding: {e}")
+        logger.info(f"Failed to delete embedding: {e}")
     
     db.delete(db_note)
     db.commit()
@@ -330,35 +247,7 @@ def set_parent_note(note_id: str, parent_id: str, db: Session = Depends(get_db))
 @router.get("/{note_id}/tree")
 def get_note_tree(note_id: str, db: Session = Depends(get_db)):
     """Get note with all ancestors and descendants"""
-    note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    
-    # Get ancestors
-    ancestors = []
-    current = note
-    while current.parent_note_id:
-        parent = db.query(NoteModel).filter(NoteModel.id == current.parent_note_id).first()
-        if parent:
-            ancestors.insert(0, {"id": parent.id, "title": parent.title})
-            current = parent
-        else:
-            break
-    
-    # Get descendants (children recursively)
-    def get_children(parent_id):
-        children = db.query(NoteModel).filter(
-            NoteModel.parent_note_id == parent_id,
-            NoteModel.is_archived == False,
-            NoteModel.deleted_at == None
-        ).all()
-        return [{"id": c.id, "title": c.title, "children": get_children(c.id)} for c in children]
-    
-    return {
-        "note": {"id": note.id, "title": note.title},
-        "ancestors": ancestors,
-        "descendants": get_children(note_id)
-    }
+    return NoteService.get_note_tree(db, note_id)
 
 
 @router.get("/full-tree")
@@ -390,50 +279,7 @@ def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db
     Returns notes related to the given note.
     Strategy: try vector similarity first, fall back to shared-tag keyword overlap.
     """
-    note = db.query(NoteModel).filter(NoteModel.id == note_id, NoteModel.deleted_at == None).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-
-    # ── Vector similarity via embedding service ──
-    try:
-        from app.services.embedding_service import search_similar
-        results = search_similar(note.title + " " + note.content[:500], top_k=limit + 1)
-        related_ids = [r["id"] for r in results if r["id"] != note_id][:limit]
-        if related_ids:
-            related = db.query(NoteModel).filter(
-                NoteModel.id.in_(related_ids),
-                NoteModel.is_archived == False,
-                NoteModel.deleted_at == None,
-            ).all()
-            for n in related:
-                n.tags = json.loads(n.tags) if n.tags else []
-            return [{"id": n.id, "title": n.title, "tags": n.tags, "updated_at": n.updated_at, "source": "vector"} for n in related]
-    except Exception:
-        pass
-
-    # ── Fallback: shared tags + title keyword overlap ──
-    note_tags = set(json.loads(note.tags) if note.tags else [])
-    note_words = set(note.title.lower().split())
-    candidates = db.query(NoteModel).filter(
-        NoteModel.id != note_id,
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None,
-    ).limit(200).all()
-
-    scored = []
-    for c in candidates:
-        c_tags = set(json.loads(c.tags) if c.tags else [])
-        c_words = set(c.title.lower().split())
-        score = len(note_tags & c_tags) * 3 + len(note_words & c_words)
-        if score > 0:
-            scored.append((score, c))
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    out = []
-    for _, n in scored[:limit]:
-        n.tags = json.loads(n.tags) if n.tags else []
-        out.append({"id": n.id, "title": n.title, "tags": n.tags, "updated_at": n.updated_at, "source": "keyword"})
-    return out
+    return NoteService.get_related_notes(db, note_id, limit)
 
 
 # ── 3.3 Writing assistant ──────────────────────────────────────────────────

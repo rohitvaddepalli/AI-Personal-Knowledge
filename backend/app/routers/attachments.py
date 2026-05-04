@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -123,7 +125,7 @@ def delete_attachment(note_id: str, attachment_id: str, db: Session = Depends(ge
         if os.path.exists(real_path):
             os.remove(real_path)
     except Exception as e:
-        print(f"Failed to delete file: {e}")
+        logger.info(f"Failed to delete file: {e}")
     
     # Delete database record
     db.delete(attachment)

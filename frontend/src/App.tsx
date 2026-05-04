@@ -6,6 +6,7 @@ import {
   Settings as SettingsIcon, Plus, Menu, X,
   Database, BookMarked, Puzzle, Brain,
   Inbox, ChevronDown, ChevronUp, Command, GraduationCap, Upload,
+  Sun, Moon,
 } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
@@ -13,6 +14,7 @@ import CommandPalette from './components/CommandPalette';
 import OnboardingModal from './components/OnboardingModal';
 import FileUploadModal from './components/FileUploadModal';
 import ResourceMonitorWidget from './components/ResourceMonitorWidget';
+import { UIProvider, useUI } from './context/UIContext';
 import './index.css';
 
 const Dashboard    = lazy(() => import('./pages/Dashboard'));
@@ -140,7 +142,15 @@ function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('nv_theme') as 'light' | 'dark') || 'light');
+
+  // Apply theme to <html> element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('nv_theme', theme);
+  }, [theme]);
   const { pulling, pullResult, pullProgress } = useDownload();
+  const { showToast } = useUI();
 
   // First-run onboarding check
   useEffect(() => {
@@ -154,10 +164,15 @@ function AppContent() {
   // Inbox badge count
   useEffect(() => {
     fetch('/api/inbox')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch inbox');
+        return r.json();
+      })
       .then((d) => { if (Array.isArray(d)) setInboxCount(d.length); })
-      .catch(() => {});
-  }, [location.pathname]); // Refresh count on navigation
+      .catch((err) => {
+        showToast('Service failure: ' + err.message, 'error');
+      });
+  }, [location.pathname, showToast]); // Refresh count on navigation
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -237,8 +252,11 @@ function AppContent() {
           <div className="nv-sidebar-brand-icon">
             <Brain size={16} strokeWidth={2.5} style={{ color: 'var(--on-primary)' }} />
           </div>
-          <h2>Second Brain</h2>
-          <span className="nv-subtitle">AI Knowledge System</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h1 className="sr-only">NeuronVault</h1>
+            <h2>Second Brain</h2>
+            <span className="nv-subtitle">AI Knowledge System</span>
+          </div>
         </div>
 
         {/* Command palette trigger */}
@@ -328,11 +346,40 @@ function AppContent() {
             <Plus size={14} strokeWidth={2.5} />
             Quick Capture
           </button>
+
+          {/* About Section */}
+          <div style={{ marginTop: 24, padding: '0 12px', opacity: 0.5 }}>
+            <div className="label-xs" style={{ marginBottom: 4 }}>About</div>
+            <p style={{ fontSize: '0.625rem', lineHeight: 1.4 }}>
+              Your digital sanctuary for thought and exploration. Built for privacy and clarity.
+            </p>
+            <div style={{ fontSize: '0.5625rem', marginTop: 8 }}>v1.0.0 • 2026</div>
+          </div>
         </div>
       </aside>
 
       {/* ═══ Main Content ═══ */}
       <main className={`flex-1 relative flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        {/* Dark mode toggle — top right */}
+        <button
+          onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{
+            position: 'absolute', top: 16, right: 20, zIndex: 50,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 'var(--radius-full)',
+            background: 'var(--surface-container)', border: '1px solid var(--outline)',
+            color: 'var(--on-surface-dim)', cursor: 'pointer',
+            fontSize: '0.75rem', fontFamily: 'var(--font-display)',
+            fontWeight: 500, transition: 'all 160ms', boxShadow: 'var(--shadow-ambient)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--outline)'; e.currentTarget.style.color = 'var(--on-surface-dim)'; }}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
+
         <div
           className={`flex-1 flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
           style={{ padding: isFluidPage ? '0' : '24px 28px 80px 28px' }}
@@ -346,11 +393,13 @@ function AppContent() {
 
 function App() {
   return (
-    <DownloadProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </DownloadProvider>
+    <UIProvider>
+      <DownloadProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </DownloadProvider>
+    </UIProvider>
   );
 }
 

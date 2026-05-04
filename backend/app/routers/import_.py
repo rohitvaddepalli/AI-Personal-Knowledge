@@ -1,3 +1,5 @@
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 import httpx
 from bs4 import BeautifulSoup
 import re
@@ -150,7 +152,7 @@ async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
     except HTTPException:
         raise
     except Exception as e:
-        print(f"YouTube Transcript Error: {e}")
+        logger.info(f"YouTube Transcript Error: {e}")
         return ""
 
 @router.post("/url", response_model=NoteResponse)

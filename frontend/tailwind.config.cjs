@@ -4,8 +4,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Manrope', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Instrument Serif', 'Georgia', 'serif'],
+        sans: ['Public Sans', 'system-ui', 'sans-serif'],
         mono: ['Geist Mono', 'SF Mono', 'monospace'],
       },
       colors: {
