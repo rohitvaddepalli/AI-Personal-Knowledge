@@ -636,7 +636,7 @@ export default function AskBrain() {
                       fontWeight: 600, fontSize: '0.5625rem', textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                     }}>
-                      Second Brain AI
+                      Second Brain
                     </span>
                     <ConfidenceBadge value={msg.confidence} />
                     {msg.retrieval_explanation && (
@@ -810,7 +810,7 @@ export default function AskBrain() {
             textTransform: 'uppercase', color: 'var(--on-surface-dim)',
             fontFamily: 'var(--font-display)',
           }}>
-            Second Brain AI · {selectedModeInfo.label} mode
+            Second Brain · {selectedModeInfo.label} mode
           </div>
         </div>
       </div>

@@ -197,8 +197,8 @@ export default function KnowledgeGraph() {
                   ctx.fillText(node.name || '', x, y + size + 10 / globalScale);
                 }
               }}
-              linkColor={() => 'rgba(148, 125, 255, 0.15)'}
-              linkWidth={1}
+              linkColor={() => 'rgba(148, 125, 255, 0.55)'}
+              linkWidth={1.5}
             />
           )}
 

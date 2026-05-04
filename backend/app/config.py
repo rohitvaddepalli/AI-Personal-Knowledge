@@ -15,7 +15,7 @@ def _sqlite_url(path: Path) -> str:
 
 
 class Settings(BaseSettings):
-    project_name: str = "Second Brain AI"
+    project_name: str = "Second Brain"
     app_data_dir: Optional[str] = None
     database_url: Optional[str] = None
     database_mode: Literal["local", "postgres"] = "local"

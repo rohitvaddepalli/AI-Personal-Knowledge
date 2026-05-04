@@ -147,6 +147,7 @@ function AppContent() {
   // Apply theme to <html> element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-color-mode', theme);
     localStorage.setItem('nv_theme', theme);
   }, [theme]);
   const { pulling, pullResult, pullProgress } = useDownload();
@@ -253,7 +254,7 @@ function AppContent() {
             <Brain size={16} strokeWidth={2.5} style={{ color: 'var(--on-primary)' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h1 className="sr-only">NeuronVault</h1>
+            <h1 className="sr-only">Second Brain</h1>
             <h2>Second Brain</h2>
             <span className="nv-subtitle">AI Knowledge System</span>
           </div>
@@ -347,6 +348,27 @@ function AppContent() {
             Quick Capture
           </button>
 
+          {/* Dark / Light mode toggle */}
+          <button
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              margin: '8px 12px 0', width: 'calc(100% - 24px)',
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '7px 12px', borderRadius: 'var(--radius-md)',
+              background: 'var(--surface-container-lowest)',
+              border: '1px solid var(--outline-variant)',
+              color: 'var(--on-surface-dim)', cursor: 'pointer',
+              fontSize: '0.75rem', fontFamily: 'var(--font-display)',
+              fontWeight: 500, transition: 'all 160ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--outline-variant)'; e.currentTarget.style.color = 'var(--on-surface-dim)'; }}
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            <span style={{ flex: 1, textAlign: 'left' }}>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+
           {/* About Section */}
           <div style={{ marginTop: 24, padding: '0 12px', opacity: 0.5 }}>
             <div className="label-xs" style={{ marginBottom: 4 }}>About</div>
@@ -360,25 +382,6 @@ function AppContent() {
 
       {/* ═══ Main Content ═══ */}
       <main className={`flex-1 relative flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        {/* Dark mode toggle — top right */}
-        <button
-          onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          style={{
-            position: 'absolute', top: 16, right: 20, zIndex: 50,
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 12px', borderRadius: 'var(--radius-full)',
-            background: 'var(--surface-container)', border: '1px solid var(--outline)',
-            color: 'var(--on-surface-dim)', cursor: 'pointer',
-            fontSize: '0.75rem', fontFamily: 'var(--font-display)',
-            fontWeight: 500, transition: 'all 160ms', boxShadow: 'var(--shadow-ambient)',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--outline)'; e.currentTarget.style.color = 'var(--on-surface-dim)'; }}
-        >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-        </button>
 
         <div
           className={`flex-1 flex flex-col ${isFluidPage ? 'overflow-hidden' : 'overflow-y-auto'}`}

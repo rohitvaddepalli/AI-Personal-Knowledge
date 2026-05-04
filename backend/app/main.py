@@ -106,7 +106,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 
 app = FastAPI(
-    title="Second Brain AI",
+    title="Second Brain",
     description="AI-Powered Personal Knowledge System MVP API",
     version="0.1.0",
 )
@@ -168,7 +168,7 @@ app.include_router(garden.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to Second Brain AI API"}
+    return {"message": "Welcome to Second Brain API"}
 
 
 @app.get("/api/health")

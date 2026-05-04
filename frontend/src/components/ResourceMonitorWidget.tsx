@@ -1,19 +1,57 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Activity, Cpu, MemoryStick, MinusCircle, PauseCircle } from 'lucide-react';
 import { useDesktopRuntime } from '../context/DesktopRuntimeContext';
 
-const cornerStyles: Record<string, React.CSSProperties> = {
-  'top-left': { top: 16, left: 16 },
-  'top-right': { top: 16, right: 16 },
-  'bottom-left': { bottom: 16, left: 16 },
-  'bottom-right': { bottom: 16, right: 16 },
-};
+const STORAGE_KEY = 'sb_monitor_pos';
+
+function loadPos(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
 
 export default function ResourceMonitorWidget() {
   const { status, saveSystemSettings } = useDesktopRuntime();
   const [expanded, setExpanded] = useState(false);
   const runtime = status?.runtime;
   const metrics = status?.metrics;
+
+  // ── Drag state ────────────────────────────────────────────────────────────
+  const defaultPos = { x: window.innerWidth - 300, y: window.innerHeight - 80 };
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => loadPos() ?? defaultPos);
+  const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLSpanElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, originX: pos.x, originY: pos.y };
+  }, [pos]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLSpanElement>) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    const el = widgetRef.current;
+    const maxX = el ? window.innerWidth - el.offsetWidth : window.innerWidth - 280;
+    const maxY = el ? window.innerHeight - el.offsetHeight : window.innerHeight - 60;
+    setPos({
+      x: Math.max(0, Math.min(maxX, dragRef.current.originX + dx)),
+      y: Math.max(0, Math.min(maxY, dragRef.current.originY + dy)),
+    });
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setPos(prev => { localStorage.setItem(STORAGE_KEY, JSON.stringify(prev)); return prev; });
+  }, []);
+
+  // Save on unmount
+  useEffect(() => () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); }, [pos]);
 
   const warningTone = useMemo(() => {
     if (!metrics) return 'var(--secondary)';
@@ -23,6 +61,8 @@ export default function ResourceMonitorWidget() {
   }, [metrics]);
 
   if (!runtime?.resource_monitor_enabled || !metrics) return null;
+
+  const expandUp = pos.y > window.innerHeight / 2;
 
   const compact = (
     <>
@@ -34,20 +74,17 @@ export default function ResourceMonitorWidget() {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        zIndex: 60,
-        ...cornerStyles[runtime.resource_monitor_corner || 'bottom-right'],
-      }}
+      ref={widgetRef}
+      style={{ position: 'fixed', zIndex: 60, left: pos.x, top: pos.y }}
     >
       <button
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() => setExpanded((v) => !v)}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           padding: '10px 14px',
-          borderRadius: expanded ? '18px 18px 6px 6px' : 999,
+          borderRadius: expanded ? (expandUp ? '6px 6px 18px 18px' : '18px 18px 6px 6px') : 999,
           border: `1px solid ${warningTone}`,
           background: 'rgba(10, 12, 18, 0.92)',
           color: '#f7f8fb',
@@ -59,17 +96,39 @@ export default function ResourceMonitorWidget() {
           minWidth: expanded ? 340 : 260,
         }}
       >
+        {/* Drag handle */}
+        <span
+          title="Drag to move"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            cursor: 'grab',
+            fontSize: '1rem',
+            lineHeight: 1,
+            color: 'rgba(255,255,255,0.4)',
+            userSelect: 'none',
+            flexShrink: 0,
+            paddingRight: 2,
+          }}
+        >
+          ⠿
+        </span>
         {compact}
       </button>
 
       {expanded && (
         <div
           style={{
+            position: 'absolute',
+            left: 0,
+            ...(expandUp
+              ? { bottom: '100%', borderBottom: 'none', borderRadius: '18px 18px 6px 6px' }
+              : { top: '100%', borderTop: 'none', borderRadius: '0 0 18px 18px' }),
             width: 340,
             padding: 14,
-            borderRadius: '0 0 18px 18px',
             border: '1px solid var(--outline)',
-            borderTop: 'none',
             background: 'rgba(15, 18, 26, 0.96)',
             color: '#f7f8fb',
             display: 'grid',
