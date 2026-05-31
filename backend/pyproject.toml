@@ -5,7 +5,7 @@ description = "AI-Powered Personal Knowledge System (Second Brain)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi==0.111.0",
-    "uvicorn==0.30.0",
+    "uvicorn==0.46.0",
     "sqlalchemy==2.0.30",
     "psycopg[binary]==3.2.9",
     "celery==5.4.0",
