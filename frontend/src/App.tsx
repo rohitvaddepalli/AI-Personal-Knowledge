@@ -6,7 +6,7 @@ import {
   Settings as SettingsIcon, Plus, Menu, X,
   Database, BookMarked, Puzzle, Brain,
   Inbox, ChevronDown, ChevronUp, Command, GraduationCap, Upload,
-  Sun, Moon,
+  Sun, Moon, BarChart2, Newspaper, Sprout, CalendarDays, FileInput, Webhook,
 } from 'lucide-react';
 import { useDesktopRuntime } from './context/DesktopRuntimeContext';
 import { DownloadProvider, useDownload } from './context/DownloadContext';
@@ -34,6 +34,12 @@ const PromptsLibrary = lazy(() => import('./pages/PromptsLibrary'));
 const PluginsPage  = lazy(() => import('./pages/PluginsPage'));
 const InboxPage    = lazy(() => import('./pages/InboxPage'));
 const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'));
+const AnalyticsPage   = lazy(() => import('./pages/AnalyticsPage'));
+const DigestPage      = lazy(() => import('./pages/DigestPage'));
+const GardenPage      = lazy(() => import('./pages/GardenPage'));
+const DailyNotes      = lazy(() => import('./pages/DailyNotes'));
+const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
+const WebhooksPage    = lazy(() => import('./pages/WebhooksPage'));
 
 // ── Navigation structure ───────────────────────────────────────────────────
 // "core" = always visible in beginner mode
@@ -47,16 +53,22 @@ const CORE_ITEMS = [
 ];
 
 const ADVANCED_ITEMS = [
-  { path: '/graph',       label: 'Graph',       icon: Network },
-  { path: '/collections', label: 'Collections', icon: Layers },
-  { path: '/tasks',       label: 'Tasks',       icon: CheckSquare },
-  { path: '/flashcards',  label: 'Flashcards',  icon: GraduationCap },
-  { path: '/templates',   label: 'Templates',   icon: LayoutTemplate },
-  { path: '/database',    label: 'Database',    icon: Database },
-  { path: '/prompts',     label: 'Prompts',     icon: BookMarked },
-  { path: '/plugins',     label: 'Plugins',     icon: Puzzle },
-  { path: '/trash',       label: 'Trash',       icon: Trash2 },
-  { path: '/settings',    label: 'Settings',    icon: SettingsIcon },
+  { path: '/graph',         label: 'Graph',        icon: Network },
+  { path: '/collections',   label: 'Collections',  icon: Layers },
+  { path: '/tasks',         label: 'Tasks',        icon: CheckSquare },
+  { path: '/flashcards',    label: 'Flashcards',   icon: GraduationCap },
+  { path: '/templates',     label: 'Templates',    icon: LayoutTemplate },
+  { path: '/analytics',     label: 'Analytics',    icon: BarChart2 },
+  { path: '/digest',        label: 'Daily Digest', icon: Newspaper },
+  { path: '/garden',        label: 'Garden',       icon: Sprout },
+  { path: '/daily',         label: 'Daily Notes',  icon: CalendarDays },
+  { path: '/import-export', label: 'Import/Export',icon: FileInput },
+  { path: '/webhooks',      label: 'Webhooks',     icon: Webhook },
+  { path: '/database',      label: 'Database',     icon: Database },
+  { path: '/prompts',       label: 'Prompts',      icon: BookMarked },
+  { path: '/plugins',       label: 'Plugins',      icon: Puzzle },
+  { path: '/trash',         label: 'Trash',        icon: Trash2 },
+  { path: '/settings',      label: 'Settings',     icon: SettingsIcon },
 ];
 
 function PageWrapper({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -96,8 +108,14 @@ function AnimatedRoutes() {
         <Route path="/prompts"    element={<PageWrapper><PromptsLibrary /></PageWrapper>} />
         <Route path="/plugins"    element={<PageWrapper><PluginsPage /></PageWrapper>} />
         <Route path="/flashcards" element={<PageWrapper><FlashcardsPage /></PageWrapper>} />
-        <Route path="/trash"      element={<PageWrapper><Trash /></PageWrapper>} />
-        <Route path="/settings"   element={<PageWrapper><Settings /></PageWrapper>} />
+        <Route path="/trash"        element={<PageWrapper><Trash /></PageWrapper>} />
+        <Route path="/settings"     element={<PageWrapper><Settings /></PageWrapper>} />
+        <Route path="/analytics"    element={<PageWrapper><AnalyticsPage /></PageWrapper>} />
+        <Route path="/digest"       element={<PageWrapper><DigestPage /></PageWrapper>} />
+        <Route path="/garden"       element={<PageWrapper><GardenPage /></PageWrapper>} />
+        <Route path="/daily"        element={<PageWrapper><DailyNotes /></PageWrapper>} />
+        <Route path="/import-export" element={<PageWrapper><ImportExportPage /></PageWrapper>} />
+        <Route path="/webhooks"     element={<PageWrapper><WebhooksPage /></PageWrapper>} />
       </Routes>
     </Suspense>
   );

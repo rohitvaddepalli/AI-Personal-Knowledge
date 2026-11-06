@@ -1,0 +1,37 @@
+version: '3.8'
+
+# Hot-reload development override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - SECOND_BRAIN_DATABASE_MODE=local
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+
+  # Expose Postgres for direct DB access during dev
+  postgres:
+    ports:
+      - "5432:5432"
+
+  # Expose Redis for direct inspection during dev
+  redis:
+    ports:
+      - "6379:6379"
+
+  # Flower is always on in dev mode
+  flower:
+    profiles: []
+

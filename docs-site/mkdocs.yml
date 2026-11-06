@@ -1,0 +1,110 @@
+site_name: Second Brain — Docs
+site_description: "AI-Powered Personal Knowledge Management System — Local-first, privacy-first"
+site_author: Second Brain Contributors
+site_url: https://your-username.github.io/AI-Personal-Knowledge/
+repo_url: https://github.com/your-username/AI-Personal-Knowledge
+repo_name: AI-Personal-Knowledge
+docs_dir: docs
+site_dir: site
+edit_uri: edit/main/docs-site/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/brain
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      fallback_to_build_date: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Quick Start: getting-started/quickstart.md
+    - Prerequisites: getting-started/prerequisites.md
+    - Docker Setup: getting-started/docker.md
+    - Manual Setup: getting-started/manual.md
+    - Desktop App: getting-started/desktop.md
+  - Configuration:
+    - Environment Variables: configuration/env-vars.md
+    - Model Selection: configuration/models.md
+    - Security: configuration/security.md
+  - User Guide:
+    - Notes: guide/notes.md
+    - AI Chat (Ask Brain): guide/ask-brain.md
+    - Knowledge Graph: guide/knowledge-graph.md
+    - Search: guide/search.md
+    - Content Ingestion: guide/ingestion.md
+    - Flashcards & Review: guide/flashcards.md
+    - Templates: guide/templates.md
+    - Export & Import: guide/export-import.md
+    - Public Garden: guide/garden.md
+    - Analytics: guide/analytics.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - API Reference: architecture/api.md
+  - Contributing:
+    - Guide: contributing.md
+    - Roadmap: roadmap.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-username/AI-Personal-Knowledge
+  generator: false
+

@@ -1,235 +1,219 @@
-"""Tests for the notes API endpoints."""
+"""Tests for notes CRUD and core features."""
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 
-class TestNotesCRUD:
-    """Test suite for notes CRUD operations."""
-
-    def test_create_note(self, client: TestClient, sample_note_data):
-        """Test creating a new note."""
-        response = client.post("/api/notes", json=sample_note_data)
-        assert response.status_code == 200
-        data = response.json()
+class TestNotesCreate:
+    def test_create_note_basic(self, client: TestClient, sample_note_data):
+        resp = client.post("/api/notes", json=sample_note_data)
+        assert resp.status_code == 200
+        data = resp.json()
         assert data["title"] == sample_note_data["title"]
-        assert "id" in data
-        assert "created_at" in data
+        assert data["content"] == sample_note_data["content"]
+        assert isinstance(data["id"], str)
+        assert len(data["id"]) > 0
 
     def test_create_note_minimal(self, client: TestClient):
-        """Test creating a note with minimal data."""
-        response = client.post(
-            "/api/notes",
-            json={"title": "Minimal Note", "content": "Content"},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["title"] == "Minimal Note"
+        resp = client.post("/api/notes", json={"title": "Min", "content": "X"})
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Min"
 
-    def test_list_notes(self, client: TestClient, sample_note_data):
-        """Test listing notes."""
-        # Create a few notes first
-        for i in range(3):
-            client.post("/api/notes", json={
-                "title": f"Note {i}",
-                "content": f"Content {i}",
-            })
-        
-        response = client.get("/api/notes")
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 3
+    def test_create_note_missing_fields(self, client: TestClient):
+        resp = client.post("/api/notes", json={"title": "No content"})
+        assert resp.status_code == 422
 
-    def test_get_single_note(self, client: TestClient, sample_note_data):
-        """Test getting a single note by ID."""
-        # Create a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
-        
-        # Get the note
-        response = client.get(f"/api/notes/{note_id}")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == note_id
-        assert data["title"] == sample_note_data["title"]
+    def test_create_note_with_source_type(self, client: TestClient):
+        resp = client.post("/api/notes", json={
+            "title": "Web note", "content": "...", "source_type": "web", "source": "https://example.com"
+        })
+        assert resp.status_code == 200
+        assert resp.json()["source_type"] == "web"
 
-    def test_update_note(self, client: TestClient, sample_note_data):
-        """Test updating a note."""
-        # Create a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
-        
-        # Update the note
-        update_data = {
-            "title": "Updated Title",
-            "content": "Updated content",
-        }
-        response = client.put(f"/api/notes/{note_id}", json=update_data)
-        assert response.status_code == 200
-        
-        # Verify the update
-        get_response = client.get(f"/api/notes/{note_id}")
-        data = get_response.json()
-        assert data["title"] == "Updated Title"
-        assert data["content"] == "Updated content"
 
-    def test_delete_note(self, client: TestClient, sample_note_data):
-        """Test soft-deleting a note."""
-        # Create a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
-        
-        # Delete the note
-        response = client.delete(f"/api/notes/{note_id}")
-        assert response.status_code == 200
-        
-        # Check it's in trash
-        trash_response = client.get("/api/notes/trash/")
-        assert trash_response.status_code == 200
-        trash_data = trash_response.json()
-        assert any(note["id"] == note_id for note in trash_data)
+class TestNotesRead:
+    def test_list_notes_empty(self, client: TestClient):
+        resp = client.get("/api/notes")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_list_notes_returns_notes(self, client: TestClient, sample_note_data):
+        client.post("/api/notes", json=sample_note_data)
+        resp = client.get("/api/notes")
+        assert resp.status_code == 200
+        notes = resp.json()
+        assert len(notes) == 1
+        assert notes[0]["title"] == sample_note_data["title"]
+
+    def test_get_note_by_id(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        resp = client.get(f"/api/notes/{note_id}")
+        assert resp.status_code == 200
+        assert resp.json()["id"] == note_id
+
+    def test_get_note_not_found(self, client: TestClient):
+        resp = client.get("/api/notes/nonexistent-id")
+        assert resp.status_code == 404
+
+    def test_list_notes_pagination(self, client: TestClient):
+        for i in range(5):
+            client.post("/api/notes", json={"title": f"Note {i}", "content": "x"})
+        resp = client.get("/api/notes?limit=3&skip=0")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 3
+
+    def test_get_random_note_no_notes(self, client: TestClient):
+        resp = client.get("/api/notes/random")
+        assert resp.status_code == 404
+
+    def test_get_random_note(self, client: TestClient, sample_note_data):
+        client.post("/api/notes", json=sample_note_data)
+        resp = client.get("/api/notes/random")
+        assert resp.status_code == 200
+        assert "id" in resp.json()
+
+
+class TestNotesUpdate:
+    def test_update_note_title(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        resp = client.put(f"/api/notes/{note_id}", json={"title": "Updated Title"})
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Updated Title"
+
+    def test_update_note_content(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        new_content = "# Updated\n\nNew content here."
+        resp = client.put(f"/api/notes/{note_id}", json={"content": new_content})
+        assert resp.status_code == 200
+        assert resp.json()["content"] == new_content
+
+    def test_update_note_not_found(self, client: TestClient):
+        resp = client.put("/api/notes/nonexistent", json={"title": "X"})
+        assert resp.status_code == 404
+
+    def test_update_note_pin(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        resp = client.put(f"/api/notes/{note_id}", json={"is_pinned": True})
+        assert resp.status_code == 200
+        assert resp.json()["is_pinned"] is True
+
+
+class TestNotesDelete:
+    def test_soft_delete_note(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        del_resp = client.delete(f"/api/notes/{note_id}")
+        assert del_resp.status_code == 200
+        assert del_resp.json()["status"] == "moved_to_trash"
+        # Should not appear in normal listing
+        list_resp = client.get("/api/notes")
+        ids = [n["id"] for n in list_resp.json()]
+        assert note_id not in ids
+
+    def test_soft_delete_note_not_found(self, client: TestClient):
+        resp = client.delete("/api/notes/nonexistent")
+        assert resp.status_code == 404
+
+    def test_trash_listing(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
+        client.delete(f"/api/notes/{note_id}")
+        trash_resp = client.get("/api/notes/trash/")
+        assert resp.status_code == 200 if (resp := trash_resp) else True
+        assert any(n["id"] == note_id for n in trash_resp.json())
 
     def test_restore_note(self, client: TestClient, sample_note_data):
-        """Test restoring a deleted note."""
-        # Create and delete a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
         client.delete(f"/api/notes/{note_id}")
-        
-        # Restore the note
-        response = client.post(f"/api/notes/{note_id}/restore")
-        assert response.status_code == 200
+        restore_resp = client.post(f"/api/notes/{note_id}/restore")
+        assert restore_resp.status_code == 200
+        list_resp = client.get("/api/notes")
+        ids = [n["id"] for n in list_resp.json()]
+        assert note_id in ids
 
-    def test_permanently_delete_note(self, client: TestClient, sample_note_data):
-        """Test permanently deleting a note."""
-        # Create and delete a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
+    def test_permanent_delete(self, client: TestClient, sample_note_data):
+        create_resp = client.post("/api/notes", json=sample_note_data)
+        note_id = create_resp.json()["id"]
         client.delete(f"/api/notes/{note_id}")
-        
-        # Permanently delete
-        response = client.delete(f"/api/notes/{note_id}/permanent")
-        assert response.status_code == 200
-
-    def test_pin_note(self, client: TestClient, sample_note_data):
-        """Test pinning/unpinning a note."""
-        # Create a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
-        
-        # Pin the note
-        response = client.put(f"/api/notes/{note_id}", json={"is_pinned": True})
-        assert response.status_code == 200
-        
-        # Verify it's pinned
-        get_response = client.get(f"/api/notes/{note_id}")
-        data = get_response.json()
-        assert data["is_pinned"] is True
-
-    def test_search_notes(self, client: TestClient):
-        """Test searching notes by title/content."""
-        # Create notes
-        client.post("/api/notes", json={
-            "title": "Python Programming",
-            "content": "Learn Python basics",
-        })
-        client.post("/api/notes", json={
-            "title": "JavaScript Guide",
-            "content": "Learn JavaScript basics",
-        })
-        
-        # Search
-        response = client.get("/api/notes/search/?q=Python")
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) > 0
-        assert any("Python" in note["title"] for note in data)
-
-
-class TestNotesHierarchy:
-    """Test suite for hierarchical notes."""
-
-    def test_set_parent_note(self, client: TestClient):
-        """Test setting a parent note."""
-        # Create parent note
-        parent_response = client.post("/api/notes", json={
-            "title": "Parent Note",
-            "content": "Parent content",
-        })
-        parent_id = parent_response.json()["id"]
-        
-        # Create child note
-        child_response = client.post("/api/notes", json={
-            "title": "Child Note",
-            "content": "Child content",
-        })
-        child_id = child_response.json()["id"]
-        
-        # Set parent
-        response = client.post(f"/api/notes/{child_id}/parent", json={"parent_note_id": parent_id})
-        assert response.status_code == 200
-
-    def test_get_note_tree(self, client: TestClient):
-        """Test getting the note tree."""
-        # Create a hierarchy
-        parent_response = client.post("/api/notes", json={
-            "title": "Root",
-            "content": "Root content",
-        })
-        parent_id = parent_response.json()["id"]
-        
-        # Get tree
-        response = client.get(f"/api/notes/{parent_id}/tree")
-        assert response.status_code == 200
+        perm_resp = client.delete(f"/api/notes/{note_id}/permanent")
+        assert perm_resp.status_code == 200
+        get_resp = client.get(f"/api/notes/{note_id}")
+        assert get_resp.status_code == 404
 
 
 class TestDailyNotes:
-    """Test suite for daily notes."""
+    def test_get_or_create_daily_note(self, client: TestClient):
+        resp = client.get("/api/notes/daily/today")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "Daily Note" in data["title"]
+        assert data["source"] == "daily"
 
-    def test_get_today_daily_note(self, client: TestClient):
-        """Test getting today's daily note."""
-        response = client.get("/api/notes/daily/today")
-        assert response.status_code == 200
+    def test_daily_note_idempotent(self, client: TestClient):
+        """Calling twice should return the same note."""
+        resp1 = client.get("/api/notes/daily/today")
+        resp2 = client.get("/api/notes/daily/today")
+        assert resp1.json()["id"] == resp2.json()["id"]
 
-    def test_list_all_daily_notes(self, client: TestClient):
-        """Test listing all daily notes."""
-        response = client.get("/api/notes/daily/")
-        assert response.status_code == 200
-
-
-class TestNotesAI:
-    """Test suite for AI features on notes."""
-
-    def test_suggest_tags(self, client: TestClient):
-        """Test AI tag suggestion (may fail if Ollama not running)."""
-        response = client.post(
-            "/api/notes/suggest-tags",
-            json={
-                "title": "Machine Learning Basics",
-                "content": "Introduction to ML algorithms",
-                "model": "qwen2.5:0.5b",
-            },
-        )
-        # May return 500 if Ollama is not running, which is acceptable
-        assert response.status_code in [200, 500]
+    def test_list_daily_notes(self, client: TestClient):
+        client.get("/api/notes/daily/today")
+        resp = client.get("/api/notes/daily/")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
 
 
-class TestNoteVersions:
-    """Test suite for note versioning."""
+class TestNoteSearch:
+    def test_search_by_title(self, client: TestClient):
+        client.post("/api/notes", json={"title": "Python programming", "content": "Learn Python"})
+        client.post("/api/notes", json={"title": "Rust systems", "content": "Memory safe"})
+        resp = client.get("/api/notes/search/?query=Python")
+        assert resp.status_code == 200
+        results = resp.json()
+        assert any("Python" in n["title"] for n in results)
 
-    def test_list_versions(self, client: TestClient, sample_note_data):
-        """Test listing note versions."""
-        # Create a note
-        create_response = client.post("/api/notes", json=sample_note_data)
-        note_id = create_response.json()["id"]
-        
-        # Update it to create a version
-        client.put(f"/api/notes/{note_id}", json={
-            "title": "Updated Title",
-            "content": "Updated content",
-        })
-        
-        # List versions
-        response = client.get(f"/api/notes/{note_id}/versions")
-        assert response.status_code == 200
+    def test_search_by_content(self, client: TestClient):
+        client.post("/api/notes", json={"title": "Note A", "content": "quantum computing breakthrough"})
+        resp = client.get("/api/notes/search/?query=quantum")
+        assert resp.status_code == 200
+        assert len(resp.json()) >= 1
+
+    def test_search_no_results(self, client: TestClient):
+        resp = client.get("/api/notes/search/?query=zzzznonexistent")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestHybridSearch:
+    def test_hybrid_search_basic(self, client: TestClient):
+        client.post("/api/notes", json={"title": "Machine Learning", "content": "neural networks and deep learning"})
+        resp = client.post("/api/search", json={"query": "neural networks", "limit": 5})
+        assert resp.status_code == 200
+        results = resp.json()
+        assert isinstance(results, list)
+
+    def test_hybrid_search_empty_db(self, client: TestClient):
+        resp = client.post("/api/search", json={"query": "anything", "limit": 5})
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestNoteHierarchy:
+    def test_set_parent_note(self, client: TestClient):
+        parent = client.post("/api/notes", json={"title": "Parent", "content": "Parent note"}).json()
+        child = client.post("/api/notes", json={"title": "Child", "content": "Child note"}).json()
+        resp = client.post(f"/api/notes/{child['id']}/parent?parent_id={parent['id']}")
+        assert resp.status_code == 200
+
+    def test_self_as_parent_rejected(self, client: TestClient):
+        note = client.post("/api/notes", json={"title": "Self", "content": "..."}).json()
+        resp = client.post(f"/api/notes/{note['id']}/parent?parent_id={note['id']}")
+        assert resp.status_code == 400
+
+    def test_get_full_tree(self, client: TestClient):
+        resp = client.get("/api/notes/full-tree")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)

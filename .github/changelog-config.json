@@ -1,0 +1,36 @@
+{
+  "categories": [
+    {
+      "title": "## 🚀 Features",
+      "labels": ["feature", "enhancement", "feat"]
+    },
+    {
+      "title": "## 🐛 Bug Fixes",
+      "labels": ["bug", "fix", "bugfix"]
+    },
+    {
+      "title": "## 🔒 Security",
+      "labels": ["security", "vulnerability"]
+    },
+    {
+      "title": "## 📚 Documentation",
+      "labels": ["documentation", "docs"]
+    },
+    {
+      "title": "## 🏗️ Infrastructure",
+      "labels": ["infrastructure", "ci", "chore", "deps"]
+    },
+    {
+      "title": "## ⚡ Performance",
+      "labels": ["performance", "perf"]
+    }
+  ],
+  "ignore_labels": ["skip-changelog", "duplicate", "invalid", "wontfix"],
+  "sort": "ASC",
+  "template": "${{CHANGELOG}}",
+  "pr_template": "- ${{TITLE}} (#${{NUMBER)}}) by @${{AUTHOR}}",
+  "empty_template": "- No significant changes",
+  "max_pull_requests": 200,
+  "max_back_track_time_days": 365
+}
+
