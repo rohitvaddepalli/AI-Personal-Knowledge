@@ -32,7 +32,9 @@ async def generate_daily_digest():
             )
         )
         if response.content:
-            db.add(Insight(insight_type="daily_digest", content=response.content, related_note_ids=json.dumps(note_ids)))
+            db.add(
+                Insight(insight_type="daily_digest", content=response.content, related_note_ids=json.dumps(note_ids))
+            )
             db.commit()
     finally:
         db.close()

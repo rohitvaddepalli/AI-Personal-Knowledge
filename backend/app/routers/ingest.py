@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
-from app.job_queue import create_job, get_job, list_jobs as list_queue_jobs, submit_local_job, update_job
+from app.job_queue import create_job, get_job, submit_local_job, update_job
+from app.job_queue import list_jobs as list_queue_jobs
 from app.models.note import Note
 from app.services.connection_engine import auto_connect_note
 from app.services.embedding_service import add_note_embedding
@@ -37,6 +38,7 @@ def _extract_text(filename: str, data: bytes) -> str:
     if lower.endswith(".pdf"):
         try:
             import io
+
             import pdfplumber
 
             with pdfplumber.open(io.BytesIO(data)) as pdf:
@@ -46,6 +48,7 @@ def _extract_text(filename: str, data: bytes) -> str:
     if lower.endswith(".docx"):
         try:
             import io
+
             import docx
 
             doc = docx.Document(io.BytesIO(data))
@@ -55,6 +58,7 @@ def _extract_text(filename: str, data: bytes) -> str:
     if lower.endswith(".pptx"):
         try:
             import io
+
             from pptx import Presentation
 
             presentation = Presentation(io.BytesIO(data))

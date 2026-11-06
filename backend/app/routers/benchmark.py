@@ -3,13 +3,16 @@ Stress testing and performance benchmarking endpoints.
 
 Benchmarks:
 - Database query performance for large note counts
-- Embedding query performance (ChromaDB)  
+- Embedding query performance (ChromaDB)
 - API response time monitoring
 """
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+
 import time
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.models.note import Note as NoteModel
 
@@ -35,10 +38,13 @@ class BenchmarkSuiteResult(BaseModel):
 def benchmark_notes_query(db: Session = Depends(get_db)) -> BenchmarkResult:
     """Benchmark the main notes query (used by NoteList)."""
     start = time.perf_counter()
-    notes = db.query(NoteModel).filter(
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).order_by(NoteModel.created_at.desc()).limit(100).all()
+    notes = (
+        db.query(NoteModel)
+        .filter(NoteModel.is_archived == False, NoteModel.deleted_at == None)
+        .order_by(NoteModel.created_at.desc())
+        .limit(100)
+        .all()
+    )
     elapsed = (time.perf_counter() - start) * 1000
     count = len(notes)
     return BenchmarkResult(
@@ -53,10 +59,7 @@ def benchmark_notes_query(db: Session = Depends(get_db)) -> BenchmarkResult:
 def benchmark_notes_count(db: Session = Depends(get_db)) -> dict:
     """Get total note count — useful for understanding database size."""
     total = db.query(NoteModel).count()
-    active = db.query(NoteModel).filter(
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).count()
+    active = db.query(NoteModel).filter(NoteModel.is_archived == False, NoteModel.deleted_at == None).count()
     trashed = db.query(NoteModel).filter(NoteModel.deleted_at != None).count()
     return {
         "total": total,
@@ -70,11 +73,11 @@ def benchmark_notes_count(db: Session = Depends(get_db)) -> dict:
 def benchmark_fts_search(query: str = "test", db: Session = Depends(get_db)) -> BenchmarkResult:
     """Benchmark FTS5 full-text search performance."""
     from sqlalchemy import text
+
     start = time.perf_counter()
     try:
         results = db.execute(
-            text("SELECT id, title FROM notes_fts WHERE notes_fts MATCH :q LIMIT 20"),
-            {"q": query}
+            text("SELECT id, title FROM notes_fts WHERE notes_fts MATCH :q LIMIT 20"), {"q": query}
         ).fetchall()
         elapsed = (time.perf_counter() - start) * 1000
         return BenchmarkResult(
@@ -91,7 +94,7 @@ def benchmark_fts_search(query: str = "test", db: Session = Depends(get_db)) -> 
             record_count=0,
             throughput=0,
             status="error",
-            error=str(e)
+            error=str(e),
         )
 
 
@@ -99,6 +102,7 @@ def benchmark_fts_search(query: str = "test", db: Session = Depends(get_db)) -> 
 def benchmark_embedding_search(query: str = "knowledge management") -> BenchmarkResult:
     """Benchmark ChromaDB vector search performance."""
     from app.services.embedding_service import search_similar_notes
+
     start = time.perf_counter()
     try:
         results = search_similar_notes(query, n_results=10)
@@ -118,7 +122,7 @@ def benchmark_embedding_search(query: str = "knowledge management") -> Benchmark
             record_count=0,
             throughput=0,
             status="error",
-            error=str(e)
+            error=str(e),
         )
 
 
@@ -126,7 +130,7 @@ def benchmark_embedding_search(query: str = "knowledge management") -> Benchmark
 def run_benchmark_suite(db: Session = Depends(get_db)) -> BenchmarkSuiteResult:
     """Run all benchmarks and return a comprehensive report."""
     suite_start = time.perf_counter()
-    
+
     results = [
         benchmark_notes_query(db),
         benchmark_fts_search(db=db),
@@ -134,11 +138,11 @@ def run_benchmark_suite(db: Session = Depends(get_db)) -> BenchmarkSuiteResult:
     ]
 
     total = (time.perf_counter() - suite_start) * 1000
-    
-    fast = sum(1 for r in results if r.duration_ms < 50)
+
+    sum(1 for r in results if r.duration_ms < 50)
     slow = sum(1 for r in results if r.status == "ok" and r.duration_ms >= 200)
     errors = sum(1 for r in results if r.status == "error")
-    
+
     summary_parts = [f"{len(results)} benchmarks run"]
     if errors:
         summary_parts.append(f"{errors} errors (check ChromaDB/FTS setup)")
@@ -146,9 +150,5 @@ def run_benchmark_suite(db: Session = Depends(get_db)) -> BenchmarkSuiteResult:
         summary_parts.append(f"{slow} slow queries (>200ms) — consider optimization")
     else:
         summary_parts.append("all queries within acceptable range")
-    
-    return BenchmarkSuiteResult(
-        results=results,
-        total_ms=round(total, 2),
-        summary=". ".join(summary_parts)
-    )
+
+    return BenchmarkSuiteResult(results=results, total_ms=round(total, 2), summary=". ".join(summary_parts))

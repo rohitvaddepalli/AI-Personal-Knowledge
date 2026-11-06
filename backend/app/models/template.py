@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, text
+from sqlalchemy import Column, DateTime, Integer, String, Text, text
+
 from app.database import Base
+
 
 class Template(Base):
     __tablename__ = "templates"

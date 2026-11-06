@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
 
 class TemplateBase(BaseModel):
     name: str
@@ -9,8 +11,10 @@ class TemplateBase(BaseModel):
     title_template: Optional[str] = None
     content_template: str
 
+
 class TemplateCreate(TemplateBase):
     pass
+
 
 class TemplateUpdate(BaseModel):
     name: Optional[str] = None
@@ -18,6 +22,7 @@ class TemplateUpdate(BaseModel):
     icon: Optional[str] = None
     title_template: Optional[str] = None
     content_template: Optional[str] = None
+
 
 class TemplateResponse(TemplateBase):
     id: int

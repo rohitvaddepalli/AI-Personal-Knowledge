@@ -1,23 +1,51 @@
+import ipaddress
+import secrets
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from app.config import settings
 from app.db_init import initialize_database
 from app.routers import (
-    notes, connections, graph, ask, search, import_, collections,
-    insights, chat as chat_router, tasks, templates, attachments,
-    note_versions, review, export, system, voice, plugins, benchmark, inbox,
-    ingest, flashcards, auth, momentum, synthesis_personalization,
-    interop, webhooks, garden, analytics, digest,
+    analytics,
+    ask,
+    attachments,
+    auth,
+    benchmark,
+    collections,
+    connections,
+    digest,
+    export,
+    flashcards,
+    garden,
+    graph,
+    import_,
+    inbox,
+    ingest,
+    insights,
+    interop,
+    momentum,
+    note_versions,
+    notes,
+    plugins,
+    review,
+    search,
+    synthesis_personalization,
+    system,
+    tasks,
+    templates,
+    voice,
+    webhooks,
 )
-from app.models import note, connection, collection, insight, chat, task, template, attachment, note_version, user_activity, flashcard
-from app.config import settings
+from app.routers import (
+    chat as chat_router,
+)
 from app.runtime import ensure_app_directories, load_runtime_settings
 from app.utils.auth import ACCESS_COOKIE_NAME, decode_token
 from app.utils.rate_limit import check_rate_limit
-import ipaddress
-import secrets
-import time
 
 ensure_app_directories()
 load_runtime_settings()

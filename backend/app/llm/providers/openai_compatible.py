@@ -66,12 +66,19 @@ class OpenAICompatibleProvider:
                         continue
                     data = line[5:].strip()
                     if data == "[DONE]":
-                        yield LLMStreamEvent(type="done", provider=self.name, model=request.model or self.default_model, finish_reason="stop")
+                        yield LLMStreamEvent(
+                            type="done",
+                            provider=self.name,
+                            model=request.model or self.default_model,
+                            finish_reason="stop",
+                        )
                         continue
                     payload = json.loads(data)
                     delta = ((payload.get("choices") or [{}])[0].get("delta") or {}).get("content", "")
                     if delta:
-                        yield LLMStreamEvent(type="token", provider=self.name, model=request.model or self.default_model, content=delta)
+                        yield LLMStreamEvent(
+                            type="token", provider=self.name, model=request.model or self.default_model, content=delta
+                        )
 
     async def list_models(self) -> list[str]:
         try:

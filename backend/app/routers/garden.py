@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
 from typing import Optional
 from xml.etree import ElementTree as ET
 
@@ -31,6 +30,7 @@ router = APIRouter(prefix="/api/garden", tags=["garden"])
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _slugify(title: str, note_id: str) -> str:
     slug = (title or "").lower()
@@ -162,6 +162,7 @@ GARDEN_INDEX_HTML = """<!DOCTYPE html>
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.put("/note/{note_id}/publish")
 def publish_note(note_id: str, db: Session = Depends(get_db)):
     """Make a note publicly visible in the garden."""
@@ -223,7 +224,7 @@ def garden_index(
         tags = _load_tags(n.tags)
         tag_html = " ".join(f'<span class="tag">{t}</span>' for t in tags)
         excerpt = re.sub(r"#+ |```.*?```|\*\*|\*|`", "", n.content or "")[:180]
-        date = (n.created_at.date().isoformat() if n.created_at else "")
+        date = n.created_at.date().isoformat() if n.created_at else ""
         notes_html_parts.append(
             f'<div class="note"><a href="/api/garden/{slug}">'
             f'<div class="note-title">{n.title or "Untitled"}</div>'
@@ -277,11 +278,7 @@ def garden_rss(db: Session = Depends(get_db), request: Request = None):
 def garden_sitemap(db: Session = Depends(get_db), request: Request = None):
     """XML sitemap of all public notes for SEO."""
     base = str(request.base_url).rstrip("/") if request else "http://localhost:8000"
-    notes = (
-        db.query(Note)
-        .filter(Note.is_public == True, Note.deleted_at == None)
-        .all()
-    )
+    notes = db.query(Note).filter(Note.is_public == True, Note.deleted_at == None).all()
     urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for n in notes:
         slug = _slugify(n.title or "", n.id)

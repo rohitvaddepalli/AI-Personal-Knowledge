@@ -1,7 +1,8 @@
-import logging
 import json
+import logging
 import sys
 from datetime import datetime
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -16,6 +17,7 @@ class JSONFormatter(logging.Formatter):
         if record.exc_info:
             log_record["exc_info"] = self.formatException(record.exc_info)
         return json.dumps(log_record)
+
 
 def get_logger(name: str):
     logger = logging.getLogger(name)

@@ -1,14 +1,16 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import List, Optional
-from pydantic import BaseModel
-from app.database import get_db
-from app.models.note import Note
 import json
 from datetime import datetime, timedelta
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models.note import Note
 
 router = APIRouter(prefix="/api/inbox", tags=["inbox"])
 
@@ -49,10 +51,7 @@ def get_inbox(db: Session = Depends(get_db)):
     for note in notes:
         tags = json.loads(note.tags) if note.tags else []
         # Inbox: no meaningful tags or is an import that hasn't been tagged beyond auto-tags
-        is_unprocessed = (
-            not tags
-            or note.source_type in ("url", "import", "youtube")
-        )
+        is_unprocessed = not tags or note.source_type in ("url", "import", "youtube")
         if is_unprocessed:
             inbox_notes.append(_note_to_dict(note))
 
@@ -102,11 +101,7 @@ def get_inbox_stats(db: Session = Depends(get_db)):
     )
 
     # Total notes
-    total_notes = (
-        db.query(Note)
-        .filter(Note.is_archived == False, Note.deleted_at == None)
-        .count()
-    )
+    total_notes = db.query(Note).filter(Note.is_archived == False, Note.deleted_at == None).count()
 
     return {
         "captured_today": captured_today,
@@ -117,7 +112,7 @@ def get_inbox_stats(db: Session = Depends(get_db)):
 
 
 class TriageRequest(BaseModel):
-    action: str          # "archive" | "schedule_review" | "add_tags"
+    action: str  # "archive" | "schedule_review" | "add_tags"
     tags: Optional[List[str]] = None
 
 

@@ -4,18 +4,17 @@ Daily digest router.
 GET  /api/digest/today   — generate or retrieve today's digest
 POST /api/digest/trigger — manually trigger digest generation
 """
+
 from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
 from typing import Any
 
-import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.database import get_db
 from app.llm.router import generate_text
 from app.llm.types import LLMRequest
@@ -169,4 +168,3 @@ async def trigger_digest(body: TriggerRequest, db: Session = Depends(get_db)) ->
     result = await _generate_digest(db)
     _digest_cache["digest"] = result
     return {"ok": True, "digest": result}
-

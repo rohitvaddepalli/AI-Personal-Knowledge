@@ -16,11 +16,15 @@ except Exception:  # pragma: no cover - optional dependency fallback
 
 _jobs: dict[str, dict[str, Any]] = {}
 _executor = ThreadPoolExecutor(max_workers=settings.max_background_job_concurrency)
-celery_app = Celery(
-    "second_brain",
-    broker=settings.celery_broker_url,
-    backend=settings.celery_result_backend,
-) if Celery else None
+celery_app = (
+    Celery(
+        "second_brain",
+        broker=settings.celery_broker_url,
+        backend=settings.celery_result_backend,
+    )
+    if Celery
+    else None
+)
 
 
 def create_job(job_type: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:

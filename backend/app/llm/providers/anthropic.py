@@ -70,9 +70,19 @@ class AnthropicProvider:
                     if payload.get("type") == "content_block_delta":
                         text = (payload.get("delta") or {}).get("text", "")
                         if text:
-                            yield LLMStreamEvent(type="token", provider=self.name, model=request.model or self.default_model, content=text)
+                            yield LLMStreamEvent(
+                                type="token",
+                                provider=self.name,
+                                model=request.model or self.default_model,
+                                content=text,
+                            )
                     if payload.get("type") == "message_stop":
-                        yield LLMStreamEvent(type="done", provider=self.name, model=request.model or self.default_model, finish_reason="stop")
+                        yield LLMStreamEvent(
+                            type="done",
+                            provider=self.name,
+                            model=request.model or self.default_model,
+                            finish_reason="stop",
+                        )
 
     async def list_models(self) -> list[str]:
         return [self.default_model]
@@ -83,7 +93,11 @@ class AnthropicProvider:
                 response = await client.post(
                     f"{self.base_url}/messages",
                     headers=self._headers(),
-                    json={"model": self.default_model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
+                    json={
+                        "model": self.default_model,
+                        "messages": [{"role": "user", "content": "ping"}],
+                        "max_tokens": 1,
+                    },
                 )
             return response.status_code < 500
         except Exception:

@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
 
 class ConnectionBase(BaseModel):
     source_note_id: str
@@ -9,8 +11,10 @@ class ConnectionBase(BaseModel):
     strength: Optional[float] = 0.0
     ai_explanation: Optional[str] = None
 
+
 class ConnectionCreate(ConnectionBase):
     pass
+
 
 class ConnectionResponse(ConnectionBase):
     id: int

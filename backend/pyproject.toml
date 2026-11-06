@@ -52,3 +52,14 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
+ignore = [
+    "E402",  # module level import not at top of file (used intentionally after logger init across routers)
+    "E501",  # line too long (handled gracefully by ruff format)
+    "E711",  # comparison to None (SQLAlchemy expressions like Model.deleted_at == None require this)
+    "E712",  # comparison to True/False (SQLAlchemy expressions like Model.is_archived == False require this)
+    "N806",  # variable in function should be lowercase (common for Model aliases in queries)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/models/__init__.py" = ["F401"]
+"app/routers/__init__.py" = ["F401"]

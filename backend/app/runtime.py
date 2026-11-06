@@ -1,11 +1,9 @@
 import base64
 import json
 from copy import deepcopy
-from pathlib import Path
 from typing import Any
 
 from .config import settings
-
 
 DEFAULT_RUNTIME_SETTINGS: dict[str, Any] = {
     "ollama_base_url": settings.ollama_base_url,
@@ -38,12 +36,36 @@ DEFAULT_RUNTIME_SETTINGS: dict[str, Any] = {
         },
         "providers": {
             "ollama": {"enabled": True, "base_url": settings.ollama_base_url, "models": [settings.llm_model]},
-            "openai": {"enabled": bool(settings.openai_api_key), "base_url": settings.openai_base_url, "api_key": settings.openai_api_key or ""},
-            "anthropic": {"enabled": bool(settings.anthropic_api_key), "base_url": settings.anthropic_base_url, "api_key": settings.anthropic_api_key or ""},
-            "google": {"enabled": bool(settings.google_api_key), "base_url": settings.google_base_url, "api_key": settings.google_api_key or ""},
-            "openrouter": {"enabled": bool(settings.openrouter_api_key), "base_url": settings.openrouter_base_url, "api_key": settings.openrouter_api_key or ""},
-            "groq": {"enabled": bool(settings.groq_api_key), "base_url": settings.groq_base_url, "api_key": settings.groq_api_key or ""},
-            "custom": {"enabled": bool(settings.custom_provider_base_url), "base_url": settings.custom_provider_base_url or "", "api_key": settings.custom_provider_api_key or ""},
+            "openai": {
+                "enabled": bool(settings.openai_api_key),
+                "base_url": settings.openai_base_url,
+                "api_key": settings.openai_api_key or "",
+            },
+            "anthropic": {
+                "enabled": bool(settings.anthropic_api_key),
+                "base_url": settings.anthropic_base_url,
+                "api_key": settings.anthropic_api_key or "",
+            },
+            "google": {
+                "enabled": bool(settings.google_api_key),
+                "base_url": settings.google_base_url,
+                "api_key": settings.google_api_key or "",
+            },
+            "openrouter": {
+                "enabled": bool(settings.openrouter_api_key),
+                "base_url": settings.openrouter_base_url,
+                "api_key": settings.openrouter_api_key or "",
+            },
+            "groq": {
+                "enabled": bool(settings.groq_api_key),
+                "base_url": settings.groq_base_url,
+                "api_key": settings.groq_api_key or "",
+            },
+            "custom": {
+                "enabled": bool(settings.custom_provider_base_url),
+                "base_url": settings.custom_provider_base_url or "",
+                "api_key": settings.custom_provider_api_key or "",
+            },
         },
     },
 }

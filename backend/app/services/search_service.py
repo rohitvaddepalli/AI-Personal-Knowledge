@@ -39,9 +39,7 @@ def hybrid_search(
         k_rank = keyword_rankings.get(note_id, 10_000)
         m_rank = meta_rankings.get(note_id, 10_000)
         combined[note_id] = (
-            semantic_weight * (1 / (k + s_rank))
-            + keyword_weight * (1 / (k + k_rank))
-            + 0.15 * (1 / (k + m_rank))
+            semantic_weight * (1 / (k + s_rank)) + keyword_weight * (1 / (k + k_rank)) + 0.15 * (1 / (k + m_rank))
         )
 
     if not combined:
@@ -104,7 +102,10 @@ def _keyword_search(db: Session, query: str, limit: int) -> dict[str, int]:
         return rankings
     try:
         if settings.is_sqlite:
-            rows = db.execute(text("SELECT id FROM notes_fts WHERE notes_fts MATCH :q LIMIT :limit"), {"q": f"{terms}*", "limit": limit}).fetchall()
+            rows = db.execute(
+                text("SELECT id FROM notes_fts WHERE notes_fts MATCH :q LIMIT :limit"),
+                {"q": f"{terms}*", "limit": limit},
+            ).fetchall()
         else:
             rows = db.execute(
                 text(
@@ -158,7 +159,11 @@ def _load_candidate_notes(
     if tags:
         notes = [note for note in notes if set(tags).issubset(set(_parse_tags(note.tags)))]
     if require_summary:
-        notes = [note for note in notes if "### AI Summary" in (note.content or "") or "### AI Insight" in (note.content or "")]
+        notes = [
+            note
+            for note in notes
+            if "### AI Summary" in (note.content or "") or "### AI Insight" in (note.content or "")
+        ]
     if require_flashcards:
         flashcard_ids = {row[0] for row in db.execute(text("SELECT DISTINCT note_id FROM flashcards")).fetchall()}
         notes = [note for note in notes if note.id in flashcard_ids]

@@ -16,17 +16,15 @@ from __future__ import annotations
 import json
 import random
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import func, text
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.insight import Insight
 from app.models.note import Note
-from app.models.user_activity import Milestone, UserActivity, UserPreferences
+from app.models.user_activity import Milestone, UserActivity
 
 router = APIRouter(prefix="/api/momentum", tags=["momentum"])
 
@@ -34,6 +32,7 @@ router = APIRouter(prefix="/api/momentum", tags=["momentum"])
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _today() -> str:
     return date.today().isoformat()
@@ -51,11 +50,7 @@ def _get_or_create_activity(db: Session, day: str) -> UserActivity:
 
 def _compute_streak(db: Session) -> int:
     """Count consecutive days with at least 1 note captured or reviewed."""
-    rows = (
-        db.query(UserActivity)
-        .order_by(UserActivity.date.desc())
-        .all()
-    )
+    rows = db.query(UserActivity).order_by(UserActivity.date.desc()).all()
     if not rows:
         return 0
 
@@ -75,12 +70,7 @@ def _compute_streak(db: Session) -> int:
 
 def _check_and_award_milestones(db: Session) -> None:
     """Award milestone badges if thresholds crossed."""
-    total_notes = (
-        db.query(func.count(Note.id))
-        .filter(Note.is_archived == False, Note.deleted_at == None)
-        .scalar()
-        or 0
-    )
+    total_notes = db.query(func.count(Note.id)).filter(Note.is_archived == False, Note.deleted_at == None).scalar() or 0
     streak = _compute_streak(db)
     total_connections = (
         db.query(func.count(Note.id))
@@ -109,6 +99,7 @@ def _check_and_award_milestones(db: Session) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/ping")
 def ping_activity(db: Session = Depends(get_db)):
@@ -174,7 +165,13 @@ def get_weekly_digest(db: Session = Depends(get_db)):
 
     connected = (
         db.query(Note)
-        .filter(Note.is_archived == False, Note.deleted_at == None, Note.updated_at >= week_ago, Note.tags != None, Note.tags != "[]")
+        .filter(
+            Note.is_archived == False,
+            Note.deleted_at == None,
+            Note.updated_at >= week_ago,
+            Note.tags != None,
+            Note.tags != "[]",
+        )
         .order_by(Note.updated_at.desc())
         .limit(10)
         .all()
@@ -245,13 +242,14 @@ def on_this_day(db: Session = Depends(get_db)):
             .all()
         )
         if notes:
-            results.append({
-                "label": label,
-                "notes": [
-                    {"id": n.id, "title": n.title or "Untitled", "snippet": (n.content or "")[:100]}
-                    for n in notes
-                ],
-            })
+            results.append(
+                {
+                    "label": label,
+                    "notes": [
+                        {"id": n.id, "title": n.title or "Untitled", "snippet": (n.content or "")[:100]} for n in notes
+                    ],
+                }
+            )
 
     return {"groups": results}
 
@@ -286,12 +284,7 @@ def get_forgotten_notes(db: Session = Depends(get_db)):
 @router.get("/milestones")
 def get_milestones(db: Session = Depends(get_db)):
     """Return unseen milestone achievements."""
-    milestones = (
-        db.query(Milestone)
-        .filter(Milestone.is_seen == False)
-        .order_by(Milestone.achieved_at.desc())
-        .all()
-    )
+    milestones = db.query(Milestone).filter(Milestone.is_seen == False).order_by(Milestone.achieved_at.desc()).all()
     labels = {
         "notes_10": ("🌱", "First 10 Notes", "You've started building your knowledge garden!"),
         "notes_50": ("📚", "50 Notes Captured", "Your knowledge base is growing strong."),
@@ -304,14 +297,16 @@ def get_milestones(db: Session = Depends(get_db)):
     result = []
     for m in milestones:
         emoji, title, description = labels.get(m.milestone_type, ("🏆", m.milestone_type, "Achievement unlocked!"))
-        result.append({
-            "id": m.id,
-            "type": m.milestone_type,
-            "emoji": emoji,
-            "title": title,
-            "description": description,
-            "achieved_at": m.achieved_at.isoformat(),
-        })
+        result.append(
+            {
+                "id": m.id,
+                "type": m.milestone_type,
+                "emoji": emoji,
+                "title": title,
+                "description": description,
+                "achieved_at": m.achieved_at.isoformat(),
+            }
+        )
     return result
 
 
@@ -328,22 +323,12 @@ def mark_milestone_seen(milestone_id: int, db: Session = Depends(get_db)):
 @router.get("/surprise")
 def surprise_me(db: Session = Depends(get_db)):
     """Return a random note with a 'why it matters now' hook."""
-    count = (
-        db.query(func.count(Note.id))
-        .filter(Note.is_archived == False, Note.deleted_at == None)
-        .scalar()
-        or 0
-    )
+    count = db.query(func.count(Note.id)).filter(Note.is_archived == False, Note.deleted_at == None).scalar() or 0
     if count == 0:
         return {"note": None, "hook": None}
 
     offset = random.randint(0, max(0, count - 1))
-    note = (
-        db.query(Note)
-        .filter(Note.is_archived == False, Note.deleted_at == None)
-        .offset(offset)
-        .first()
-    )
+    note = db.query(Note).filter(Note.is_archived == False, Note.deleted_at == None).offset(offset).first()
     if not note:
         return {"note": None, "hook": None}
 
@@ -369,6 +354,7 @@ def surprise_me(db: Session = Depends(get_db)):
 # ─────────────────────────────────────────────────────────────────────────────
 # Activity recording helpers (called from notes/review routers)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def record_note_captured(db: Session) -> None:
     row = _get_or_create_activity(db, _today())

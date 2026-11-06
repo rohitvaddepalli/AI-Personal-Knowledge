@@ -47,10 +47,14 @@ async def auto_connect_note(note_id: str):
             score = 1 - (similar["distances"][0][idx] / 2)
             if score <= 0.75:
                 continue
-            exists = db.query(Connection).filter(
-                ((Connection.source_note_id == note_id) & (Connection.target_note_id == match_id))
-                | ((Connection.source_note_id == match_id) & (Connection.target_note_id == note_id))
-            ).first()
+            exists = (
+                db.query(Connection)
+                .filter(
+                    ((Connection.source_note_id == note_id) & (Connection.target_note_id == match_id))
+                    | ((Connection.source_note_id == match_id) & (Connection.target_note_id == note_id))
+                )
+                .first()
+            )
             if exists:
                 continue
             content_b = similar["documents"][0][idx]

@@ -21,12 +21,15 @@ class GoogleProvider:
                 json={
                     "systemInstruction": {"parts": [{"text": request.system or ""}]},
                     "contents": [{"role": "user", "parts": [{"text": request.prompt}]}],
-                    "generationConfig": {"temperature": request.temperature, "maxOutputTokens": request.max_tokens or 1024},
+                    "generationConfig": {
+                        "temperature": request.temperature,
+                        "maxOutputTokens": request.max_tokens or 1024,
+                    },
                 },
             )
             response.raise_for_status()
             payload = response.json()
-        parts = (((payload.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
+        parts = ((payload.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
         text = "".join(part.get("text", "") for part in parts)
         return LLMResponse(provider=self.name, model=model, content=text.strip(), raw=payload)
 

@@ -1,11 +1,11 @@
-import uuid
-from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, Float, text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, text
+
 from app.database import Base
 
 
 class UserActivity(Base):
     """Tracks daily activity for streaks and momentum surfaces."""
+
     __tablename__ = "user_activity"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -20,6 +20,7 @@ class UserActivity(Base):
 
 class UserPreferences(Base):
     """Persisted user preferences including personalization, focus modes, cadence."""
+
     __tablename__ = "user_preferences"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -30,6 +31,7 @@ class UserPreferences(Base):
 
 class Milestone(Base):
     """Milestones achieved by the user (first 100 notes, first streak, etc.)."""
+
     __tablename__ = "milestones"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

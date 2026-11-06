@@ -61,22 +61,40 @@ def build_rag_context(
     if note_id:
         target = db.query(Note).filter(Note.id == note_id).first()
         if target:
-            context_chunks.append(f"START_SOURCE: {target.title}\n{sanitize_content_for_prompt(target.content)}\nEND_SOURCE")
-            sources.append({"id": target.id, "title": target.title, "snippet": _extract_snippet(target.content), "similarity": 1.0})
+            context_chunks.append(
+                f"START_SOURCE: {target.title}\n{sanitize_content_for_prompt(target.content)}\nEND_SOURCE"
+            )
+            sources.append(
+                {"id": target.id, "title": target.title, "snippet": _extract_snippet(target.content), "similarity": 1.0}
+            )
             retrieval_explanation = "Scoped to the selected note."
             confidence = 0.9
-        return {"context_chunks": context_chunks, "sources": sources, "retrieval_explanation": retrieval_explanation, "confidence": confidence}
+        return {
+            "context_chunks": context_chunks,
+            "sources": sources,
+            "retrieval_explanation": retrieval_explanation,
+            "confidence": confidence,
+        }
 
     mentions = re.findall(r"@([^@\n]+)", question)
     if mentions:
         titles = [item.strip() for item in mentions]
         matches = db.query(Note).filter(Note.title.in_(titles)).all()
         for note in matches:
-            sources.append({"id": note.id, "title": note.title, "snippet": _extract_snippet(note.content), "similarity": 0.9})
-            context_chunks.append(f"START_SOURCE: {note.title}\n{sanitize_content_for_prompt(note.content)}\nEND_SOURCE")
+            sources.append(
+                {"id": note.id, "title": note.title, "snippet": _extract_snippet(note.content), "similarity": 0.9}
+            )
+            context_chunks.append(
+                f"START_SOURCE: {note.title}\n{sanitize_content_for_prompt(note.content)}\nEND_SOURCE"
+            )
         retrieval_explanation = f"Scoped to @mentioned notes: {', '.join(titles)}."
         confidence = 0.85 if context_chunks else 0.15
-        return {"context_chunks": context_chunks, "sources": sources, "retrieval_explanation": retrieval_explanation, "confidence": confidence}
+        return {
+            "context_chunks": context_chunks,
+            "sources": sources,
+            "retrieval_explanation": retrieval_explanation,
+            "confidence": confidence,
+        }
 
     results = hybrid_search(
         db,
@@ -92,13 +110,29 @@ def build_rag_context(
     )
     if results:
         for result in results:
-            sources.append({"id": result["id"], "title": result["title"], "snippet": _extract_snippet(result["content"]), "similarity": result["score"]})
-            context_chunks.append(f"START_SOURCE: {result['title']}\n{sanitize_content_for_prompt(result['content'])}\nEND_SOURCE")
+            sources.append(
+                {
+                    "id": result["id"],
+                    "title": result["title"],
+                    "snippet": _extract_snippet(result["content"]),
+                    "similarity": result["score"],
+                }
+            )
+            context_chunks.append(
+                f"START_SOURCE: {result['title']}\n{sanitize_content_for_prompt(result['content'])}\nEND_SOURCE"
+            )
         confidence = round(min(0.95, results[0]["score"] * 10), 2)
-        retrieval_explanation = f"Retrieved {len(results)} notes via hybrid search with semantic, keyword, and metadata reranking."
+        retrieval_explanation = (
+            f"Retrieved {len(results)} notes via hybrid search with semantic, keyword, and metadata reranking."
+        )
     else:
         retrieval_explanation = "No relevant notes found in the knowledge base."
-    return {"context_chunks": context_chunks, "sources": sources, "retrieval_explanation": retrieval_explanation, "confidence": confidence}
+    return {
+        "context_chunks": context_chunks,
+        "sources": sources,
+        "retrieval_explanation": retrieval_explanation,
+        "confidence": confidence,
+    }
 
 
 async def ask_brain(
@@ -139,14 +173,30 @@ async def ask_brain(
     confidence = rag["confidence"]
 
     if mode == "search_only":
-        answer = "No matching notes found." if not sources else "**Search results**\n\n" + "\n".join(f"- {item['title']}" for item in sources)
+        answer = (
+            "No matching notes found."
+            if not sources
+            else "**Search results**\n\n" + "\n".join(f"- {item['title']}" for item in sources)
+        )
         _save_chat_messages(db, session.id, question, answer)
-        return {"answer": answer, "sources": sources, "session_id": session.id, "confidence": confidence, "retrieval_explanation": retrieval_explanation}
+        return {
+            "answer": answer,
+            "sources": sources,
+            "session_id": session.id,
+            "confidence": confidence,
+            "retrieval_explanation": retrieval_explanation,
+        }
 
     if mode == "strict_cited" and not context_chunks:
         answer = "I can't answer this with strict citations because no relevant notes were found."
         _save_chat_messages(db, session.id, question, answer)
-        return {"answer": answer, "sources": [], "session_id": session.id, "confidence": 0.0, "retrieval_explanation": retrieval_explanation}
+        return {
+            "answer": answer,
+            "sources": [],
+            "session_id": session.id,
+            "confidence": 0.0,
+            "retrieval_explanation": retrieval_explanation,
+        }
 
     history = (
         db.query(ChatMessage)
@@ -195,7 +245,13 @@ async def ask_brain(
         answer = "I need better grounding from your notes. Try importing the source or narrowing the question."
 
     _save_chat_messages(db, session.id, question, answer)
-    return {"answer": answer, "sources": sources, "session_id": session.id, "confidence": confidence, "retrieval_explanation": retrieval_explanation}
+    return {
+        "answer": answer,
+        "sources": sources,
+        "session_id": session.id,
+        "confidence": confidence,
+        "retrieval_explanation": retrieval_explanation,
+    }
 
 
 async def stream_brain(

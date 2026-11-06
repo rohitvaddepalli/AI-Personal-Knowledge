@@ -1,32 +1,36 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
-import httpx
-from bs4 import BeautifulSoup
-import re
+import asyncio
 import ipaddress
+import re
 import socket
-from urllib.parse import urlparse, urljoin
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
+from urllib.parse import urljoin, urlparse
+
+import httpx
+import yt_dlp
+from bs4 import BeautifulSoup
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.config import settings
 from app.database import get_db
 from app.models.note import Note
 from app.schemas.note import NoteResponse
-from app.services.embedding_service import add_note_embedding
 from app.services.connection_engine import auto_connect_note
-from app.config import settings
-import asyncio
+from app.services.embedding_service import add_note_embedding
 from app.utils.security import sanitize_content_for_prompt
-import json
-import yt_dlp
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 
 from typing import Optional
 
+
 class ImportUrlRequest(BaseModel):
     url: str
     model: Optional[str] = "qwen2.5:0.5b"
+
 
 def validate_url(url: str):
     """
@@ -54,7 +58,7 @@ def validate_url(url: str):
         return
     except ValueError as e:
         if "Blocked IP Range" in str(e):
-             raise HTTPException(status_code=400, detail=f"URL Validation Error: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"URL Validation Error: {str(e)}")
         # Not an IP literal; proceed to resolution
         pass
 
@@ -63,9 +67,11 @@ def validate_url(url: str):
         # Use more generic resolution
         infos = socket.getaddrinfo(hostname, port)
     except Exception as e:
-        # If DNS fails, we can't safely verify the IP. 
+        # If DNS fails, we can't safely verify the IP.
         # For common public domains we might allow a fallback, but let's be strict for now and report it.
-        raise HTTPException(status_code=400, detail=f"URL Validation Error: DNS resolution failed for {hostname} ({str(e)})")
+        raise HTTPException(
+            status_code=400, detail=f"URL Validation Error: DNS resolution failed for {hostname} ({str(e)})"
+        )
 
     if not infos:
         raise HTTPException(status_code=400, detail=f"URL Validation Error: No IP addresses found for {hostname}")
@@ -77,6 +83,7 @@ def validate_url(url: str):
             _block_ip(ipaddress.ip_address(ip_str))
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"URL Validation Error: {str(e)}")
+
 
 async def safe_fetch_url(url: str, timeout_s: float = 10.0) -> httpx.Response:
     # Manual redirect following so each hop is validated (avoid SSRF via redirect).
@@ -93,7 +100,7 @@ async def safe_fetch_url(url: str, timeout_s: float = 10.0) -> httpx.Response:
                 resp = await client.get(cur, timeout=timeout_s)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Request failed: {str(e)}")
-                
+
             if resp.status_code in (301, 302, 303, 307, 308):
                 loc = resp.headers.get("location")
                 if not loc:
@@ -104,33 +111,33 @@ async def safe_fetch_url(url: str, timeout_s: float = 10.0) -> httpx.Response:
 
     raise HTTPException(status_code=400, detail="Too many redirects")
 
+
 async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
     try:
         # ydl_opts remains unchanged
         ydl_opts = {
-            'quiet': True,
-            'skip_download': True,
-            'writesubtitles': True,
-            'writeautomaticsub': True,
-            'subtitleslangs': ['en'],
-            'no_warnings': True,
+            "quiet": True,
+            "skip_download": True,
+            "writesubtitles": True,
+            "writeautomaticsub": True,
+            "subtitleslangs": ["en"],
+            "no_warnings": True,
         }
-        
+
         def extract_info():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(video_id, download=False)
-        
+
         info = await asyncio.to_thread(extract_info)
-        
-        subs = info.get('subtitles', {}).get('en', []) or \
-               info.get('automatic_captions', {}).get('en', [])
-        
+
+        subs = info.get("subtitles", {}).get("en", []) or info.get("automatic_captions", {}).get("en", [])
+
         if not subs:
             return ""
-            
-        json_sub = next((s for s in subs if s.get('ext') == 'json3' or 'fmt=json3' in s.get('url', '')), subs[0])
-        sub_url = json_sub['url']
-        
+
+        json_sub = next((s for s in subs if s.get("ext") == "json3" or "fmt=json3" in s.get("url", "")), subs[0])
+        sub_url = json_sub["url"]
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
@@ -140,14 +147,14 @@ async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
             resp = await client.get(sub_url, timeout=10.0)
             if resp.status_code != 200:
                 return ""
-            
+
             data = resp.json()
             full_text = []
-            for event in data.get('events', []):
-                for segment in event.get('segs', []):
-                    if segment.get('utf8'):
-                        full_text.append(segment['utf8'])
-            
+            for event in data.get("events", []):
+                for segment in event.get("segs", []):
+                    if segment.get("utf8"):
+                        full_text.append(segment["utf8"])
+
             return " ".join(full_text).replace("\n", " ").strip()
     except HTTPException:
         raise
@@ -155,11 +162,12 @@ async def fetch_youtube_transcript_yt_dlp(video_id: str) -> str:
         logger.info(f"YouTube Transcript Error: {e}")
         return ""
 
+
 @router.post("/url", response_model=NoteResponse)
 async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # Validate URL before any processing
     validate_url(req.url)
-    
+
     try:
         video_id = None
         if "youtube" in req.url or "youtu.be" in req.url:
@@ -175,12 +183,14 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
             source_type = "youtube"
             info = {}
             try:
+
                 def get_meta():
-                    with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+                    with yt_dlp.YoutubeDL({"quiet": True, "skip_download": True}) as ydl:
                         return ydl.extract_info(video_id, download=False)
+
                 info = await asyncio.to_thread(get_meta)
-                raw_title = info.get('title', video_id)
-                description = info.get('description', "")
+                raw_title = info.get("title", video_id)
+                description = info.get("description", "")
                 title = f"YouTube: {raw_title[:80]}"
             except Exception:
                 raw_title = video_id
@@ -188,7 +198,7 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
                 title = f"YouTube: {video_id}"
 
             text_content = await fetch_youtube_transcript_yt_dlp(video_id)
-            
+
             summary = ""
             if text_content:
                 try:
@@ -204,12 +214,14 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
                         resp_llm = await client.post(
                             f"{settings.ollama_base_url}/api/generate",
                             json={"model": req.model, "prompt": prompt, "stream": False},
-                            timeout=60.0
+                            timeout=60.0,
                         )
                         summary = resp_llm.json().get("response", "Summary generation failed.")
-                except:
+                except Exception:
                     summary = "Summary generation failed."
-                content_clipped = f"**Source:** {req.url}\n\n### AI Summary\n{summary}\n\n### Full Transcript\n{text_content[:8000]}"
+                content_clipped = (
+                    f"**Source:** {req.url}\n\n### AI Summary\n{summary}\n\n### Full Transcript\n{text_content[:8000]}"
+                )
                 title = f"YouTube Summary: {raw_title[:80]}"
             else:
                 summary = "Transcript was unavailable."
@@ -227,52 +239,48 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
                             resp_llm = await client.post(
                                 f"{settings.ollama_base_url}/api/generate",
                                 json={"model": req.model, "prompt": prompt, "stream": False},
-                                timeout=60.0
+                                timeout=60.0,
                             )
                             summary = resp_llm.json().get("response", summary)
-                    except:
+                    except Exception:
                         pass
-                
+
                 content_clipped = f"**Source:** {req.url}\n\n### AI Insight (From Description)\n{summary}\n\n**Note:** Transcript could not be auto-fetched. \n\n**Raw Video Description:**\n{description[:2000]}"
 
         else:
             resp = await safe_fetch_url(req.url, timeout_s=10.0)
             resp.raise_for_status()
-                
-            soup = BeautifulSoup(resp.text, 'html.parser')
+
+            soup = BeautifulSoup(resp.text, "html.parser")
             title = soup.title.string if soup.title else "Imported from URL"
             for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
                 script.extract()
-            text_content = soup.get_text(separator=' ', strip=True)
+            text_content = soup.get_text(separator=" ", strip=True)
             content_clipped = f"**Source:** {req.url}\n\n{text_content[:8000]}"
             title = f"Web: {title.strip()[:100]}"
-        
-        db_note = Note(
-            title=title,
-            content=content_clipped,
-            source=req.url,
-            source_type=source_type,
-            tags="[]"
-        )
+
+        db_note = Note(title=title, content=content_clipped, source=req.url, source_type=source_type, tags="[]")
         db.add(db_note)
         db.commit()
         db.refresh(db_note)
-        
+
         # Move heavy/potential-failing tasks to background for faster, more reliable response
         background_tasks.add_task(add_note_embedding, db_note.id, db_note.title, db_note.content)
         background_tasks.add_task(auto_connect_note, db_note.id)
-        
+
         # Convert tags to list for the response model serialization
         import json
+
         tag_list = []
         try:
             if db_note.tags:
                 tag_list = json.loads(db_note.tags) if isinstance(db_note.tags, str) else db_note.tags
-        except:
+        except Exception:
             tag_list = []
-            
+
         # We manually construct the response object to be 100% sure of types
         from app.schemas.note import NoteResponse
+
         return NoteResponse(
             id=db_note.id,
             title=db_note.title,
@@ -283,13 +291,14 @@ async def import_url(req: ImportUrlRequest, background_tasks: BackgroundTasks, d
             created_at=db_note.created_at,
             updated_at=db_note.updated_at,
             is_pinned=db_note.is_pinned,
-            is_archived=db_note.is_archived
+            is_archived=db_note.is_archived,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         error_msg = str(e) or type(e).__name__
         raise HTTPException(status_code=500, detail=f"Import Processing Error: {error_msg}")

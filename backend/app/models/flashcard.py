@@ -1,6 +1,7 @@
 """
 Flashcard SQLAlchemy model.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -26,4 +27,3 @@ class Flashcard(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     # Recall quality histogram (0–5 ratings, stored as JSON array string)
     recall_history = Column(Text, default="[]")
-

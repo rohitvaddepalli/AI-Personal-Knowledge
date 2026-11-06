@@ -1,4 +1,5 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
 """
 Plugin System Architecture — Secure API Bridge for community plugins.
@@ -12,17 +13,15 @@ Provides:
 Plugins are stored as directories under ~/.second-brain/plugins/<plugin-id>/
 Each plugin must have a manifest.json and an entry point (main.py or index.js).
 """
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from typing import Optional
 import json
-import os
 import subprocess
 import time
 from pathlib import Path
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
 from app.config import settings
-from app.database import get_db
 
 router = APIRouter(prefix="/api/plugins", tags=["plugins"])
 
@@ -131,7 +130,7 @@ def run_plugin_hook(req: PluginRunRequest):
     """
     Execute a plugin hook in a sandboxed subprocess.
     The plugin receives the payload as JSON via stdin and must return JSON to stdout.
-    
+
     Security: Plugin runs with a 10-second timeout and no network access.
     """
     plugin_dir = PLUGINS_DIR / req.plugin_id
@@ -170,10 +169,7 @@ def run_plugin_hook(req: PluginRunRequest):
         elapsed = int((time.time() - start) * 1000)
 
         if proc.returncode != 0:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Plugin execution failed: {proc.stderr[:500]}"
-            )
+            raise HTTPException(status_code=500, detail=f"Plugin execution failed: {proc.stderr[:500]}")
 
         result = {}
         if proc.stdout.strip():
@@ -208,7 +204,7 @@ def get_plugin_sdk_info():
             "author": "Your Name",
             "entry_point": "main.py",
             "hooks": ["on_note_create", "on_note_update", "on_note_delete", "on_search"],
-            "permissions": ["read_notes"]
+            "permissions": ["read_notes"],
         },
         "available_hooks": [
             "on_note_create",
@@ -227,5 +223,5 @@ def get_plugin_sdk_info():
             "# Your plugin logic here\n"
             "result = {'status': 'ok', 'processed': True}\n"
             "logger.info(json.dumps(result))\n"
-        )
+        ),
     }

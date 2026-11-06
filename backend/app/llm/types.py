@@ -4,7 +4,6 @@ from typing import Any, AsyncIterator, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
-
 FeatureName = Literal["chat", "summarize", "embeddings", "edit", "transcription"]
 
 

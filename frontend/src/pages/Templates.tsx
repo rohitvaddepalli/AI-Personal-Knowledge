@@ -67,7 +67,7 @@ export default function Templates() {
     }
   };
 
-  const useTemplate = async (template: Template) => {
+  const handleApplyTemplate = async (template: Template) => {
     try {
       const res = await fetch(`http://localhost:8000/api/templates/${template.id}/apply`);
       if (res.ok) {
@@ -161,7 +161,7 @@ export default function Templates() {
               {tmpl.description || 'No description'}
             </p>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn" onClick={() => useTemplate(tmpl)} style={{ flex: 1 }}>
+              <button className="btn" onClick={() => handleApplyTemplate(tmpl)} style={{ flex: 1 }}>
                 Use Template
               </button>
               {!tmpl.is_builtin && (

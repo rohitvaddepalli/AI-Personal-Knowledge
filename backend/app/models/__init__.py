@@ -1,10 +1,10 @@
-from .note import Note
-from .connection import Connection
+from .attachment import Attachment
+from .chat import ChatMessage, ChatSession
 from .collection import Collection
+from .connection import Connection
 from .insight import Insight
-from .chat import ChatSession, ChatMessage
+from .note import Note
+from .note_version import NoteVersion
 from .task import Task
 from .template import Template
-from .attachment import Attachment
-from .note_version import NoteVersion
 from .user import User

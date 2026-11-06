@@ -9,6 +9,7 @@ Provides aggregated statistics about the knowledge base:
   GET /api/analytics/word-count-trend — writing activity
   GET /api/analytics/stale-notes   — notes not visited in N days
 """
+
 from __future__ import annotations
 
 import json
@@ -17,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, text
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -230,4 +231,3 @@ def graph_density(db: Session = Depends(get_db)) -> dict[str, Any]:
         "connected_notes": len(connected_note_ids),
         "isolated_notes": isolated_notes,
     }
-

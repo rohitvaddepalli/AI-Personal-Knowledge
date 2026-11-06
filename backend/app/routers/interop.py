@@ -27,8 +27,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.connection import Connection
 from app.models.note import Note
-from app.services.embedding_service import add_note_embedding
-from app.services.connection_engine import auto_connect_note
 
 router = APIRouter(prefix="/api/interop", tags=["interop"])
 
@@ -36,6 +34,7 @@ router = APIRouter(prefix="/api/interop", tags=["interop"])
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _safe_slug(title: str, note_id: str = "") -> str:
     """Convert a note title to a filesystem-safe filename slug."""
@@ -71,11 +70,11 @@ def _note_to_obsidian_md(note: Note, backlinks: List[str]) -> str:
 
     source_block = ""
     if note.source:
-        source_block = f"\nsource: \"{note.source}\""
+        source_block = f'\nsource: "{note.source}"'
 
     return (
         f"---\n"
-        f"title: \"{(note.title or 'Untitled').replace(chr(34), chr(39))}\"\n"
+        f'title: "{(note.title or "Untitled").replace(chr(34), chr(39))}"\n'
         f"{yaml_tags_block}\n"
         f"created: {created}\n"
         f"updated: {updated}\n"
@@ -91,6 +90,7 @@ def _note_to_obsidian_md(note: Note, backlinks: List[str]) -> str:
 # 6.1 Export — Obsidian vault
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.get("/export/obsidian")
 def export_obsidian_vault(db: Session = Depends(get_db)):
     """
@@ -101,10 +101,7 @@ def export_obsidian_vault(db: Session = Depends(get_db)):
     - _index.md with note list and stats
     """
     notes = (
-        db.query(Note)
-        .filter(Note.is_archived == False, Note.deleted_at == None)
-        .order_by(Note.created_at.desc())
-        .all()
+        db.query(Note).filter(Note.is_archived == False, Note.deleted_at == None).order_by(Note.created_at.desc()).all()
     )
     connections = db.query(Connection).all()
 
@@ -134,25 +131,34 @@ def export_obsidian_vault(db: Session = Depends(get_db)):
             zf.writestr(f"notes/{slug}.md", content)
 
         # Obsidian config stubs
-        zf.writestr(".obsidian/app.json", json.dumps({
-            "legacyEditor": False,
-            "livePreview": True,
-            "defaultViewMode": "source",
-        }, indent=2))
-        zf.writestr(".obsidian/graph.json", json.dumps({
-            "collapse-filter": False,
-            "search": "",
-            "showTags": True,
-            "showAttachments": False,
-            "hideUnresolved": False,
-        }, indent=2))
+        zf.writestr(
+            ".obsidian/app.json",
+            json.dumps(
+                {
+                    "legacyEditor": False,
+                    "livePreview": True,
+                    "defaultViewMode": "source",
+                },
+                indent=2,
+            ),
+        )
+        zf.writestr(
+            ".obsidian/graph.json",
+            json.dumps(
+                {
+                    "collapse-filter": False,
+                    "search": "",
+                    "showTags": True,
+                    "showAttachments": False,
+                    "hideUnresolved": False,
+                },
+                indent=2,
+            ),
+        )
         zf.writestr(".obsidian/community-plugins.json", json.dumps([], indent=2))
 
         # Graph export (machine-readable)
-        graph_nodes = [
-            {"id": n.id, "title": n.title or "Untitled", "slug": slug_map.get(n.id, "")}
-            for n in notes
-        ]
+        graph_nodes = [{"id": n.id, "title": n.title or "Untitled", "slug": slug_map.get(n.id, "")} for n in notes]
         graph_edges = [
             {"source": c.source_note_id, "target": c.target_note_id, "weight": getattr(c, "strength", 1.0)}
             for c in connections
@@ -184,6 +190,7 @@ def export_obsidian_vault(db: Session = Depends(get_db)):
 # ─────────────────────────────────────────────────────────────────────────────
 # 6.1 Export — Graph JSON / SVG
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/export/graph/json")
 def export_graph_json(db: Session = Depends(get_db)):
@@ -265,9 +272,7 @@ def export_graph_svg(db: Session = Depends(get_db)):
         x, y = positions[note.id]
         label = (note.title or "Untitled")[:28]
         label = label.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        lines.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#6366f1" stroke="#a5b4fc" stroke-width="1.5"/>'
-        )
+        lines.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#6366f1" stroke="#a5b4fc" stroke-width="1.5"/>')
         lines.append(
             f'<text x="{x:.1f}" y="{y - 11:.1f}" text-anchor="middle" '
             f'font-size="9" fill="#e2e8f0" font-family="ui-monospace,monospace">{label}</text>'
@@ -285,6 +290,7 @@ def export_graph_svg(db: Session = Depends(get_db)):
 # ─────────────────────────────────────────────────────────────────────────────
 # 6.1 Import — Notion ZIP
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/import/notion")
 async def import_notion_zip(file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -347,6 +353,7 @@ async def import_notion_zip(file: UploadFile = File(...), db: Session = Depends(
 # 6.1 Import — Roam Research JSON
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/import/roam")
 async def import_roam_json(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
@@ -371,7 +378,7 @@ async def import_roam_json(file: UploadFile = File(...), db: Session = Depends(g
     def _roam_blocks_to_md(blocks, depth=0) -> str:
         """Recursively flatten Roam block tree to Markdown."""
         lines = []
-        for block in (blocks or []):
+        for block in blocks or []:
             text = block.get("string", "").strip()
             # Convert Roam's {{[[TODO]]}} and [[PageRef]] to plain text
             text = re.sub(r"\{\{.*?\}\}", "", text)
@@ -409,6 +416,7 @@ async def import_roam_json(file: UploadFile = File(...), db: Session = Depends(g
 # 6.1 Import — Generic Markdown ZIP
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/import/markdown-zip")
 async def import_markdown_zip(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
@@ -445,7 +453,7 @@ async def import_markdown_zip(file: UploadFile = File(...), db: Session = Depend
                     fm_match = YAML_FRONT.match(raw_text)
                     if fm_match:
                         fm_block = fm_match.group(1)
-                        raw_text = raw_text[fm_match.end():]
+                        raw_text = raw_text[fm_match.end() :]
                         tag_match = TAG_LINE.search(fm_block)
                         if tag_match:
                             raw_tags = tag_match.group(1).strip()
@@ -457,7 +465,11 @@ async def import_markdown_zip(file: UploadFile = File(...), db: Session = Depend
 
                     # Derive title from first H1 or filename
                     h1_match = re.match(r"^#\s+(.+)", raw_text)
-                    title = h1_match.group(1).strip() if h1_match else Path(name).stem.replace("_", " ").replace("-", " ").strip()
+                    title = (
+                        h1_match.group(1).strip()
+                        if h1_match
+                        else Path(name).stem.replace("_", " ").replace("-", " ").strip()
+                    )
                     title = title[:200]
 
                     note = Note(

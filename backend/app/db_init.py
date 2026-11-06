@@ -1,4 +1,5 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
 from sqlalchemy import inspect, text
 
@@ -8,10 +9,10 @@ from app.database import Base, engine
 
 def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
-    
+
     # Run migrations even for non-sqlite (Postgres)
     _apply_generic_migrations()
-    
+
     if not settings.is_sqlite:
         return
 
@@ -25,10 +26,7 @@ def _apply_generic_migrations() -> None:
     with engine.begin() as conn:
         try:
             inspector = inspect(conn)
-            existing_columns = {
-                column["name"]
-                for column in inspector.get_columns("notes")
-            }
+            existing_columns = {column["name"] for column in inspector.get_columns("notes")}
 
             # Columns needed for various phases
             migrations = [
@@ -38,14 +36,14 @@ def _apply_generic_migrations() -> None:
                 ("next_review_at", "TIMESTAMP" if not settings.is_sqlite else "DATETIME"),
                 ("last_reviewed_at", "TIMESTAMP" if not settings.is_sqlite else "DATETIME"),
                 ("parent_note_id", "VARCHAR"),
-                ("order", 'INTEGER DEFAULT 0'),
-                ("is_public", "BOOLEAN DEFAULT FALSE")
+                ("order", "INTEGER DEFAULT 0"),
+                ("is_public", "BOOLEAN DEFAULT FALSE"),
             ]
 
             for name, col_type in migrations:
                 if name in existing_columns:
                     continue
-                
+
                 # Handle "order" reserved keyword in some DBs
                 col_name = f'"{name}"' if name == "order" else name
                 try:
@@ -56,7 +54,8 @@ def _apply_generic_migrations() -> None:
 
             # Also ensure webhook_calls table exists for non-sqlite
             if not settings.is_sqlite:
-                conn.execute(text("""
+                conn.execute(
+                    text("""
                     CREATE TABLE IF NOT EXISTS webhook_calls (
                         id SERIAL PRIMARY KEY,
                         hook_id VARCHAR NOT NULL,
@@ -64,7 +63,8 @@ def _apply_generic_migrations() -> None:
                         payload_size INTEGER DEFAULT 0,
                         called_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
-                """))
+                """)
+                )
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"))
 
         except Exception as exc:
@@ -79,29 +79,39 @@ def _apply_sqlite_legacy_columns() -> None:
 def _initialize_sqlite_fts() -> None:
     with engine.begin() as conn:
         try:
-            conn.execute(text("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(id UNINDEXED, title, content, tags);"))
+            conn.execute(
+                text("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(id UNINDEXED, title, content, tags);")
+            )
             # ... (rest of the FTS logic)
-            conn.execute(text("""
+            conn.execute(
+                text("""
                 INSERT INTO notes_fts(id, title, content, tags)
                 SELECT id, title, content, tags FROM notes
                 WHERE id NOT IN (SELECT id FROM notes_fts);
-            """))
+            """)
+            )
 
-            conn.execute(text("""
+            conn.execute(
+                text("""
             CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
                 INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
-            END;"""))
+            END;""")
+            )
 
-            conn.execute(text("""
+            conn.execute(
+                text("""
             CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
                 DELETE FROM notes_fts WHERE id=old.id;
-            END;"""))
+            END;""")
+            )
 
-            conn.execute(text("""
+            conn.execute(
+                text("""
             CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
                 DELETE FROM notes_fts WHERE id=old.id;
                 INSERT INTO notes_fts(id, title, content, tags) VALUES (new.id, new.title, new.content, new.tags);
-            END;"""))
+            END;""")
+            )
         except Exception as exc:
             logger.info(f"FTS Table setup error: {exc}")
 
@@ -110,7 +120,8 @@ def _initialize_phase5_tables() -> None:
     """Ensure Phase 5 tables exist (user_activity, user_preferences, milestones)."""
     with engine.begin() as conn:
         try:
-            conn.execute(text("""
+            conn.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS user_activity (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date VARCHAR NOT NULL,
@@ -121,25 +132,30 @@ def _initialize_phase5_tables() -> None:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
-            """))
+            """)
+            )
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_activity_date ON user_activity(date);"))
-            conn.execute(text("""
+            conn.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS user_preferences (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     key VARCHAR UNIQUE NOT NULL,
                     value TEXT NOT NULL,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
-            """))
+            """)
+            )
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_preferences_key ON user_preferences(key);"))
-            conn.execute(text("""
+            conn.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS milestones (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     milestone_type VARCHAR NOT NULL,
                     achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     is_seen INTEGER DEFAULT 0
                 );
-            """))
+            """)
+            )
         except Exception as exc:
             logger.info(f"Phase 5 table setup error: {exc}")
 
@@ -148,7 +164,8 @@ def _initialize_phase6_schema() -> None:
     """SQLite specific Phase 6 schema."""
     with engine.begin() as conn:
         try:
-            conn.execute(text("""
+            conn.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS webhook_calls (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     hook_id VARCHAR NOT NULL,
@@ -156,10 +173,8 @@ def _initialize_phase6_schema() -> None:
                     payload_size INTEGER DEFAULT 0,
                     called_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
-            """))
-            conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"
-            ))
+            """)
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_webhook_calls_hook ON webhook_calls(hook_id);"))
         except Exception as exc:
             logger.info(f"Phase 6 schema error: {exc}")
-

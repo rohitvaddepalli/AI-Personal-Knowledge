@@ -153,4 +153,5 @@ class Settings(BaseSettings):
     def runtime_settings_path(self) -> Path:
         return self.app_data_dir_path / "settings.json"
 
+
 settings = Settings()

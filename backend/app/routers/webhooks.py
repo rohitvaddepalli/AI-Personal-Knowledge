@@ -23,8 +23,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.note import Note
-from app.services.embedding_service import add_note_embedding
 from app.services.connection_engine import auto_connect_note
+from app.services.embedding_service import add_note_embedding
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
@@ -32,8 +32,8 @@ router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 # In-process registry (persists to a JSON file in the app data dir)
 # ─────────────────────────────────────────────────────────────────────────────
 
-import os
 from pathlib import Path
+
 from app.config import settings
 
 _REGISTRY_PATH = Path(getattr(settings, "data_dir", Path.home() / ".second-brain")) / "webhooks.json"
@@ -57,12 +57,13 @@ def _save_registry(hooks: list[dict]) -> None:
 # Models
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class WebhookRegisterRequest(BaseModel):
-    name: str                           # e.g. "Zapier capture", "Slack bot"
-    source_label: str = "webhook"       # label shown on created notes
-    secret: Optional[str] = None        # HMAC secret for signature verification
+    name: str  # e.g. "Zapier capture", "Slack bot"
+    source_label: str = "webhook"  # label shown on created notes
+    secret: Optional[str] = None  # HMAC secret for signature verification
     extract_title_field: str = "title"  # JSON field to use as note title
-    extract_body_field: str = "body"    # JSON field to use as note body
+    extract_body_field: str = "body"  # JSON field to use as note body
     extract_tags_field: Optional[str] = None
     auto_tag: bool = True
 
@@ -70,6 +71,7 @@ class WebhookRegisterRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 # Registration endpoints
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/register", status_code=201)
 def register_webhook(req: WebhookRegisterRequest):
@@ -122,6 +124,7 @@ def delete_webhook(hook_id: str):
 # Ingest endpoint (public — authenticated by token)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _verify_signature(body: bytes, secret: str, signature_header: Optional[str]) -> bool:
     """Verify HMAC-SHA256 signature if a secret is configured."""
     if not secret:
@@ -143,9 +146,7 @@ def _extract_field(payload: dict, field: str) -> str:
     return str(val) if val else ""
 
 
-async def _create_note_from_webhook(
-    hook: dict, payload: dict, db: Session
-) -> Note:
+async def _create_note_from_webhook(hook: dict, payload: dict, db: Session) -> Note:
     title = _extract_field(payload, hook["extract_title_field"]) or "Webhook Note"
     body = _extract_field(payload, hook["extract_body_field"]) or json.dumps(payload, indent=2)
     tags: list[str] = []

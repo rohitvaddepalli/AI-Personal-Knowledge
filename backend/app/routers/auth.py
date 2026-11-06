@@ -32,9 +32,27 @@ class RegisterRequest(BaseModel):
 
 def _set_auth_cookies(response: Response, username: str) -> dict[str, str]:
     cookies = issue_auth_cookies(username)
-    response.set_cookie(ACCESS_COOKIE_NAME, cookies[ACCESS_COOKIE_NAME], httponly=True, secure=settings.auth_cookie_secure, samesite="lax")
-    response.set_cookie(REFRESH_COOKIE_NAME, cookies[REFRESH_COOKIE_NAME], httponly=True, secure=settings.auth_cookie_secure, samesite="lax")
-    response.set_cookie(settings.csrf_cookie_name, cookies[settings.csrf_cookie_name], httponly=False, secure=settings.auth_cookie_secure, samesite="lax")
+    response.set_cookie(
+        ACCESS_COOKIE_NAME,
+        cookies[ACCESS_COOKIE_NAME],
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",
+    )
+    response.set_cookie(
+        REFRESH_COOKIE_NAME,
+        cookies[REFRESH_COOKIE_NAME],
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",
+    )
+    response.set_cookie(
+        settings.csrf_cookie_name,
+        cookies[settings.csrf_cookie_name],
+        httponly=False,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",
+    )
     return cookies
 
 

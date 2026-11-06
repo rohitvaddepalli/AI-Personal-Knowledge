@@ -1,4 +1,16 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import httpx
+import typer
+from rich.console import Console
+from rich.table import Table
+
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
 """
 Phase 6.2 — CLI tool for Second Brain
@@ -20,19 +32,6 @@ Run from the backend directory with:
 The CLI talks to the running API server (default: http://localhost:8000).
 Override with: SB_API_URL=http://localhost:8000
 """
-
-from __future__ import annotations
-
-import json
-import os
-import sys
-from pathlib import Path
-
-import httpx
-import typer
-from rich import print as rprint
-from rich.console import Console
-from rich.table import Table
 
 app = typer.Typer(name="sb", help="Second Brain CLI — capture, search, chat, export.")
 console = Console()
@@ -100,7 +99,9 @@ def notes_show(note_id: str = typer.Argument(..., help="Note ID.")):
     """Show a single note."""
     data = _get(f"/api/notes/{note_id}")
     logger.info(f"\n[bold]{data.get('title', 'Untitled')}[/bold]")
-    logger.info(f"[dim]ID: {data.get('id')} | Tags: {', '.join(data.get('tags', []))} | {(data.get('created_at') or '')[:10]}[/dim]\n")
+    logger.info(
+        f"[dim]ID: {data.get('id')} | Tags: {', '.join(data.get('tags', []))} | {(data.get('created_at') or '')[:10]}[/dim]\n"
+    )
     logger.info(data.get("content", ""))
 
 
@@ -123,6 +124,7 @@ def notes_search(query: str = typer.Argument(..., help="Search query.")):
 # ─────────────────────────────────────────────────────────────────────────────
 # Ingest command
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.command("ingest")
 def ingest(
@@ -148,6 +150,7 @@ def ingest(
 # ─────────────────────────────────────────────────────────────────────────────
 # Chat command
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.command("chat")
 def chat(
@@ -195,7 +198,9 @@ def export_graph_json(
     """Export the knowledge graph as JSON."""
     data = _get("/api/interop/export/graph/json")
     out.write_text(json.dumps(data, indent=2))
-    logger.info(f"[green]✓[/green] Graph: {data['meta']['note_count']} nodes, {data['meta']['edge_count']} edges → [bold]{out}[/bold]")
+    logger.info(
+        f"[green]✓[/green] Graph: {data['meta']['note_count']} nodes, {data['meta']['edge_count']} edges → [bold]{out}[/bold]"
+    )
 
 
 @export_app.command("graph-svg")
@@ -238,11 +243,11 @@ def webhook_register(
         "extract_body_field": body_field,
     }
     data = _post("/api/webhooks/register", json=payload)
-    logger.info(f"\n[green]✓ Webhook registered[/green]")
+    logger.info("\n[green]✓ Webhook registered[/green]")
     logger.info(f"  [bold]ID:[/bold]         {data['id']}")
     logger.info(f"  [bold]Token:[/bold]      {data['token']}")
     logger.info(f"  [bold]Ingest URL:[/bold] {API_URL}{data['ingest_url']}")
-    logger.info(f"\n[dim]POST JSON to the ingest URL from any external tool (Zapier, n8n, Slack bot, etc.)[/dim]\n")
+    logger.info("\n[dim]POST JSON to the ingest URL from any external tool (Zapier, n8n, Slack bot, etc.)[/dim]\n")
 
 
 @webhook_app.command("list")

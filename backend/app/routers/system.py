@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.job_queue import list_jobs
 from app.llm.router import provider_health
-from app.runtime import get_runtime_settings, save_runtime_settings, update_runtime_settings
+from app.runtime import get_runtime_settings, update_runtime_settings
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 

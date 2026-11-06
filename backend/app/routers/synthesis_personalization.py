@@ -1,14 +1,15 @@
 from __future__ import annotations
+
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
 
 import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -45,6 +46,7 @@ def _run_synthesis(db: Session) -> None:
     """Background task: LLM synthesis of the week's notes."""
     try:
         from app.llm.router import complete
+
         week_ago = datetime.utcnow() - timedelta(days=7)
         notes = (
             db.query(Note)
@@ -183,6 +185,7 @@ def get_dashboard_mode(db: Session = Depends(get_db)):
     """Infer user mode from activity patterns (writer/researcher/student/creator)."""
     try:
         from app.models.note import Note
+
         notes = (
             db.query(Note)
             .filter(Note.is_archived == False, Note.deleted_at == None)

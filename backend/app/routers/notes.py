@@ -1,34 +1,44 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from typing import List
 import json
+from typing import List
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.llm.router import generate_text
 from app.llm.types import LLMRequest
 from app.models.note import Note as NoteModel
-from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, NoteTransformRequest, NoteTransformResponse, NoteSummarizeRequest
-from app.services.embedding_service import add_note_embedding, delete_note_embedding, update_note_embedding
+from app.schemas.note import (
+    NoteCreate,
+    NoteResponse,
+    NoteSummarizeRequest,
+    NoteTransformRequest,
+    NoteTransformResponse,
+    NoteUpdate,
+)
 from app.services.connection_engine import auto_connect_note
+from app.services.embedding_service import add_note_embedding, update_note_embedding
 from app.services.note_service import NoteService
-from app.routers.note_versions import save_version
-from app.config import settings
 from app.utils.security import sanitize_content_for_prompt
 
 router = APIRouter(prefix="/api/notes", tags=["notes"])
+
 
 class TagSuggestionRequest(BaseModel):
     title: str
     content: str
     model: str = "qwen2.5:0.5b"
 
+
 @router.post("/suggest-tags", response_model=List[str])
 async def suggest_tags(req: TagSuggestionRequest):
     safe_title = sanitize_content_for_prompt(req.title)
     safe_content = sanitize_content_for_prompt(req.content)
-    
+
     prompt = (
         "You are an AI assistant that suggests relevant tags for a document.\n"
         "Return ONLY a comma-separated list of 3-5 lowercase tags (no spaces after commas, no explanation).\n\n"
@@ -39,11 +49,19 @@ async def suggest_tags(req: TagSuggestionRequest):
         "Tags:"
     )
     try:
-        response = await generate_text(LLMRequest(feature="summarize", model=req.model, prompt=prompt, system="You extract tags for the user.", max_tokens=64))
+        response = await generate_text(
+            LLMRequest(
+                feature="summarize",
+                model=req.model,
+                prompt=prompt,
+                system="You extract tags for the user.",
+                max_tokens=64,
+            )
+        )
         result_text = response.content.strip()
         tags = [t.strip().lower() for t in result_text.split(",") if t.strip()]
         return tags[:5]
-    except:
+    except Exception:
         return []
 
 
@@ -57,6 +75,7 @@ def create_note(note: NoteCreate, background_tasks: BackgroundTasks, db: Session
 @router.get("/random", response_model=NoteResponse)
 def get_random_note(db: Session = Depends(get_db)):
     import random
+
     query = db.query(NoteModel).filter(NoteModel.is_archived == False)
     count = query.count()
     if count == 0:
@@ -70,19 +89,20 @@ def get_random_note(db: Session = Depends(get_db)):
 @router.get("/daily/today", response_model=NoteResponse)
 def get_or_create_daily_note(db: Session = Depends(get_db)):
     from datetime import datetime
+
     today = datetime.now().strftime("%Y-%m-%d")
-    
+
     # Look for existing daily note
-    note = db.query(NoteModel).filter(
-        NoteModel.title.contains(today),
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).first()
-    
+    note = (
+        db.query(NoteModel)
+        .filter(NoteModel.title.contains(today), NoteModel.is_archived == False, NoteModel.deleted_at == None)
+        .first()
+    )
+
     if note:
         note.tags = json.loads(note.tags) if note.tags else []
         return note
-    
+
     # Create new daily note
     db_note = NoteModel(
         title=f"Daily Note: {today}",
@@ -90,30 +110,31 @@ def get_or_create_daily_note(db: Session = Depends(get_db)):
         source="daily",
         source_type="journal",
         tags=json.dumps(["daily", "journal"]),
-        is_pinned=False
+        is_pinned=False,
     )
     db.add(db_note)
     db.commit()
     db.refresh(db_note)
     db_note.tags = json.loads(db_note.tags) if db_note.tags else []
-    
+
     # Add embedding
     try:
         add_note_embedding(db_note.id, db_note.title, db_note.content)
     except Exception as e:
         logger.info(f"Failed to generate embedding: {e}")
-    
+
     return db_note
 
 
 @router.get("/daily/", response_model=List[NoteResponse])
 def get_daily_notes(db: Session = Depends(get_db)):
     """Get all daily/journal notes ordered by date desc"""
-    notes = db.query(NoteModel).filter(
-        NoteModel.source == "daily",
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).order_by(NoteModel.created_at.desc()).all()
+    notes = (
+        db.query(NoteModel)
+        .filter(NoteModel.source == "daily", NoteModel.is_archived == False, NoteModel.deleted_at == None)
+        .order_by(NoteModel.created_at.desc())
+        .all()
+    )
     for note in notes:
         note.tags = json.loads(note.tags) if note.tags else []
     return notes
@@ -121,19 +142,25 @@ def get_daily_notes(db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[NoteResponse])
 def read_notes(skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db)):
-    notes = db.query(NoteModel).filter(
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).order_by(NoteModel.created_at.desc()).offset(skip).limit(limit).all()
+    notes = (
+        db.query(NoteModel)
+        .filter(NoteModel.is_archived == False, NoteModel.deleted_at == None)
+        .order_by(NoteModel.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     for note in notes:
         note.tags = json.loads(note.tags) if note.tags else []
     return notes
 
 
 @router.put("/{note_id}", response_model=NoteResponse)
-def update_note(note_id: str, note_update: NoteUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def update_note(
+    note_id: str, note_update: NoteUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     db_note, needs_embedding_update = NoteService.update_note(db, note_id, note_update)
-    
+
     if needs_embedding_update:
         try:
             update_note_embedding(db_note.id, db_note.title, db_note.content)
@@ -152,6 +179,7 @@ def delete_note(note_id: str, db: Session = Depends(get_db)):
 
     db_note.is_archived = True
     from datetime import datetime
+
     db_note.deleted_at = datetime.utcnow()
     db.commit()
     return {"status": "moved_to_trash"}
@@ -170,7 +198,7 @@ def restore_note(note_id: str, db: Session = Depends(get_db)):
     db_note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if db_note is None:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     db_note.deleted_at = None
     db_note.is_archived = False
     db.commit()
@@ -184,14 +212,15 @@ def permanent_delete_note(note_id: str, db: Session = Depends(get_db)):
     db_note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if db_note is None:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     # Delete from vector store
     try:
         from app.services.embedding_service import delete_note_embedding
+
         delete_note_embedding(note_id)
     except Exception as e:
         logger.info(f"Failed to delete embedding: {e}")
-    
+
     db.delete(db_note)
     db.commit()
     return {"status": "deleted_permanently"}
@@ -199,10 +228,13 @@ def permanent_delete_note(note_id: str, db: Session = Depends(get_db)):
 
 @router.get("/search/", response_model=List[NoteResponse])
 def search_notes(query: str = Query(..., min_length=1), db: Session = Depends(get_db)):
-    notes = db.query(NoteModel).filter(
-        NoteModel.is_archived == False,
-        (NoteModel.title.icontains(query)) | (NoteModel.content.icontains(query))
-    ).all()
+    notes = (
+        db.query(NoteModel)
+        .filter(
+            NoteModel.is_archived == False, (NoteModel.title.icontains(query)) | (NoteModel.content.icontains(query))
+        )
+        .all()
+    )
     for note in notes:
         note.tags = json.loads(note.tags) if note.tags else []
     return notes
@@ -211,11 +243,12 @@ def search_notes(query: str = Query(..., min_length=1), db: Session = Depends(ge
 @router.get("/{note_id}/children", response_model=List[NoteResponse])
 def get_child_notes(note_id: str, db: Session = Depends(get_db)):
     """Get all child notes of a note"""
-    notes = db.query(NoteModel).filter(
-        NoteModel.parent_note_id == note_id,
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).order_by(NoteModel.created_at.desc()).all()
+    notes = (
+        db.query(NoteModel)
+        .filter(NoteModel.parent_note_id == note_id, NoteModel.is_archived == False, NoteModel.deleted_at == None)
+        .order_by(NoteModel.created_at.desc())
+        .all()
+    )
     for note in notes:
         note.tags = json.loads(note.tags) if note.tags else []
     return notes
@@ -227,7 +260,7 @@ def set_parent_note(note_id: str, parent_id: str, db: Session = Depends(get_db))
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    
+
     # Check for circular reference
     if parent_id:
         parent = db.query(NoteModel).filter(NoteModel.id == parent_id).first()
@@ -236,7 +269,7 @@ def set_parent_note(note_id: str, parent_id: str, db: Session = Depends(get_db))
         # Prevent setting self as parent
         if parent_id == note_id:
             raise HTTPException(status_code=400, detail="Cannot set note as its own parent")
-    
+
     note.parent_note_id = parent_id if parent_id else None
     db.commit()
     db.refresh(note)
@@ -253,25 +286,23 @@ def get_note_tree(note_id: str, db: Session = Depends(get_db)):
 @router.get("/full-tree")
 def get_full_tree(db: Session = Depends(get_db)):
     """Get all notes as a nested tree structure"""
-    all_notes = db.query(NoteModel).filter(
-        NoteModel.is_archived == False,
-        NoteModel.deleted_at == None
-    ).all()
-    
+    all_notes = db.query(NoteModel).filter(NoteModel.is_archived == False, NoteModel.deleted_at == None).all()
+
     # Map by ID for quick lookup
     note_map = {n.id: {"id": n.id, "title": n.title, "children": []} for n in all_notes}
     roots = []
-    
+
     for n in all_notes:
         if n.parent_note_id and n.parent_note_id in note_map:
             note_map[n.parent_note_id]["children"].append(note_map[n.id])
         else:
             roots.append(note_map[n.id])
-            
+
     return roots
 
 
 # ── 3.2 Related notes sidebar ──────────────────────────────────────────────
+
 
 @router.get("/{note_id}/related")
 def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db)):
@@ -284,13 +315,15 @@ def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db
 
 # ── 3.3 Writing assistant ──────────────────────────────────────────────────
 
+
 class AiAssistRequest(BaseModel):
-    action: str          # continue | rewrite | explain | translate | custom
-    selection: str       # selected text or full content
-    context: str = ""    # surrounding context / note title
+    action: str  # continue | rewrite | explain | translate | custom
+    selection: str  # selected text or full content
+    context: str = ""  # surrounding context / note title
     model: str = "qwen2.5:0.5b"
-    language: str = "English"   # for translate action
+    language: str = "English"  # for translate action
     custom_instruction: str = ""
+
 
 ACTION_PROMPTS = {
     "continue": (
@@ -320,6 +353,7 @@ ACTION_PROMPTS = {
         "Text:\n{selection}\n\nResult:"
     ),
 }
+
 
 @router.post("/{note_id}/ai-assist")
 async def ai_assist(note_id: str, req: AiAssistRequest, db: Session = Depends(get_db)):
@@ -361,15 +395,17 @@ def read_note(note_id: str, db: Session = Depends(get_db)):
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     note.tags = json.loads(note.tags) if note.tags else []
-    
+
     # Simple backlink finding based on title match in other notes' content
-    backlinks_query = db.query(NoteModel).filter(
-        NoteModel.id != note_id,
-        NoteModel.is_archived == False,
-        NoteModel.content.icontains(f"[[{note.title}]]")
-    ).all()
+    backlinks_query = (
+        db.query(NoteModel)
+        .filter(
+            NoteModel.id != note_id, NoteModel.is_archived == False, NoteModel.content.icontains(f"[[{note.title}]]")
+        )
+        .all()
+    )
     note.backlinks = [{"id": b.id, "title": b.title} for b in backlinks_query]
-    
+
     return note
 
 
@@ -380,7 +416,7 @@ async def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session =
         raise HTTPException(status_code=404, detail="Note not found")
     safe_title = sanitize_content_for_prompt(note.title)
     safe_content = sanitize_content_for_prompt(note.content)
-    
+
     prompt = (
         "You are an AI assistant helping the user review a note.\n"
         "Summarize the note in 3-7 concise bullet points.\n"
@@ -393,7 +429,15 @@ async def summarize_note(note_id: str, body: NoteSummarizeRequest, db: Session =
         "Summary:\n"
     )
     try:
-        response = await generate_text(LLMRequest(feature="summarize", model=body.model, prompt=prompt, system="You summarize notes for the user.", max_tokens=512))
+        response = await generate_text(
+            LLMRequest(
+                feature="summarize",
+                model=body.model,
+                prompt=prompt,
+                system="You summarize notes for the user.",
+                max_tokens=512,
+            )
+        )
         result_text = response.content.strip()
         if not result_text:
             raise HTTPException(status_code=500, detail="Empty response from LLM")
@@ -412,7 +456,7 @@ async def transform_note(note_id: str, body: NoteTransformRequest, db: Session =
     safe_instruction = sanitize_content_for_prompt(body.instruction)
     safe_title = sanitize_content_for_prompt(note.title)
     safe_content = sanitize_content_for_prompt(note.content)
-    
+
     prompt = (
         "You are an AI assistant that rewrites the user's note content.\n"
         "Follow the instruction carefully and return only the transformed note content.\n\n"
@@ -425,7 +469,15 @@ async def transform_note(note_id: str, body: NoteTransformRequest, db: Session =
         "Transformed content:\n"
     )
     try:
-        response = await generate_text(LLMRequest(feature="edit", model=body.model, prompt=prompt, system="You rewrite and refactor notes for the user.", max_tokens=1024))
+        response = await generate_text(
+            LLMRequest(
+                feature="edit",
+                model=body.model,
+                prompt=prompt,
+                system="You rewrite and refactor notes for the user.",
+                max_tokens=1024,
+            )
+        )
         result_text = response.content.strip()
         if not result_text:
             raise HTTPException(status_code=500, detail="Empty response from LLM")

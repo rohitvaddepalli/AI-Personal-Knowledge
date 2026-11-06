@@ -51,14 +51,18 @@ def _build_provider(name: str):
         return OllamaProvider()
 
     if not _cloud_allowed() and name != "ollama":
-        raise HTTPException(status_code=400, detail="Cloud providers are disabled. Enable cloud opt-in in settings first.")
+        raise HTTPException(
+            status_code=400, detail="Cloud providers are disabled. Enable cloud opt-in in settings first."
+        )
 
     if name in {"openai", "openrouter", "groq"}:
         api_key = str(config.get("api_key") or "")
         base_url = str(config.get("base_url") or "")
         if not api_key or not base_url:
             raise HTTPException(status_code=400, detail=f"{name} is not configured")
-        return OpenAICompatibleProvider(name=name, base_url=base_url, api_key=api_key, default_model=_default_model(name))
+        return OpenAICompatibleProvider(
+            name=name, base_url=base_url, api_key=api_key, default_model=_default_model(name)
+        )
 
     if name == "anthropic":
         api_key = str(config.get("api_key") or "")

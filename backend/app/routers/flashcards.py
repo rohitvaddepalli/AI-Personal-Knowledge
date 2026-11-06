@@ -3,12 +3,12 @@ Flashcards router — Phase 3.4
 AI flashcard generation from note content, CRUD management,
 quality-of-recall tracking, and Anki export.
 """
+
 from __future__ import annotations
 
 import csv
 import io
 import json
-import uuid
 from datetime import datetime
 from typing import List, Optional
 
@@ -16,7 +16,6 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -28,6 +27,7 @@ router = APIRouter(prefix="/api/flashcards", tags=["flashcards"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────
+
 
 class FlashcardOut(BaseModel):
     id: str
@@ -62,6 +62,7 @@ class FlashcardUpdate(BaseModel):
 
 # ── SM-2 scheduler ─────────────────────────────────────────────────────────
 
+
 def _sm2(card: Flashcard, quality: int) -> None:
     """Apply SM-2 algorithm to update scheduling fields in-place."""
     q = max(0, min(5, quality))
@@ -79,6 +80,7 @@ def _sm2(card: Flashcard, quality: int) -> None:
             card.interval = round(card.interval * card.ease_factor)
 
     from datetime import timedelta
+
     card.next_review_at = datetime.utcnow() + timedelta(days=card.interval)
     card.last_reviewed_at = datetime.utcnow()
     history = json.loads(card.recall_history or "[]")
@@ -88,10 +90,12 @@ def _sm2(card: Flashcard, quality: int) -> None:
 
 # ── Routes ─────────────────────────────────────────────────────────────────
 
+
 @router.post("/generate", response_model=List[FlashcardOut])
 def generate_flashcards(req: GenerateRequest, db: Session = Depends(get_db)):
     """Generate AI flashcards from a note's content."""
     from app.models.note import Note as NoteModel
+
     note = db.query(NoteModel).filter(NoteModel.id == req.note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -120,6 +124,7 @@ def generate_flashcards(req: GenerateRequest, db: Session = Depends(get_db)):
         raw = resp.json().get("response", "").strip()
         # Extract JSON array even if LLM wraps it in markdown
         import re
+
         match = re.search(r"\[.*\]", raw, re.DOTALL)
         if not match:
             raise ValueError("LLM did not return a JSON array")

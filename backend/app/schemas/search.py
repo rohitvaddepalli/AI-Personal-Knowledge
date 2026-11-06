@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 class SearchResultResponse(BaseModel):
     id: str
@@ -8,6 +10,7 @@ class SearchResultResponse(BaseModel):
     score: float
     source_type: Optional[str] = None
     tags: List[str] = []
+
 
 class AskRequest(BaseModel):
     question: str
@@ -26,6 +29,7 @@ class AskRequest(BaseModel):
     require_flashcards: bool = False
     rerank_bias: float = 0.5
 
+
 class AskResponse(BaseModel):
     answer: str
     sources: List[dict]
@@ -33,12 +37,14 @@ class AskResponse(BaseModel):
     confidence: Optional[float] = None
     retrieval_explanation: Optional[str] = None
 
+
 class AutoSuggestRequest(BaseModel):
     content_before: str
     content_after: Optional[str] = ""
     note_id: Optional[str] = None
     model: Optional[str] = "qwen2.5:0.5b"
     provider: Optional[str] = None
+
 
 class AIEditRequest(BaseModel):
     instruction: str

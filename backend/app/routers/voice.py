@@ -1,15 +1,18 @@
 from app.utils.logger import get_logger
+
 logger = get_logger(__name__)
 """
 Voice transcription router using Whisper via Ollama or local whisper model.
 Falls back gracefully when whisper is not available.
 """
-from fastapi import APIRouter, File, UploadFile, HTTPException
-from pydantic import BaseModel
-import httpx
 import base64
-import tempfile
 import os
+import tempfile
+
+import httpx
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel
+
 from app.config import settings
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
@@ -34,10 +37,7 @@ async def transcribe_audio(
     allowed = {".webm", ".wav", ".mp3", ".ogg", ".m4a", ".flac"}
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in allowed:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported audio format: {ext}. Allowed: {', '.join(allowed)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unsupported audio format: {ext}. Allowed: {', '.join(allowed)}")
 
     audio_bytes = await file.read()
     if len(audio_bytes) == 0:
@@ -50,6 +50,7 @@ async def transcribe_audio(
 
     try:
         import time
+
         start = time.time()
 
         # Try Ollama whisper endpoint
@@ -63,7 +64,7 @@ async def transcribe_audio(
                         "prompt": "",
                         "images": [audio_b64],  # Ollama multimodal format
                         "stream": False,
-                    }
+                    },
                 )
             if response.status_code == 200:
                 result = response.json().get("response", "").strip()
@@ -75,6 +76,7 @@ async def transcribe_audio(
         # Fallback: try faster-whisper or openai-whisper if installed
         try:
             import whisper as openai_whisper  # type: ignore
+
             wmodel = openai_whisper.load_model("base")
             result_obj = wmodel.transcribe(tmp_path)
             text = result_obj.get("text", "").strip()
@@ -92,7 +94,7 @@ async def transcribe_audio(
                 "Whisper is not available. "
                 "Install 'openai-whisper' (pip install openai-whisper) or "
                 "pull the whisper model in Ollama ('ollama pull whisper')."
-            )
+            ),
         )
     finally:
         try:

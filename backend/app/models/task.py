@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.sql import text as sql_text
+
 from app.database import Base
+
 
 class Task(Base):
     __tablename__ = "core_tasks"  # Avoiding name collision if needed
