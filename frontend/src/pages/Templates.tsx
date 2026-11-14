@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 
 interface Template {
   id: number;
@@ -28,7 +29,7 @@ export default function Templates() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/templates');
+      const res = await fetch(apiUrl('/api/templates'));
       const data = await res.json();
       setTemplates(data);
     } catch (e) {
@@ -38,7 +39,7 @@ export default function Templates() {
 
   const createTemplate = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/templates', {
+      const res = await fetch(apiUrl('/api/templates'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTemplate)
@@ -60,7 +61,7 @@ export default function Templates() {
     }
     if (!confirm('Delete this template?')) return;
     try {
-      await fetch(`http://localhost:8000/api/templates/${id}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/templates/${id}`), { method: 'DELETE' });
       fetchTemplates();
     } catch (e) {
       console.error(e);
@@ -69,7 +70,7 @@ export default function Templates() {
 
   const handleApplyTemplate = async (template: Template) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/templates/${template.id}/apply`);
+      const res = await fetch(apiUrl(`/api/templates/${template.id}/apply`));
       if (res.ok) {
         const data = await res.json();
         // Store in sessionStorage and navigate to new note

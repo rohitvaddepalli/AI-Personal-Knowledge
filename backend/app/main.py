@@ -95,13 +95,16 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
                 if not secrets.compare_digest(provided, settings.api_key):
                     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
             elif not settings.allow_remote_clients:
-                if _is_local_only_binding():
-                    return await call_next(request)
-                host = (request.client.host if request.client else "") or ""
-                if not _is_loopback_host(host):
-                    return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
+                if not _is_local_only_binding():
+                    host = (request.client.host if request.client else "") or ""
+                    if not _is_loopback_host(host):
+                        return JSONResponse({"detail": "Remote access disabled"}, status_code=403)
 
-            if settings.auth_mode == "multi_user" and not request.url.path.startswith("/api/auth"):
+            if (
+                settings.auth_mode == "multi_user"
+                and not request.url.path.startswith("/api/auth")
+                and not request.url.path.startswith("/api/webhooks/ingest/")
+            ):
                 access_token = request.cookies.get(ACCESS_COOKIE_NAME)
                 if not access_token:
                     return JSONResponse({"detail": "Authentication required"}, status_code=401)

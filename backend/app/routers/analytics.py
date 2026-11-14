@@ -57,17 +57,18 @@ def _word_count(content: str) -> int:
 def analytics_overview(db: Session = Depends(get_db)) -> dict[str, Any]:
     """High-level knowledge base statistics."""
     base_q = db.query(Note).filter(Note.is_archived == False, Note.deleted_at == None)  # noqa: E712
+    notes = base_q.all()
 
-    total_notes = base_q.count()
-    total_words = sum(_word_count(n.content) for n in base_q.all())
+    total_notes = len(notes)
+    total_words = sum(_word_count(n.content) for n in notes)
 
     # Notes created in last 7 days
     week_ago = datetime.utcnow() - timedelta(days=7)
-    recent_notes = base_q.filter(Note.created_at >= week_ago).count()
+    recent_notes = sum(1 for n in notes if n.created_at and n.created_at >= week_ago)
 
     # Unique tags count
     all_tags: list[str] = []
-    for note in base_q.all():
+    for note in notes:
         all_tags.extend(_parse_tags(note.tags))
     unique_tags = len(set(all_tags))
 

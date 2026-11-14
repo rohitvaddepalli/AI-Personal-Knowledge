@@ -12,17 +12,19 @@ Endpoints:
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from typing import Optional
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.note import Note
+from app.utils.security import sanitize_markdown
 
 router = APIRouter(prefix="/api/garden", tags=["garden"])
 
@@ -49,23 +51,24 @@ def _load_tags(raw: Optional[str]) -> list[str]:
 
 def _md_to_html(md: str) -> str:
     """Minimal Markdown → HTML (headings, bold, italic, code, links, paragraphs)."""
-    html = md
+    raw_md = sanitize_markdown(md or "")
+    html_text = raw_md
     # Headings
     for level in range(6, 0, -1):
         hashes = "#" * level
-        html = re.sub(rf"^{hashes} +(.+)$", rf"<h{level}>\1</h{level}>", html, flags=re.MULTILINE)
+        html_text = re.sub(rf"^{hashes} +(.+)$", rf"<h{level}>\1</h{level}>", html_text, flags=re.MULTILINE)
     # Fenced code blocks
-    html = re.sub(r"```[\w]*\n(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.DOTALL)
+    html_text = re.sub(r"```[\w]*\n(.*?)```", r"<pre><code>\1</code></pre>", html_text, flags=re.DOTALL)
     # Inline code
-    html = re.sub(r"`([^`]+)`", r"<code>\1</code>", html)
+    html_text = re.sub(r"`([^`]+)`", r"<code>\1</code>", html_text)
     # Bold
-    html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
+    html_text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html_text)
     # Italic
-    html = re.sub(r"\*(.+?)\*", r"<em>\1</em>", html)
+    html_text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", html_text)
     # Links
-    html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" rel="noopener">\1</a>', html)
+    html_text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" rel="noopener">\1</a>', html_text)
     # Paragraphs (blank line separated)
-    blocks = re.split(r"\n{2,}", html)
+    blocks = re.split(r"\n{2,}", html_text)
     parts = []
     for b in blocks:
         b = b.strip()
@@ -206,28 +209,31 @@ def garden_index(
     )
 
     if "application/json" in accept:
-        return [
-            {
-                "id": n.id,
-                "title": n.title,
-                "slug": _slugify(n.title or "", n.id),
-                "tags": _load_tags(n.tags),
-                "created_at": n.created_at.isoformat() if n.created_at else None,
-                "excerpt": (n.content or "")[:200],
-            }
-            for n in public_notes
-        ]
+        return JSONResponse(
+            content=[
+                {
+                    "id": n.id,
+                    "title": n.title,
+                    "slug": _slugify(n.title or "", n.id),
+                    "tags": _load_tags(n.tags),
+                    "created_at": n.created_at.isoformat() if n.created_at else None,
+                    "excerpt": (n.content or "")[:200],
+                }
+                for n in public_notes
+            ]
+        )
 
     notes_html_parts = []
     for n in public_notes:
         slug = _slugify(n.title or "", n.id)
         tags = _load_tags(n.tags)
-        tag_html = " ".join(f'<span class="tag">{t}</span>' for t in tags)
-        excerpt = re.sub(r"#+ |```.*?```|\*\*|\*|`", "", n.content or "")[:180]
+        tag_html = " ".join(f'<span class="tag">{html.escape(t)}</span>' for t in tags)
+        excerpt = html.escape(re.sub(r"#+ |```.*?```|\*\*|\*|`", "", n.content or "")[:180])
         date = n.created_at.date().isoformat() if n.created_at else ""
+        escaped_title = html.escape(n.title or "Untitled")
         notes_html_parts.append(
             f'<div class="note"><a href="/api/garden/{slug}">'
-            f'<div class="note-title">{n.title or "Untitled"}</div>'
+            f'<div class="note-title">{escaped_title}</div>'
             f'<div class="note-meta"><span>{date}</span>{tag_html}</div>'
             f'<div class="excerpt">{excerpt}</div>'
             f"</a></div>"
@@ -309,25 +315,27 @@ def garden_note(slug: str, db: Session = Depends(get_db), request: Request = Non
 
     accept = request.headers.get("accept", "") if request else ""
     if "application/json" in accept:
-        return {
-            "id": note.id,
-            "title": note.title,
-            "content": note.content,
-            "tags": _load_tags(note.tags),
-            "created_at": note.created_at.isoformat() if note.created_at else None,
-        }
+        return JSONResponse(
+            content={
+                "id": note.id,
+                "title": note.title,
+                "content": note.content,
+                "tags": _load_tags(note.tags),
+                "created_at": note.created_at.isoformat() if note.created_at else None,
+            }
+        )
 
     tags = _load_tags(note.tags)
-    tag_html = " ".join(f'<span class="tag">{t}</span>' for t in tags)
+    tag_html = " ".join(f'<span class="tag">{html.escape(t)}</span>' for t in tags)
     body_html = _md_to_html(note.content or "")
-    excerpt = re.sub(r"[#*`]", "", note.content or "")[:160]
+    excerpt = html.escape(re.sub(r"[#*`]", "", note.content or "")[:160])
     date = note.created_at.date().isoformat() if note.created_at else ""
 
-    html = GARDEN_HTML_TEMPLATE.format(
-        title=note.title or "Untitled",
+    rendered_html = GARDEN_HTML_TEMPLATE.format(
+        title=html.escape(note.title or "Untitled"),
         excerpt=excerpt,
         date=date,
         tags=tag_html,
         body=body_html,
     )
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=rendered_html)

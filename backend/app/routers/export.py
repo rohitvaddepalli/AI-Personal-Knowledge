@@ -51,35 +51,9 @@ def export_note_markdown(note_id: str, db: Session = Depends(get_db)):
 @router.get("/vault/obsidian")
 def export_obsidian_vault(db: Session = Depends(get_db)):
     """Export all notes as Obsidian-compatible vault ZIP"""
-    notes = db.query(NoteModel).filter(NoteModel.is_archived == False, NoteModel.deleted_at == None).all()
+    from app.routers.interop import export_obsidian_vault as interop_export
 
-    # Create ZIP in memory
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for note in notes:
-            tags = json.loads(note.tags) if note.tags else []
-            tag_str = " ".join([f"#{t}" for t in tags])
-
-            content = f"""# {note.title}
-
-{tag_str}
-
-{note.content}
-"""
-            filename = f"{_safe_basename(note.title)}.md"
-            zip_file.writestr(filename, content)
-
-        # Add basic Obsidian config
-        zip_file.writestr(".obsidian/app.json", "{}")
-
-    zip_buffer.seek(0)
-    from fastapi.responses import StreamingResponse
-
-    return StreamingResponse(
-        zip_buffer,
-        media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=second_brain_vault.zip"},
-    )
+    return interop_export(db)
 
 
 @router.get("/all/zip")

@@ -54,17 +54,17 @@ def _compute_streak(db: Session) -> int:
     if not rows:
         return 0
 
+    activity_by_date = {
+        date.fromisoformat(r.date): (r.notes_captured > 0 or r.notes_reviewed > 0)
+        for r in rows
+    }
+    today = date.today()
+    check_date = today if activity_by_date.get(today) else (today - timedelta(days=1))
+
     streak = 0
-    check_date = date.today()
-    for row in rows:
-        row_date = date.fromisoformat(row.date)
-        if row_date != check_date:
-            break
-        if row.notes_captured > 0 or row.notes_reviewed > 0:
-            streak += 1
-            check_date -= timedelta(days=1)
-        else:
-            break
+    while activity_by_date.get(check_date):
+        streak += 1
+        check_date -= timedelta(days=1)
     return streak
 
 

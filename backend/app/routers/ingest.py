@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -100,7 +101,7 @@ def _process_file_job(job_id: str, filename: str, raw_bytes: bytes, note_title: 
 
         _update_job(job_id, status="connecting", progress=85)
         try:
-            auto_connect_note(note.id)
+            asyncio.run(auto_connect_note(note.id))
         except Exception as exc:
             _update_job(job_id, connection_error=str(exc))
 

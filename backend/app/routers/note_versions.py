@@ -83,6 +83,20 @@ def restore_version(note_id: str, version_id: str, db: Session = Depends(get_db)
     db.commit()
     db.refresh(note)
 
+    try:
+        from app.services.embedding_service import update_note_embedding
+
+        update_note_embedding(note.id, note.title, note.content)
+    except Exception:
+        pass
+
+    try:
+        from app.services.note_service import NoteService
+
+        NoteService.create_wikilink_connections(note.id, note.content, db)
+    except Exception:
+        pass
+
     return version
 
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../lib/api';
 
 interface Task {
   id: number;
@@ -18,7 +19,7 @@ export default function Tasks() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:8000/api/tasks');
+      const res = await fetch(apiUrl('/api/tasks'));
       const data = await res.json();
       setTasks(data);
     } catch (e) {
@@ -31,7 +32,7 @@ export default function Tasks() {
   const handleAddTask = async () => {
     if (!newTaskText.trim()) return;
     try {
-      const res = await fetch('http://localhost:8000/api/tasks', {
+      const res = await fetch(apiUrl('/api/tasks'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: newTaskText, is_done: false })
@@ -47,7 +48,7 @@ export default function Tasks() {
 
   const handleToggleDone = async (task: Task) => {
     try {
-      await fetch(`http://localhost:8000/api/tasks/${task.id}`, {
+      await fetch(apiUrl(`/api/tasks/${task.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_done: !task.is_done })
@@ -60,7 +61,7 @@ export default function Tasks() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`http://localhost:8000/api/tasks/${id}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/tasks/${id}`), { method: 'DELETE' });
       fetchTasks();
     } catch (e) {
       console.error(e);

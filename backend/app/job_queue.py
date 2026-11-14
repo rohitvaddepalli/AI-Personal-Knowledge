@@ -65,7 +65,9 @@ def submit_local_job(job_id: str, fn: Callable[..., Any], *args: Any, **kwargs: 
         try:
             update_job(job_id, status="running", progress=10)
             result = fn(*args, **kwargs)
-            update_job(job_id, status="done", progress=100, result=result)
+            job = get_job(job_id)
+            if job and job.get("status") != "failed":
+                update_job(job_id, status="done", progress=100, result=result if result is not None else job.get("result"))
         except Exception as exc:
             update_job(job_id, status="failed", error=str(exc))
 

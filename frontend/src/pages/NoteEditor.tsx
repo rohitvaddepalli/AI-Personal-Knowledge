@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 import { BlockEditor } from '../components/BlockEditor';
 import { VoiceMemo } from '../components/VoiceMemo';
 import { Save, Maximize2, Minimize2, Sparkles, Tag, Wand2, Link2, X } from 'lucide-react';
@@ -38,7 +39,7 @@ export default function NoteEditor() {
     const templateContent = sessionStorage.getItem('templateContent');
     if (templateTitle !== null) { setTitle(templateTitle); sessionStorage.removeItem('templateTitle'); }
     if (templateContent !== null) { setContent(templateContent); sessionStorage.removeItem('templateContent'); }
-    fetch('http://localhost:8000/api/templates')
+    fetch(apiUrl('/api/templates'))
       .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(setTemplates)
       .catch(console.error);
@@ -68,7 +69,7 @@ export default function NoteEditor() {
     if (!title && !content) return;
     setIsTagging(true);
     try {
-      const res = await fetch('http://localhost:8000/api/notes/suggest-tags', {
+      const res = await fetch(apiUrl('/api/notes/suggest-tags'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content, model: localStorage.getItem('activeModel') || 'qwen2.5:0.5b' }),
       });
@@ -85,7 +86,7 @@ export default function NoteEditor() {
   const handleApplyTemplate = async () => {
     if (!selectedTemplateId) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/templates/${selectedTemplateId}/apply`);
+      const res = await fetch(apiUrl(`/api/templates/${selectedTemplateId}/apply`));
       if (res.ok) {
         const data = await res.json();
         if (!title) setTitle(data.title || '');
@@ -98,7 +99,7 @@ export default function NoteEditor() {
   const handleSave = async () => {
     const payload = { title, content, tags: tags.split(',').map(t => t.trim()).filter(t => t) };
     try {
-      const res = await fetch('http://localhost:8000/api/notes', {
+      const res = await fetch(apiUrl('/api/notes'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

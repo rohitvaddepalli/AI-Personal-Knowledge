@@ -266,9 +266,14 @@ def set_parent_note(note_id: str, parent_id: str, db: Session = Depends(get_db))
         parent = db.query(NoteModel).filter(NoteModel.id == parent_id).first()
         if not parent:
             raise HTTPException(status_code=404, detail="Parent note not found")
-        # Prevent setting self as parent
-        if parent_id == note_id:
-            raise HTTPException(status_code=400, detail="Cannot set note as its own parent")
+        # Prevent setting self or descendant as parent
+        curr = parent
+        while curr:
+            if curr.id == note_id:
+                raise HTTPException(status_code=400, detail="Cannot set note as circular parent")
+            if not curr.parent_note_id:
+                break
+            curr = db.query(NoteModel).filter(NoteModel.id == curr.parent_note_id).first()
 
     note.parent_note_id = parent_id if parent_id else None
     db.commit()

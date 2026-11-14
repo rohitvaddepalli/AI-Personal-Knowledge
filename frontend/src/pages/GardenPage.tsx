@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUI } from '../context/UIContext';
+import { getApiBaseUrl } from '../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PublicNote {
@@ -32,9 +33,7 @@ const GardenPage: React.FC = () => {
   const [search, setSearch]       = useState('');
   const [gardenNotes, setGardenNotes] = useState<PublicNote[]>([]);
 
-  const apiBase = window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : window.location.origin;
+  const apiBase = getApiBaseUrl();
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 import { LayoutGrid, Table, CalendarDays, Pin, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Note {
@@ -257,7 +258,7 @@ export default function DatabaseView() {
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/notes?limit=100');
+      const res = await fetch(apiUrl('/api/notes?limit=100'));
       if (res.ok) {
         const data = await res.json();
         setNotes(data);

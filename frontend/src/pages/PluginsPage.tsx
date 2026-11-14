@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { Code2, Puzzle, CheckCircle2, XCircle, RefreshCw, Info } from 'lucide-react';
 
 interface Plugin {
@@ -30,8 +31,8 @@ export default function PluginsPage() {
     setLoading(true);
     try {
       const [pluginsRes, sdkRes] = await Promise.all([
-        fetch('http://localhost:8000/api/plugins'),
-        fetch('http://localhost:8000/api/plugins/sdk/info'),
+        fetch(apiUrl('/api/plugins')),
+        fetch(apiUrl('/api/plugins/sdk/info')),
       ]);
       if (pluginsRes.ok) setPlugins((await pluginsRes.json()).plugins ?? []);
       if (sdkRes.ok) setSdkInfo(await sdkRes.json());
@@ -47,7 +48,7 @@ export default function PluginsPage() {
   const togglePlugin = async (plugin: Plugin) => {
     const endpoint = plugin.enabled ? 'disable' : 'enable';
     try {
-      await fetch(`http://localhost:8000/api/plugins/${plugin.id}/${endpoint}`, { method: 'POST' });
+      await fetch(apiUrl(`/api/plugins/${plugin.id}/${endpoint}`), { method: 'POST' });
       fetchPlugins();
     } catch (e) {
       console.error(e);

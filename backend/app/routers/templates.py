@@ -213,7 +213,7 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted"}
 
 
-@router.post("/{template_id}/apply")
+@router.api_route("/{template_id}/apply", methods=["GET", "POST"])
 def apply_template(template_id: int, db: Session = Depends(get_db)):
     """Get template with variables substituted"""
     template = db.query(TemplateModel).filter(TemplateModel.id == template_id).first()

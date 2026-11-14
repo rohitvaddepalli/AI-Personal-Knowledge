@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 import { BlockEditor } from '../components/BlockEditor';
 import { MarkdownPreview } from '../components/Markdown';
 
@@ -24,7 +25,7 @@ export default function DailyNotes() {
 
   const fetchTodayNote = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes/daily/today');
+      const res = await fetch(apiUrl('/api/notes/daily/today'));
       const data = await res.json();
       setTodayNote(data);
       setEditContent(data.content);
@@ -35,7 +36,7 @@ export default function DailyNotes() {
 
   const fetchAllDailyNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes/daily/');
+      const res = await fetch(apiUrl('/api/notes/daily/'));
       const data = await res.json();
       setAllDailyNotes(data);
     } catch (e) {
@@ -46,7 +47,7 @@ export default function DailyNotes() {
   const saveTodayNote = async () => {
     if (!todayNote) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${todayNote.id}`, {
+      const res = await fetch(apiUrl(`/api/notes/${todayNote.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editContent }),

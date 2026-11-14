@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 import { ArrowRight, ArrowLeft, ArrowLeftRight, Link2Off, Sparkles } from 'lucide-react';
 
 interface Connection {
@@ -50,14 +51,14 @@ export default function ConnectionsSidebar({ noteId }: { noteId: string }) {
 
     const fetchAll = async () => {
       try {
-        const connRes = await fetch(`http://localhost:8000/api/connections/note/${noteId}`);
+        const connRes = await fetch(apiUrl(`/api/connections/note/${noteId}`));
         const connections: Connection[] = connRes.ok ? await connRes.json() : [];
 
         const noteMap: Record<string, NoteInfo> = {};
         const ids = [...new Set(connections.flatMap(c => [c.source_note_id, c.target_note_id]))].filter(id => id !== noteId);
         await Promise.allSettled(ids.map(async id => {
           try {
-            const r = await fetch(`http://localhost:8000/api/notes/${id}`);
+            const r = await fetch(apiUrl(`/api/notes/${id}`));
             if (r.ok) noteMap[id] = await r.json();
           } catch {}
         }));
@@ -84,7 +85,7 @@ export default function ConnectionsSidebar({ noteId }: { noteId: string }) {
           setRich(deduped);
         }
 
-        const noteRes = await fetch(`http://localhost:8000/api/notes/${noteId}`);
+        const noteRes = await fetch(apiUrl(`/api/notes/${noteId}`));
         if (noteRes.ok && !cancelled) {
           const noteData = await noteRes.json();
           setBacklinks(noteData.backlinks ?? []);
@@ -92,9 +93,9 @@ export default function ConnectionsSidebar({ noteId }: { noteId: string }) {
 
         if (!cancelled) {
           try {
-            const allRes = await fetch('http://localhost:8000/api/notes?limit=100');
+            const allRes = await fetch(apiUrl('/api/notes?limit=100'));
             const allNotes: NoteInfo[] = allRes.ok ? await allRes.json() : [];
-            const thisNote = await (await fetch(`http://localhost:8000/api/notes/${noteId}`)).json();
+            const thisNote = await (await fetch(apiUrl(`/api/notes/${noteId}`))).json();
             if (thisNote?.title) {
               const titleLower = thisNote.title.toLowerCase();
               const wikiLinkPattern = `[[${thisNote.title}]]`;

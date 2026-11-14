@@ -211,14 +211,21 @@ class NoteService:
         target_node = note_map[note_id]
 
         ancestors = []
+        visited = {note_id}
         current_parent_id = target_node["parent_note_id"]
-        while current_parent_id and current_parent_id in note_map:
+        while current_parent_id and current_parent_id in note_map and current_parent_id not in visited:
+            visited.add(current_parent_id)
             parent = note_map[current_parent_id]
             ancestors.insert(0, {"id": parent["id"], "title": parent["title"]})
             current_parent_id = parent["parent_note_id"]
 
-        def clean_node(node):
-            return {"id": node["id"], "title": node["title"], "children": [clean_node(c) for c in node["children"]]}
+        def clean_node(node, seen=None):
+            if seen is None:
+                seen = set()
+            if node["id"] in seen:
+                return {"id": node["id"], "title": node["title"], "children": []}
+            seen.add(node["id"])
+            return {"id": node["id"], "title": node["title"], "children": [clean_node(c, set(seen)) for c in node["children"]]}
 
         return {
             "note": {"id": note.id, "title": note.title},

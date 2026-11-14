@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 
 export default function Collections() {
   const [collections, setCollections] = useState<any[]>([]);
@@ -11,7 +12,7 @@ export default function Collections() {
   }, []);
 
   const fetchCollections = () => {
-    fetch('http://localhost:8000/api/collections')
+    fetch(apiUrl('/api/collections'))
       .then(res => res.json())
       .then(setCollections)
       .catch(console.error);
@@ -20,7 +21,7 @@ export default function Collections() {
   const createCollection = async () => {
     if (!name.trim()) return;
     try {
-      await fetch('http://localhost:8000/api/collections', {
+      await fetch(apiUrl('/api/collections'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description: desc })

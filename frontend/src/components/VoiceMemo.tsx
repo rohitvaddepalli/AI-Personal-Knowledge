@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Mic, MicOff, Square, Loader2, Copy, CheckCircle } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 interface VoiceMemoProps {
   /** Called when transcription is complete. Passes the transcribed text. */
@@ -48,7 +49,7 @@ export function VoiceMemo({ onTranscribed, compact = false }: VoiceMemoProps) {
     formData.append('file', blob, 'recording.webm');
 
     try {
-      const res = await fetch('http://localhost:8000/api/voice/transcribe', {
+      const res = await fetch(apiUrl('/api/voice/transcribe'), {
         method: 'POST',
         body: formData,
       });

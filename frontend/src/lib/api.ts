@@ -32,8 +32,12 @@ export function installApiFetchShim(): void {
   if (typeof window === 'undefined') return;
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (typeof input === 'string' && input.startsWith('/api')) {
-      input = apiUrl(input);
+    if (typeof input === 'string') {
+      if (input.startsWith('/api')) {
+        input = apiUrl(input);
+      } else if (input.startsWith('http://localhost:8000/api')) {
+        input = apiUrl(input.replace('http://localhost:8000', ''));
+      }
     }
     return originalFetch(input, init);
   };

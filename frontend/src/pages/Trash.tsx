@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 
 interface Note {
   id: string;
@@ -19,7 +20,7 @@ export default function Trash() {
 
   const fetchTrashedNotes = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notes/trash/');
+      const res = await fetch(apiUrl('/api/notes/trash/'));
       const data = await res.json();
       setTrashedNotes(data);
     } catch (e) {
@@ -29,7 +30,7 @@ export default function Trash() {
 
   const restoreNote = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/restore`, { method: 'POST' });
+      const res = await fetch(apiUrl(`/api/notes/${id}/restore`), { method: 'POST' });
       if (res.ok) {
         fetchTrashedNotes();
       }
@@ -41,7 +42,7 @@ export default function Trash() {
   const permanentDelete = async (id: string) => {
     if (!confirm('⚠️ This will permanently delete the note. Are you sure?')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/notes/${id}/permanent`, { method: 'DELETE' });
+      const res = await fetch(apiUrl(`/api/notes/${id}/permanent`), { method: 'DELETE' });
       if (res.ok) {
         fetchTrashedNotes();
       }
@@ -53,7 +54,7 @@ export default function Trash() {
   const emptyTrash = async () => {
     if (!confirm(`⚠️ This will permanently delete all ${trashedNotes.length} notes in trash. Are you sure?`)) return;
     for (const note of trashedNotes) {
-      await fetch(`http://localhost:8000/api/notes/${note.id}/permanent`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/notes/${note.id}/permanent`), { method: 'DELETE' });
     }
     fetchTrashedNotes();
   };

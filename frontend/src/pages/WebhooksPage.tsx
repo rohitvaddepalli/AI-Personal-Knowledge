@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUI } from '../context/UIContext';
+import { getApiBaseUrl } from '../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Webhook {
@@ -93,9 +94,7 @@ const WebhooksPage: React.FC = () => {
     showToast('Copied!', 'success');
   };
 
-  const apiBase = window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : window.location.origin;
+  const apiBase = getApiBaseUrl();
 
   return (
     <div className="webhooks-page">
