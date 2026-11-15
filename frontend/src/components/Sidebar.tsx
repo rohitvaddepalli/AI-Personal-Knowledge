@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-export const NAV_ITEMS = [
+const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: BookOpen },
   { path: '/notes', label: 'Notes', icon: PenTool },
   { path: '/review', label: 'Review', icon: RefreshCw },
@@ -104,7 +104,7 @@ export function Sidebar({
       }
     };
     fetchTree();
-  }, [location.pathname]); // Refresh tree when navigating
+  }, [location.pathname]);
 
   return (
     <aside 

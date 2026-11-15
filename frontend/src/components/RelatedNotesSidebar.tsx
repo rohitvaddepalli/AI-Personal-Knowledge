@@ -1,9 +1,4 @@
-/**
- * RelatedNotesSidebar — Phase 3.2
- * Shows vector-similar or keyword-matched notes alongside a note.
- * Includes one-click bidirectional wikilink insertion.
- */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link2, ExternalLink, RefreshCw, Brain, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '../lib/api';
@@ -30,7 +25,7 @@ export default function RelatedNotesSidebar({ noteId, onInsertLink }: Props) {
   const [error, setError] = useState(false);
   const [linked, setLinked] = useState<Set<string>>(new Set());
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
@@ -42,9 +37,9 @@ export default function RelatedNotesSidebar({ noteId, onInsertLink }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [noteId]);
 
-  useEffect(() => { load(); }, [noteId]);
+  useEffect(() => { load(); }, [load]);
 
   const handleLink = (note: RelatedNote) => {
     onInsertLink?.(`[[${note.title}]]`);

@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { apiUrl, isDesktopRuntime, resolveDesktopRuntime, setApiBaseUrl } from '../lib/api';
 
 export interface ProviderConfig {
@@ -83,19 +83,19 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const desktop = isDesktopRuntime();
 
-  const refreshStatus = async () => {
+  const refreshStatus = useCallback(async () => {
     const nextStatus = await fetchStatus();
     setStatus(nextStatus);
-  };
+  }, []);
 
-  const refreshMetrics = async () => {
+  const refreshMetrics = useCallback(async () => {
     const response = await fetch(apiUrl('/api/system/metrics'));
     if (!response.ok) throw new Error('Failed to fetch metrics');
-    const metrics = await response.json() as ResourceMetrics;
-    setStatus((current) => current ? { ...current, metrics } : current);
-  };
+    const metrics = (await response.json()) as ResourceMetrics;
+    setStatus((current) => (current ? { ...current, metrics } : current));
+  }, []);
 
-  const bootstrap = async () => {
+  const bootstrap = useCallback(async () => {
     setInitializing(true);
     setError(null);
 
@@ -107,7 +107,6 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
       try {
         await refreshStatus();
       } catch {
-        // Keep web mode non-blocking.
       }
       return;
     }
@@ -122,14 +121,13 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
           return;
         }
       } catch {
-        // Sidecar still booting.
       }
       await new Promise((resolve) => window.setTimeout(resolve, RETRY_INTERVAL_MS));
     }
 
     setError('The local backend did not become ready in time.');
     setInitializing(false);
-  };
+  }, [desktop, refreshStatus]);
 
   const saveSystemSettings = async (payload: Partial<RuntimeSettings> & { llm?: RuntimeSettings['llm'] }) => {
     const response = await fetch(apiUrl('/api/system/settings'), {
@@ -152,7 +150,7 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
       setError(cause instanceof Error ? cause.message : 'Failed to initialize desktop runtime');
       setInitializing(false);
     });
-  }, []);
+  }, [bootstrap]);
 
   useEffect(() => {
     if (!status?.runtime.resource_monitor_enabled) return;
@@ -160,7 +158,7 @@ export function DesktopRuntimeProvider({ children }: { children: ReactNode }) {
       refreshMetrics().catch(() => {});
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [status?.runtime.resource_monitor_enabled]);
+  }, [status?.runtime.resource_monitor_enabled, refreshMetrics]);
 
   return (
     <DesktopRuntimeContext.Provider value={{ error, initializing, isDesktop: desktop, status, refreshStatus, refreshMetrics, retryStartup: bootstrap, saveSystemSettings }}>

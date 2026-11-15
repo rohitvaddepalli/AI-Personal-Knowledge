@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import ConnectionsSidebar from '../components/ConnectionsSidebar';
 import { BlockEditor } from '../components/BlockEditor';
@@ -122,12 +122,12 @@ export default function NoteDetail() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchNote = () => {
+  const fetchNote = useCallback(() => {
     fetch(apiUrl(`/api/notes/${id}`))
       .then(res => { if (!res.ok) throw new Error(`${res.status}`); return res.json(); })
       .then(data => { setNote(data); setEditTitle(data.title); setEditContent(data.content); })
       .catch(console.error);
-  };
+  }, [id]);
 
   const togglePin = async () => {
     if (!note) return;
@@ -154,13 +154,13 @@ export default function NoteDetail() {
     }
   };
 
-  const fetchAttachments = async () => {
+  const fetchAttachments = useCallback(async () => {
     if (!id) return;
     try {
       const res = await fetch(apiUrl(`/api/notes/${id}/attachments`));
       if (res.ok) setAttachments(await res.json());
     } catch (e) { console.error(e); }
-  };
+  }, [id]);
 
   const uploadAttachment = async (file: File) => {
     if (!id || !file) return;
@@ -200,13 +200,13 @@ export default function NoteDetail() {
     } catch (e) { console.error(e); showToast('Failed to delete attachment.', 'error'); }
   };
 
-  const fetchVersions = async () => {
+  const fetchVersions = useCallback(async () => {
     if (!id) return;
     try {
       const res = await fetch(apiUrl(`/api/notes/${id}/versions`));
       if (res.ok) setVersions(await res.json());
     } catch (e) { console.error(e); }
-  };
+  }, [id]);
 
   const restoreVersion = async (versionId: string) => {
     setConfirmRestoreVer(versionId);
@@ -219,15 +219,15 @@ export default function NoteDetail() {
     } catch (e) { console.error(e); showToast('Failed to restore version.', 'error'); }
   };
 
-  const fetchNoteTree = async () => {
+  const fetchNoteTree = useCallback(async () => {
     if (!id) return;
     try {
       const res = await fetch(apiUrl(`/api/notes/${id}/tree`));
       if (res.ok) setNoteTree(await res.json());
     } catch (e) { console.error(e); }
-  };
+  }, [id]);
 
-  const fetchAllNotes = async () => {
+  const fetchAllNotes = useCallback(async () => {
     try {
       const res = await fetch(apiUrl('/api/notes'));
       if (res.ok) {
@@ -235,7 +235,7 @@ export default function NoteDetail() {
         setAllNotes(Array.isArray(data) ? data.filter((n: any) => n.id !== id) : []);
       }
     } catch (e) { console.error(e); }
-  };
+  }, [id]);
 
   const setParentNote = async (parentId: string | null) => {
     try {
@@ -256,7 +256,7 @@ export default function NoteDetail() {
             .then(data => setChatHistory(data.messages || [])).catch(console.error);
         }
       }).catch(console.error);
-  }, [id]);
+  }, [id, fetchNote, fetchAttachments, fetchVersions, fetchNoteTree, fetchAllNotes]);
 
   const handleSaveUpdate = async () => {
     try {

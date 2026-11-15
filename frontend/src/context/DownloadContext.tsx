@@ -8,7 +8,7 @@ interface DownloadContextType {
   pullModel: (modelName: string) => Promise<void>;
 }
 
-export const DownloadContext = createContext<DownloadContextType | undefined>(undefined);
+const DownloadContext = createContext<DownloadContextType | undefined>(undefined);
 
 export function DownloadProvider({ children }: { children: ReactNode }) {
   const [pulling, setPulling] = useState(false);
@@ -65,8 +65,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             } else if (data.status) {
               setPullResult(data.status);
             }
-          } catch (err) {
-            // Ignore incomplete JSON chunks, relying on stream line splits usually fixes this
+          } catch {
           }
         }
       }

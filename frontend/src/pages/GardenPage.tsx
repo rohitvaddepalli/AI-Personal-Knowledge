@@ -56,7 +56,7 @@ const GardenPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 

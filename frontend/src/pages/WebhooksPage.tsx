@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUI } from '../context/UIContext';
 import { getApiBaseUrl } from '../lib/api';
 
@@ -28,7 +28,6 @@ const DEFAULTS: RegisterForm = {
   extract_body_field: 'body',
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const WebhooksPage: React.FC = () => {
   const { showToast } = useUI();
 
@@ -39,7 +38,7 @@ const WebhooksPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [newHook, setNewHook]       = useState<{ token: string; ingest_url: string } | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/webhooks');
@@ -50,9 +49,9 @@ const WebhooksPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

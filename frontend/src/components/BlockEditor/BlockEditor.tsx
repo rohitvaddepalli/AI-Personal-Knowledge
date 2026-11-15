@@ -123,16 +123,15 @@ const getCommandItems = () => [
   },
 ];
 
-// Slash command popup component
 function CommandPopup({ items, command }: { items: any[]; command: any }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectItem = (index: number) => {
+  const selectItem = useCallback((index: number) => {
     const item = items[index];
     if (item) {
       command(item);
     }
-  };
+  }, [items, command]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -153,7 +152,7 @@ function CommandPopup({ items, command }: { items: any[]; command: any }) {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, items, command]);
+  }, [selectedIndex, items.length, selectItem]);
 
   if (items.length === 0) {
     return <div className="slash-command-empty">No results found</div>;

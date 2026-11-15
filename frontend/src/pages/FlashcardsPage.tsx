@@ -81,7 +81,7 @@ export default function FlashcardsPage() {
     } catch { /* silent */ }
   }, []);
 
-  useEffect(() => { loadAll(); loadNotes(); }, []);
+  useEffect(() => { loadAll(); loadNotes(); }, [loadAll, loadNotes]);
 
   // ── Generate ────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
