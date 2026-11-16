@@ -70,10 +70,6 @@ def _post(path: str, **kwargs) -> dict:
         raise typer.Exit(1)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Notes commands
-# ─────────────────────────────────────────────────────────────────────────────
-
 notes_app = typer.Typer(help="Manage notes.")
 app.add_typer(notes_app, name="notes")
 
@@ -121,11 +117,6 @@ def notes_search(query: str = typer.Argument(..., help="Search query.")):
     console.logger.info(t)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Ingest command
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @app.command("ingest")
 def ingest(
     source: str = typer.Argument(..., help="URL or local file path to ingest."),
@@ -147,11 +138,6 @@ def ingest(
         logger.info(f"[green]✓[/green] Ingested: {json.dumps(data, indent=2)}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Chat command
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @app.command("chat")
 def chat(
     question: str = typer.Argument(..., help="Question to ask your Second Brain."),
@@ -166,10 +152,6 @@ def chat(
     if sources:
         logger.info(f"\n[dim]Sources: {', '.join(s.get('title', '?') for s in sources[:5])}[/dim]")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Export commands
-# ─────────────────────────────────────────────────────────────────────────────
 
 export_app = typer.Typer(help="Export your knowledge base.")
 app.add_typer(export_app, name="export")
@@ -217,10 +199,6 @@ def export_graph_svg(
         logger.info(f"[red]✗ Export failed: {e}[/red]")
         raise typer.Exit(1)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Webhook commands
-# ─────────────────────────────────────────────────────────────────────────────
 
 webhook_app = typer.Typer(help="Manage webhook ingestion sources.")
 app.add_typer(webhook_app, name="webhook")

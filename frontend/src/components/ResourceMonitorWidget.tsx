@@ -18,7 +18,6 @@ export default function ResourceMonitorWidget() {
   const runtime = status?.runtime;
   const metrics = status?.metrics;
 
-  // ── Drag state ────────────────────────────────────────────────────────────
   const defaultPos = { x: window.innerWidth - 300, y: window.innerHeight - 80 };
   const [pos, setPos] = useState<{ x: number; y: number }>(() => loadPos() ?? defaultPos);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
@@ -50,7 +49,6 @@ export default function ResourceMonitorWidget() {
     setPos(prev => { localStorage.setItem(STORAGE_KEY, JSON.stringify(prev)); return prev; });
   }, []);
 
-  // Save on unmount
   useEffect(() => () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); }, [pos]);
 
   const warningTone = useMemo(() => {

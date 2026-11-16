@@ -29,11 +29,6 @@ from app.utils.security import sanitize_markdown
 router = APIRouter(prefix="/api/garden", tags=["garden"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 def _slugify(title: str, note_id: str) -> str:
     slug = (title or "").lower()
     slug = re.sub(r"[^\w\s-]", "", slug)
@@ -159,11 +154,6 @@ GARDEN_INDEX_HTML = """<!DOCTYPE html>
 </div>
 </body>
 </html>"""
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.put("/note/{note_id}/publish")

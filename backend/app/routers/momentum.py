@@ -29,11 +29,6 @@ from app.models.user_activity import Milestone, UserActivity
 router = APIRouter(prefix="/api/momentum", tags=["momentum"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 def _today() -> str:
     return date.today().isoformat()
 
@@ -94,11 +89,6 @@ def _check_and_award_milestones(db: Session) -> None:
         if achieved and mtype not in existing:
             db.add(Milestone(milestone_type=mtype))
     db.commit()
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.post("/ping")
@@ -349,11 +339,6 @@ def surprise_me(db: Session = Depends(get_db)):
         },
         "hook": hook,
     }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Activity recording helpers (called from notes/review routers)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def record_note_captured(db: Session) -> None:

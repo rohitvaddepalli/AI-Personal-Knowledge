@@ -18,11 +18,6 @@ from app.models.note import Note
 from app.models.user_activity import UserPreferences
 
 router = APIRouter(tags=["synthesis-personalization"])
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Synthesis
-# ─────────────────────────────────────────────────────────────────────────────
-
 synthesis_router = APIRouter(prefix="/api/synthesis")
 
 
@@ -100,10 +95,6 @@ def get_latest_synthesis(db: Session = Depends(get_db)):
         }
     }
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Personalization
-# ─────────────────────────────────────────────────────────────────────────────
 
 personalization_router = APIRouter(prefix="/api/personalization")
 

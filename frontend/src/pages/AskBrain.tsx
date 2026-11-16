@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { apiUrl } from '../lib/api';
 
-// ── Retrieval mode config ──────────────────────────────────────────────────
 const MODES = [
   {
     id: 'auto',
@@ -28,7 +27,6 @@ const MODES = [
   },
 ];
 
-// ── Inline confirmation dialog ─────────────────────────────────────────────
 function ConfirmDialog({
   message,
   onConfirm,
@@ -75,7 +73,6 @@ function ConfirmDialog({
   );
 }
 
-// ── Inline rename dialog ───────────────────────────────────────────────────
 function RenameDialog({
   defaultValue,
   onConfirm,
@@ -124,7 +121,6 @@ function RenameDialog({
   );
 }
 
-// ── Mini toast notification ────────────────────────────────────────────────
 function Toast({ message, type = 'info' }: { message: string; type?: 'info' | 'error' | 'success' }) {
   const colors = {
     info: 'var(--primary)',
@@ -156,7 +152,6 @@ function Toast({ message, type = 'info' }: { message: string; type?: 'info' | 'e
   );
 }
 
-// ── Confidence badge ───────────────────────────────────────────────────────
 function ConfidenceBadge({ value }: { value: number | null | undefined }) {
   if (value == null) return null;
   const pct = Math.round(value * 100);
@@ -179,7 +174,6 @@ function ConfidenceBadge({ value }: { value: number | null | undefined }) {
   );
 }
 
-// ── FileText mini icon ─────────────────────────────────────────────────────
 function FileText({ size = 16, style: s }: { size?: number; style?: React.CSSProperties }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -193,7 +187,6 @@ function FileText({ size = 16, style: s }: { size?: number; style?: React.CSSPro
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────
 export default function AskBrain() {
   const [question, setQuestion] = useState('');
   const [history, setHistory] = useState<any[]>([]);
@@ -210,7 +203,6 @@ export default function AskBrain() {
   const [latestSources, setLatestSources] = useState<any[]>([]);
   const [retrievalMode, setRetrievalMode] = useState<'auto' | 'search_only' | 'strict_cited'>('auto');
 
-  // Dialog state
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string } | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: number; title: string } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'info' | 'error' | 'success' } | null>(null);
@@ -247,7 +239,6 @@ export default function AskBrain() {
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history]);
 
-  // Auto-resize textarea between 3 and 5 lines
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;

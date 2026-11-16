@@ -13,7 +13,6 @@ interface Note {
   is_pinned: boolean;
 }
 
-// ── Inline confirm dialog ──────────────────────────────────────────────────
 function ConfirmDialog({
   message,
   confirmLabel = 'Delete',
@@ -62,7 +61,6 @@ function ConfirmDialog({
   );
 }
 
-// ── Toast notification ─────────────────────────────────────────────────────
 function Toast({ message, type = 'error' }: { message: string; type?: 'error' | 'success' | 'info' }) {
   const color = type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--secondary)' : 'var(--primary)';
   return (
@@ -120,7 +118,6 @@ export default function NoteList() {
   const [aiSummarize, setAiSummarize] = useState(true);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-  // Dialog / toast state
   const [confirmDeleteNote, setConfirmDeleteNote] = useState<string | null>(null);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'error' | 'success' | 'info' } | null>(null);
@@ -308,7 +305,6 @@ export default function NoteList() {
 
   return (
     <>
-      {/* Dialogs */}
       {confirmDeleteNote && (
         <ConfirmDialog
           message="Move this note to trash? You can restore it later."
@@ -328,10 +324,8 @@ export default function NoteList() {
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            {/* ✅ 1.2: Fixed misleading label — was "Analytics" */}
             <h1 style={{ fontFamily: 'var(--font-display)', marginBottom: 4 }}>Notes</h1>
             <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-dim)' }}>
               {sortedNotes.length > 0 ? `${sortedNotes.length} note${sortedNotes.length !== 1 ? 's' : ''}` : 'Your knowledge vault'}
@@ -351,7 +345,6 @@ export default function NoteList() {
           </div>
         </div>
 
-        {/* Bulk Actions */}
         {bulkMode && selectedNotes.size > 0 && (
           <div style={{
             display: 'flex', gap: 8, alignItems: 'center',
@@ -377,7 +370,6 @@ export default function NoteList() {
           </div>
         )}
 
-        {/* Search + Filter Bar */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -408,7 +400,6 @@ export default function NoteList() {
           </select>
         </div>
 
-        {/* Error banner */}
         {(collectionsError || notesError) && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -428,7 +419,6 @@ export default function NoteList() {
           </div>
         )}
 
-        {/* Notes Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -463,7 +453,6 @@ export default function NoteList() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {/* Bulk checkbox */}
                 {bulkMode && (
                   <input
                     type="checkbox"
@@ -477,7 +466,6 @@ export default function NoteList() {
                   />
                 )}
 
-                {/* Action buttons */}
                 <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 4 }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePin(note.id, note.is_pinned); }}
@@ -548,7 +536,6 @@ export default function NoteList() {
         </div>
       </div>
 
-      {/* ═══ Capture Knowledge Modal ═══ */}
       {showCaptureModal && (
         <div
           style={{
@@ -581,9 +568,7 @@ export default function NoteList() {
 
             <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>Capture Knowledge</h2>
 
-            {/* Tabs — only URL is implemented; others show "Coming soon" badge */}
             <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--outline-variant)', paddingBottom: 8 }}>
-              {/* URL — live */}
               <button
                 onClick={() => setCaptureTab('url')}
                 style={{
@@ -626,7 +611,6 @@ export default function NoteList() {
               ))}
             </div>
 
-            {/* URL & YouTube tab content */}
             {(captureTab === 'url' || captureTab === 'youtube') && (
               <div>
                 <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>{captureTab === 'youtube' ? 'YouTube Link' : 'Source Link'}</span>
@@ -654,7 +638,6 @@ export default function NoteList() {
                   </button>
                 </div>
 
-                {/* AI toggle */}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--outline-variant)',

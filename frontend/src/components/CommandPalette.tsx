@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { apiUrl } from '../lib/api';
 
-// ── Types ──────────────────────────────────────────────────────────────────
 interface Command {
   id: string;
   label: string;
@@ -45,7 +44,6 @@ function saveHistory(entry: RecentEntry) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [noteResults, setNoteResults] = useState<any[]>([]);
@@ -56,7 +54,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // ── Static quick actions ─────────────────────────────────────────────────
   const buildCommands = useCallback((): Command[] => [
     {
       id: 'new-note',
@@ -90,7 +87,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       category: 'Actions',
       action: () => {
         navigate('/ask');
-        // Pre-fill the question if there's a query
         if (query.trim()) {
           setTimeout(() => {
             const ta = document.querySelector('textarea') as HTMLTextAreaElement | null;
@@ -137,7 +133,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     },
   ], [navigate, query]);
 
-  // ── Note search ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
       setNoteResults([]);
@@ -161,7 +156,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // ── Focus input on open ───────────────────────────────────────────────────
   useEffect(() => {
     if (open) {
       setQuery('');
@@ -171,7 +165,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
   }, [open]);
 
-  // ── Build combined result list ────────────────────────────────────────────
   const commands = buildCommands();
   const filteredCommands = query.trim()
     ? commands.filter((c) =>
@@ -188,7 +181,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const items: ResultItem[] = [];
 
   if (!query.trim()) {
-    // Show recent actions first
     if (history.length > 0) {
       history.slice(0, 4).forEach((h) => items.push({ kind: 'history', data: h }));
     }
@@ -209,7 +201,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       setHistory(loadHistory());
       navigate(`/notes/${item.data.id}`);
     } else if (item.kind === 'history') {
-      // Re-run by finding matching command or navigating
       const cmd = commands.find((c) => c.id === item.data.id);
       if (cmd) { cmd.action(); }
       else if (item.data.type === 'note') { navigate(`/notes/${item.data.id}`); }
@@ -217,7 +208,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     onClose();
   }, [commands, navigate, onClose]);
 
-  // ── Keyboard navigation ───────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -233,7 +223,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
   };
 
-  // Scroll selected item into view
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-idx="${selected}"]`) as HTMLElement | null;
     el?.scrollIntoView({ block: 'nearest' });
@@ -241,7 +230,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   if (!open) return null;
 
-  // ── Render helpers ────────────────────────────────────────────────────────
   const renderItem = (item: ResultItem, idx: number) => {
     const isSelected = idx === selected;
     const base: React.CSSProperties = {
@@ -330,7 +318,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return null;
   };
 
-  // Group headers
   const sections: { title?: string; items: ResultItem[] }[] = [];
   if (!query.trim() && history.length > 0) {
     sections.push({ title: 'Recent', items: items.filter((i) => i.kind === 'history') });

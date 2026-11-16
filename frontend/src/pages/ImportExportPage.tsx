@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useUI } from '../context/UIContext';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type ImportFormat = 'obsidian' | 'notion' | 'roam' | 'markdown';
 type ExportFormat = 'obsidian' | 'graph-json' | 'graph-svg' | 'json' | 'markdown';
 
@@ -11,7 +10,6 @@ interface ImportResult {
   errors: string[];
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const IMPORT_FORMATS: { id: ImportFormat; label: string; icon: string; hint: string }[] = [
   { id: 'obsidian', label: 'Obsidian', icon: '🔮', hint: 'ZIP of your Obsidian vault folder' },
   { id: 'notion', label: 'Notion', icon: '◼', hint: 'Notion HTML/MD export ZIP' },
@@ -27,7 +25,6 @@ const EXPORT_FORMATS: { id: ExportFormat; label: string; icon: string; desc: str
   { id: 'markdown', label: 'Markdown ZIP', icon: '📝', desc: 'Plain Markdown files in a ZIP archive', ext: 'zip' },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const ImportExportPage: React.FC = () => {
   const { showToast } = useUI();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -38,8 +35,6 @@ const ImportExportPage: React.FC = () => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [exportingId, setExportingId] = useState<ExportFormat | null>(null);
   const [dragOver, setDragOver] = useState(false);
-
-  // ── Import ────────────────────────────────────────────────────────────────
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -80,8 +75,6 @@ const ImportExportPage: React.FC = () => {
     }
   };
 
-  // ── Export ────────────────────────────────────────────────────────────────
-
   const runExport = async (fmt: ExportFormat) => {
     setExportingId(fmt);
     const urlMap: Record<ExportFormat, string> = {
@@ -118,7 +111,6 @@ const ImportExportPage: React.FC = () => {
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="import-export-page">
       <div className="ie-header">
@@ -126,7 +118,6 @@ const ImportExportPage: React.FC = () => {
         <p>Move your knowledge freely between tools.</p>
       </div>
 
-      {/* Tabs */}
       <div className="ie-tabs">
         {(['import', 'export'] as const).map(t => (
           <button
@@ -139,7 +130,6 @@ const ImportExportPage: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Import panel ── */}
       {activeTab === 'import' && (
         <div className="ie-panel">
           <div className="ie-format-grid">
@@ -191,7 +181,6 @@ const ImportExportPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Export panel ── */}
       {activeTab === 'export' && (
         <div className="ie-panel">
           <p className="ie-sub">Choose a format to download your entire knowledge base.</p>
@@ -230,7 +219,6 @@ const ImportExportPage: React.FC = () => {
         .ie-panel     { display: flex; flex-direction: column; gap: 1.25rem; }
         .ie-sub       { color: var(--text-secondary, #94a3b8); font-size: .875rem; }
 
-        /* Format grid */
         .ie-format-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
         .format-card    { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem;
                           padding: .875rem 1rem; border-radius: 10px; border: 1px solid var(--border, #2a2a4a);
@@ -242,7 +230,6 @@ const ImportExportPage: React.FC = () => {
         .format-label { font-weight: 700; font-size: .9rem; color: var(--text, #e2e8f0); }
         .format-hint  { font-size: .75rem; color: var(--text-secondary, #94a3b8); }
 
-        /* Drop zone */
         .drop-zone    { border: 2px dashed var(--border, #2a2a4a); border-radius: 14px;
                         padding: 3rem 2rem; text-align: center; cursor: pointer;
                         transition: border-color 200ms, background 200ms; }
@@ -254,7 +241,6 @@ const ImportExportPage: React.FC = () => {
         .drop-link    { color: var(--primary, #6366f1); }
         .drop-sub     { font-size: .8125rem; color: var(--text-secondary, #94a3b8); margin-top: .25rem; }
 
-        /* Spinner */
         .spinner      { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.2);
                         border-top-color: var(--primary, #6366f1); border-radius: 50%;
                         animation: spin 600ms linear infinite; }
@@ -262,7 +248,6 @@ const ImportExportPage: React.FC = () => {
                         border-top-color: #fff; border-radius: 50%; animation: spin 600ms linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Import result */
         .import-result { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
         .result-stat   { padding: .35rem .875rem; border-radius: 999px; font-size: .8125rem; font-weight: 600; }
         .result-stat.success { background: rgba(34,197,94,.1); color: #22c55e; border: 1px solid rgba(34,197,94,.2); }
@@ -270,7 +255,6 @@ const ImportExportPage: React.FC = () => {
         .result-errors { font-size: .8125rem; color: var(--text-secondary, #94a3b8); }
         .result-errors ul { margin: .35rem 0 0 1rem; }
 
-        /* Export grid */
         .export-grid  { display: flex; flex-direction: column; gap: .75rem; }
         .export-card  { display: flex; align-items: center; justify-content: space-between;
                         padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid var(--border, #2a2a4a);

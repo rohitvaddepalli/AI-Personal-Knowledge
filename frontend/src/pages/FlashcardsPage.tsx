@@ -1,8 +1,3 @@
-/**
- * FlashcardsPage — Phase 3.4
- * Full flashcard management: browse by note, AI generation,
- * SM-2 spaced-repetition review session, and Anki export.
- */
 import { useState, useEffect, useCallback } from 'react';
 import {
   Brain, Download, ChevronLeft,
@@ -28,7 +23,6 @@ interface Stats { total: number; due: number; }
 
 type View = 'browse' | 'review';
 
-// ── SM-2 quality labels ────────────────────────────────────────────────────
 const QUALITY_OPTS = [
   { q: 0, label: 'Blackout',  emoji: '💀', color: '#ef4444' },
   { q: 1, label: 'Very Hard', emoji: '😓', color: '#f97316' },
@@ -48,13 +42,11 @@ export default function FlashcardsPage() {
   const [genCount, setGenCount] = useState(5);
   const [notes, setNotes] = useState<{ id: string; title: string }[]>([]);
 
-  // Review state
   const [reviewIdx, setReviewIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [reviewDone, setReviewDone] = useState(false);
   const [rating, setRating] = useState<number | null>(null);
 
-  // Edit state
   const [editId, setEditId] = useState<string | null>(null);
   const [editQ, setEditQ] = useState('');
   const [editA, setEditA] = useState('');
@@ -83,7 +75,6 @@ export default function FlashcardsPage() {
 
   useEffect(() => { loadAll(); loadNotes(); }, [loadAll, loadNotes]);
 
-  // ── Generate ────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     if (!genNoteId) return;
     setGenerating(true);
@@ -103,7 +94,6 @@ export default function FlashcardsPage() {
     }
   };
 
-  // ── Review session ───────────────────────────────────────────────────────
   const startReview = () => {
     setView('review');
     setReviewIdx(0);
@@ -135,7 +125,6 @@ export default function FlashcardsPage() {
     }, 400);
   };
 
-  // ── Edit / Delete ────────────────────────────────────────────────────────
   const startEdit = (card: Flashcard) => {
     setEditId(card.id); setEditQ(card.question); setEditA(card.answer);
   };
@@ -162,8 +151,6 @@ export default function FlashcardsPage() {
     window.open(apiUrl('/api/flashcards/export/anki'), '_blank');
   };
 
-  // ──────────────────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12, color: 'var(--on-surface-dim)' }}>
@@ -173,7 +160,6 @@ export default function FlashcardsPage() {
     );
   }
 
-  // ── REVIEW MODE ─────────────────────────────────────────────────────────
   if (view === 'review') {
     if (reviewDone || dueCards.length === 0) {
       return (
@@ -202,7 +188,6 @@ export default function FlashcardsPage() {
 
     return (
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 24px 80px' }}>
-        {/* Progress */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <button className="btn-ghost" onClick={() => setView('browse')} style={{ fontSize: '0.75rem' }}>
             <ChevronLeft size={14} /> Exit
@@ -215,14 +200,12 @@ export default function FlashcardsPage() {
           </span>
         </div>
 
-        {/* Card */}
         <div style={{
           borderRadius: 'var(--radius-2xl)', border: '1px solid var(--outline)',
           background: 'var(--surface-container)',
           overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           minHeight: 320,
         }}>
-          {/* Question */}
           <div style={{ padding: '32px 32px 24px', borderBottom: '1px solid var(--outline-variant)' }}>
             <div style={{
               fontSize: '0.625rem', fontFamily: 'var(--font-display)', fontWeight: 700,
@@ -234,7 +217,6 @@ export default function FlashcardsPage() {
             </p>
           </div>
 
-          {/* Answer area */}
           <div style={{ padding: '24px 32px' }}>
             {!revealed ? (
               <button
@@ -263,7 +245,6 @@ export default function FlashcardsPage() {
                   {card.answer}
                 </p>
 
-                {/* Rating buttons */}
                 <div style={{ fontSize: '0.75rem', color: 'var(--on-surface-dim)', marginBottom: 10, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
                   How well did you know this?
                 </div>
@@ -296,10 +277,8 @@ export default function FlashcardsPage() {
     );
   }
 
-  // ── BROWSE MODE ─────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 860, margin: '0 auto' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
         <div style={{ flex: 1 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 700, marginBottom: 4 }}>
@@ -330,7 +309,6 @@ export default function FlashcardsPage() {
         </div>
       </div>
 
-      {/* Stats strip */}
       {stats && (
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24,
@@ -358,7 +336,6 @@ export default function FlashcardsPage() {
         </div>
       )}
 
-      {/* Generate panel */}
       <div style={{
         padding: '18px 20px', borderRadius: 'var(--radius-xl)',
         background: 'var(--surface-container)',
@@ -410,7 +387,6 @@ export default function FlashcardsPage() {
         </div>
       </div>
 
-      {/* Due cards list */}
       {dueCards.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--on-surface-dim)' }}>
           <Brain size={48} style={{ margin: '0 auto 16px', display: 'block', opacity: 0.25 }} />

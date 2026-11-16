@@ -26,7 +26,6 @@ export default function NoteEditor() {
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
   const [showRelated, setShowRelated] = useState(false);
 
-  // Writing assistant state
   const [selection, setSelection] = useState('');
   const [showAssistant, setShowAssistant] = useState(false);
   const [assistantPos, setAssistantPos] = useState({ x: 0, y: 0 });
@@ -45,7 +44,6 @@ export default function NoteEditor() {
       .catch(console.error);
   }, []);
 
-  // Detect text selection for writing assistant
   const handleMouseUp = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
@@ -113,12 +111,10 @@ export default function NoteEditor() {
     } catch (err) { console.error(err); }
   };
 
-  // Accept writing assistant result — replace selection in content
   const handleAssistAccept = useCallback((result: string, action: string) => {
     if (action === 'continue') {
       setContent(prev => prev.trimEnd() + '\n\n' + result);
     } else {
-      // Replace selection in content
       setContent(prev => {
         const idx = prev.indexOf(selection);
         if (idx === -1) return prev + '\n\n' + result;
@@ -128,7 +124,6 @@ export default function NoteEditor() {
     setShowAssistant(false);
   }, [selection]);
 
-  // Insert wikilink from related notes sidebar
   const handleInsertLink = useCallback((wikilink: string) => {
     setContent(prev => prev + '\n' + wikilink);
   }, []);
@@ -145,7 +140,6 @@ export default function NoteEditor() {
       padding: isFocusMode ? 32 : 0,
       display: 'flex', flexDirection: 'column', height: '100%',
     }}>
-      {/* Top Bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 20, flexShrink: 0,
@@ -162,7 +156,6 @@ export default function NoteEditor() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Related notes toggle */}
           {savedNoteId && (
             <button
               className={`btn-ghost ${showRelated ? 'active' : ''}`}
@@ -189,15 +182,12 @@ export default function NoteEditor() {
         </div>
       </div>
 
-      {/* Editor + Sidebar */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0, gap: 0, position: 'relative' }}>
-        {/* Main editor */}
         <div
           ref={contentAreaRef}
           style={{ flex: 1, overflowY: 'auto', maxWidth: showRelated ? 'calc(100% - 220px)' : 720, position: 'relative' }}
           onMouseUp={handleMouseUp}
         >
-          {/* Title */}
           <input
             type="text"
             placeholder="Note Title"
@@ -212,7 +202,6 @@ export default function NoteEditor() {
             }}
           />
 
-          {/* Template + Tag row */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
             <select
               className="input"
@@ -260,7 +249,6 @@ export default function NoteEditor() {
             <VoiceMemo compact onTranscribed={text => setContent(prev => prev ? `${prev}\n\n${text}` : text)} />
           </div>
 
-          {/* AI Writing Assistant hint */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12,
             fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
@@ -273,7 +261,6 @@ export default function NoteEditor() {
             <span>rewrite</span>
           </div>
 
-          {/* Block Editor */}
           <div style={{
             background: 'var(--surface-container-lowest)',
             borderRadius: 'var(--radius-lg)',
@@ -282,7 +269,6 @@ export default function NoteEditor() {
           }}>
             <BlockEditor value={content} onChange={val => setContent(val)} />
 
-            {/* Writing Assistant floating panel */}
             {showAssistant && savedNoteId && (
               <div style={{
                 position: 'absolute',
@@ -301,7 +287,6 @@ export default function NoteEditor() {
               </div>
             )}
 
-            {/* Hint when no savedNoteId yet */}
             {showAssistant && !savedNoteId && (
               <div style={{
                 position: 'absolute',
@@ -325,7 +310,6 @@ export default function NoteEditor() {
             )}
           </div>
 
-          {/* Word count */}
           <div style={{
             textAlign: 'right', marginTop: 8,
             fontSize: '0.6875rem', color: 'var(--on-surface-dim)',
@@ -335,7 +319,6 @@ export default function NoteEditor() {
           </div>
         </div>
 
-        {/* Related Notes Sidebar */}
         {showRelated && savedNoteId && (
           <RelatedNotesSidebar
             noteId={savedNoteId}

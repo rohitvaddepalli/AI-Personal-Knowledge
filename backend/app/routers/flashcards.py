@@ -26,9 +26,6 @@ from app.utils.security import sanitize_content_for_prompt
 router = APIRouter(prefix="/api/flashcards", tags=["flashcards"])
 
 
-# ── Schemas ────────────────────────────────────────────────────────────────
-
-
 class FlashcardOut(BaseModel):
     id: str
     note_id: str
@@ -60,9 +57,6 @@ class FlashcardUpdate(BaseModel):
     answer: Optional[str] = None
 
 
-# ── SM-2 scheduler ─────────────────────────────────────────────────────────
-
-
 def _sm2(card: Flashcard, quality: int) -> None:
     """Apply SM-2 algorithm to update scheduling fields in-place."""
     q = max(0, min(5, quality))
@@ -86,9 +80,6 @@ def _sm2(card: Flashcard, quality: int) -> None:
     history = json.loads(card.recall_history or "[]")
     history.append(q)
     card.recall_history = json.dumps(history[-50:])  # keep last 50 ratings
-
-
-# ── Routes ─────────────────────────────────────────────────────────────────
 
 
 @router.post("/generate", response_model=List[FlashcardOut])

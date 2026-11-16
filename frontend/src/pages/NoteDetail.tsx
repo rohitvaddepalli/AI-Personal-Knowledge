@@ -11,7 +11,6 @@ import {
   AlertCircle, CheckCircle, Trash2, ArrowLeft,
 } from 'lucide-react';
 
-// ── Confirm dialog ─────────────────────────────────────────────────────────
 function ConfirmDialog({
   message,
   confirmLabel = 'Confirm',
@@ -59,7 +58,6 @@ function ConfirmDialog({
   );
 }
 
-// ── Toast ──────────────────────────────────────────────────────────────────
 function Toast({ message, type = 'success' }: { message: string; type?: 'success' | 'error' | 'info' }) {
   const color = type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--secondary)' : 'var(--primary)';
   const Icon = type === 'error' ? AlertCircle : CheckCircle;
@@ -112,7 +110,6 @@ export default function NoteDetail() {
   const desktopRuntime = isDesktopRuntime();
   const navigate = useNavigate();
 
-  // Dialog / toast state
   const [confirmDeleteAtt, setConfirmDeleteAtt] = useState<string | null>(null);
   const [confirmRestoreVer, setConfirmRestoreVer] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -348,7 +345,6 @@ export default function NoteDetail() {
 
   return (
     <div style={{ display: 'flex', height: '100%', gap: 0 }}>
-      {/* Dialogs + Toast */}
       {confirmDeleteAtt && (
         <ConfirmDialog
           message="Delete this attachment? This cannot be undone."
@@ -374,9 +370,7 @@ export default function NoteDetail() {
         />
       )}
       {toast && <Toast message={toast.msg} type={toast.type} />}
-      {/* ═══ Main Editor ═══ */}
       <div style={{ flex: 1, overflowY: 'auto', paddingRight: 20 }}>
-        {/* Breadcrumb */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
           marginBottom: 16, fontSize: '0.8125rem', color: 'var(--on-surface-dim)',
@@ -409,7 +403,6 @@ export default function NoteDetail() {
           <span style={{ color: 'var(--on-surface)' }}>{note.title}</span>
         </div>
 
-        {/* Toolbar */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 20,
@@ -441,7 +434,6 @@ export default function NoteDetail() {
           </div>
 
           <div style={{ display: 'flex', gap: 6 }}>
-            {/* AI Actions Button */}
             <button
               className="btn"
               onClick={() => setShowAIPanel(!showAIPanel)}
@@ -491,7 +483,6 @@ export default function NoteDetail() {
           </div>
         </div>
 
-        {/* Title */}
         {isEditing ? (
           <input
             value={editTitle}
@@ -512,7 +503,6 @@ export default function NoteDetail() {
           </h1>
         )}
 
-        {/* Tags + metadata */}
         {!isEditing && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -530,7 +520,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Parent Selector */}
         {showParentSelector && (
           <div style={{
             padding: 16, borderRadius: 'var(--radius-md)',
@@ -557,7 +546,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Content */}
         {isEditing ? (
           <div style={{
             background: 'var(--surface-container-lowest)',
@@ -574,7 +562,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* AI Result */}
         {aiResult && (
           <div className="animate-fade-in" style={{
             marginTop: 20, padding: 16, borderRadius: 'var(--radius-md)',
@@ -588,7 +575,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Backlinks */}
         {note.backlinks?.length > 0 && (
           <div style={{ marginTop: 32, paddingTop: 16 }}>
             <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Linked References</span>
@@ -607,7 +593,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Child Notes */}
         {noteTree?.descendants?.length > 0 && (
           <div style={{ marginTop: 24 }}>
             <span className="label-sm" style={{ marginBottom: 8, display: 'block' }}>Child Notes</span>
@@ -638,7 +623,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Attachments */}
         <div style={{ marginTop: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span className="label-sm">Attachments</span>
@@ -685,7 +669,6 @@ export default function NoteDetail() {
           )}
         </div>
 
-        {/* Version History */}
         {showVersions && (
           <div className="animate-fade-in" style={{
             marginTop: 24, padding: 16, borderRadius: 'var(--radius-md)',
@@ -735,13 +718,11 @@ export default function NoteDetail() {
         )}
       </div>
 
-      {/* ═══ Right Panel — AI Actions / Connections / Chat ═══ */}
       <div style={{
         width: 320, minWidth: 320, display: 'flex', flexDirection: 'column',
         background: 'var(--surface-container-lowest)', borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
       }}>
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--outline-variant)' }}>
           {[
             { key: 'connections', label: 'Connections' },
@@ -764,7 +745,6 @@ export default function NoteDetail() {
           ))}
         </div>
 
-        {/* AI Actions Panel (shown at top when active) */}
         {showAIPanel && (
           <div className="animate-fade-in" style={{
             padding: 16, borderBottom: '1px solid var(--outline-variant)',
@@ -838,7 +818,6 @@ export default function NoteDetail() {
           </div>
         )}
 
-        {/* Collection selector */}
         <div style={{ padding: '8px 16px', display: 'flex', gap: 6, borderBottom: '1px solid var(--outline-variant)' }}>
           <select className="input" value={selectedCol} onChange={e => setSelectedCol(e.target.value)}
             style={{ flex: 1, fontSize: '0.6875rem', padding: '5px 8px', borderRadius: 'var(--radius-full)' }}
@@ -849,7 +828,6 @@ export default function NoteDetail() {
           <button className="btn-ghost" onClick={addToCollection} disabled={!selectedCol} style={{ fontSize: '0.6875rem', padding: '5px 8px' }}>Add</button>
         </div>
 
-        {/* Tab content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
           {!chatOpen ? (
             <ConnectionsSidebar noteId={id || ''} />

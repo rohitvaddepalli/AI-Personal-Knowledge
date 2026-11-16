@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUI } from '../context/UIContext';
 import { getApiBaseUrl } from '../lib/api';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Webhook {
   id: string;
   name: string;
@@ -107,7 +106,6 @@ const WebhooksPage: React.FC = () => {
         </button>
       </div>
 
-      {/* New hook result banner */}
       {newHook && (
         <div className="hook-banner">
           <div className="hook-banner-title">✓ Webhook ready — copy your ingest URL</div>
@@ -124,7 +122,6 @@ const WebhooksPage: React.FC = () => {
         </div>
       )}
 
-      {/* Register form */}
       {showForm && (
         <form className="hook-form" onSubmit={handleRegister}>
           <div className="form-row">
@@ -181,7 +178,6 @@ const WebhooksPage: React.FC = () => {
         </form>
       )}
 
-      {/* Webhooks list */}
       {loading ? (
         <div className="wh-loading"><div className="spinner" />Loading webhooks…</div>
       ) : hooks.length === 0 ? (

@@ -31,11 +31,6 @@ from app.models.note import Note
 router = APIRouter(prefix="/api/interop", tags=["interop"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 def _safe_slug(title: str, note_id: str = "") -> str:
     """Convert a note title to a filesystem-safe filename slug."""
     name = (title or "").strip()
@@ -84,11 +79,6 @@ def _note_to_obsidian_md(note: Note, backlinks: List[str]) -> str:
         f"{note.content or ''}"
         f"{backlink_block}\n"
     )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 6.1 Export — Obsidian vault
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.get("/export/obsidian")
@@ -187,11 +177,6 @@ def export_obsidian_vault(db: Session = Depends(get_db)):
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 6.1 Export — Graph JSON / SVG
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @router.get("/export/graph/json")
 def export_graph_json(db: Session = Depends(get_db)):
     """Export the full knowledge graph as JSON (nodes + edges)."""
@@ -287,11 +272,6 @@ def export_graph_svg(db: Session = Depends(get_db)):
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 6.1 Import — Notion ZIP
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @router.post("/import/notion")
 async def import_notion_zip(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
@@ -347,11 +327,6 @@ async def import_notion_zip(file: UploadFile = File(...), db: Session = Depends(
         "skipped": skipped,
         "errors": errors[:20],
     }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 6.1 Import — Roam Research JSON
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.post("/import/roam")
@@ -410,11 +385,6 @@ async def import_roam_json(file: UploadFile = File(...), db: Session = Depends(g
 
     db.commit()
     return {"imported": created_count, "errors": errors[:20]}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 6.1 Import — Generic Markdown ZIP
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.post("/import/markdown-zip")

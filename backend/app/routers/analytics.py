@@ -27,11 +27,6 @@ from app.models.note import Note
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 def _parse_tags(raw: Any) -> list[str]:
     if not raw:
         return []
@@ -46,11 +41,6 @@ def _parse_tags(raw: Any) -> list[str]:
 
 def _word_count(content: str) -> int:
     return len((content or "").split())
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.get("/overview")

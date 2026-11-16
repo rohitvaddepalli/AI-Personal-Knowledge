@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { RefreshCw, Newspaper, BookOpen, AlertTriangle, Clock, Zap } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
 interface DigestNote {
   id: string;
   title: string;
@@ -22,8 +20,6 @@ interface DigestResponse {
   cached: boolean;
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -33,8 +29,6 @@ function timeAgo(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
-
-// ── Sub-components ──────────────────────────────────────────────────────────
 
 function NoteCard({ note, dimmed }: { note: DigestNote; dimmed?: boolean }) {
   return (
@@ -91,8 +85,6 @@ function NoteCard({ note, dimmed }: { note: DigestNote; dimmed?: boolean }) {
   );
 }
 
-// ── Main Page ───────────────────────────────────────────────────────────────
-
 export default function DigestPage() {
   const { showToast } = useUI();
   const [digest, setDigest] = useState<DigestResponse | null>(null);
@@ -140,7 +132,6 @@ export default function DigestPage() {
     void fetchDigest();
   }, [fetchDigest]);
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -164,7 +155,6 @@ export default function DigestPage() {
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────
   if (error && !digest) {
     return (
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -192,7 +182,6 @@ export default function DigestPage() {
     );
   }
 
-  // ── Main render ──────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       {/* Header */}

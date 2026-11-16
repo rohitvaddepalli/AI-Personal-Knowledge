@@ -95,13 +95,11 @@ export default function KnowledgeGraph() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px 28px', overflow: 'hidden' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>Graph Explorer</h1>
         </div>
 
-        {/* Stats badge */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
           fontFamily: 'var(--font-mono)', fontSize: '0.6875rem',
@@ -111,7 +109,6 @@ export default function KnowledgeGraph() {
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexShrink: 0 }}>
         {filters.map(f => (
           <button
@@ -136,7 +133,6 @@ export default function KnowledgeGraph() {
         ))}
       </div>
 
-      {/* Graph + Controls */}
       <div style={{ flex: 1, display: 'flex', gap: 16, minHeight: 0 }}>
         <div ref={containerRef} style={{
           flex: 1, borderRadius: 'var(--radius-lg)', overflow: 'hidden',
@@ -164,7 +160,6 @@ export default function KnowledgeGraph() {
                 const size = (node.val || 4) * 1.5;
                 const isSelected = selectedNode?.id === node.id;
 
-                // Node glow
                 if (isSelected) {
                   ctx.beginPath();
                   ctx.arc(x, y, size + 6, 0, 2 * Math.PI);
@@ -172,7 +167,6 @@ export default function KnowledgeGraph() {
                   ctx.fill();
                 }
 
-                // Node circle
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, 2 * Math.PI);
                 const isAI = node.group === 'ai';
@@ -181,7 +175,6 @@ export default function KnowledgeGraph() {
                     : '#947DFF';
                 ctx.fill();
 
-                // White center dot for selected
                 if (isSelected) {
                   ctx.beginPath();
                   ctx.arc(x, y, size * 0.35, 0, 2 * Math.PI);
@@ -189,7 +182,6 @@ export default function KnowledgeGraph() {
                   ctx.fill();
                 }
 
-                // Label
                 if (globalScale > 1.2 || isSelected) {
                   ctx.font = `${isSelected ? 600 : 400} ${11 / globalScale}px Manrope, sans-serif`;
                   ctx.fillStyle = isSelected ? '#E2E2EB' : '#A0A0AB';
@@ -202,7 +194,6 @@ export default function KnowledgeGraph() {
             />
           )}
 
-          {/* Zoom Controls */}
           <div style={{
             position: 'absolute', top: 16, right: 16,
             display: 'flex', flexDirection: 'column', gap: 4,
@@ -245,9 +236,7 @@ export default function KnowledgeGraph() {
           </div>
         </div>
 
-        {/* Right Panel — Node Details + Legend */}
         <div style={{ width: 280, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Selected Node Card */}
           {selectedNode && (
             <div className="animate-fade-in" style={{
               padding: 16, borderRadius: 'var(--radius-lg)',
@@ -280,7 +269,6 @@ export default function KnowledgeGraph() {
                 {selectedNode.description || 'Explore connections in your knowledge graph...'}
               </p>
 
-              {/* Tags */}
               {selectedNode.tags && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
                   {(Array.isArray(selectedNode.tags) ? selectedNode.tags : []).map((t: string) => (
@@ -304,7 +292,6 @@ export default function KnowledgeGraph() {
             </div>
           )}
 
-          {/* Neural Insight */}
           <div style={{
             padding: 16, borderRadius: 'var(--radius-lg)',
             background: 'var(--secondary-container)',
@@ -333,7 +320,6 @@ export default function KnowledgeGraph() {
             </button>
           </div>
 
-          {/* Graph Legend */}
           <div style={{
             padding: 12, borderRadius: 'var(--radius-md)',
             background: 'var(--surface-container)',

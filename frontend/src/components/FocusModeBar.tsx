@@ -37,7 +37,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
       .then(setPresets)
       .catch(console.error);
 
-    // Restore saved preset
     const saved = localStorage.getItem('focus_mode');
     if (saved) setActivePreset(saved);
   }, []);
@@ -47,7 +46,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
     localStorage.setItem('focus_mode', preset.id);
     setOpen(false);
 
-    // Save to backend
     await fetch(apiUrl('/api/personalization/preferences/focus_mode'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -73,7 +71,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Trigger */}
       <button
         onClick={() => setOpen((o) => !o)}
         style={{
@@ -92,7 +89,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
         <ChevronDown size={11} style={{ opacity: 0.6 }} />
       </button>
 
-      {/* Clear active preset */}
       {activePreset && (
         <button
           onClick={clearPreset}
@@ -110,7 +106,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
         </button>
       )}
 
-      {/* Dropdown */}
       {open && (
         <div
           style={{
@@ -187,7 +182,6 @@ export default function FocusModeBar({ onPresetApply }: FocusModeBarProps) {
         </div>
       )}
 
-      {/* Backdrop */}
       {open && (
         <div
           onClick={() => setOpen(false)}

@@ -18,16 +18,13 @@ class Note(Base):
     updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
     is_archived = Column(Boolean, default=False)
     is_pinned = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)  # Soft delete timestamp
+    deleted_at = Column(DateTime, nullable=True)
 
-    # Spaced repetition fields
     review_count = Column(Integer, default=0)
     next_review_at = Column(DateTime, nullable=True)
     last_reviewed_at = Column(DateTime, nullable=True)
 
-    # Hierarchical notes
     parent_note_id = Column(String, ForeignKey("notes.id", ondelete="CASCADE"), nullable=True)
     order = Column(Integer, default=0)
 
-    # Phase 6.3 — Public garden
     is_public = Column(Boolean, default=False)

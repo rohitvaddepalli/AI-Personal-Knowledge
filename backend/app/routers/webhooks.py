@@ -28,10 +28,6 @@ from app.services.embedding_service import add_note_embedding
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
-# ─────────────────────────────────────────────────────────────────────────────
-# In-process registry (persists to a JSON file in the app data dir)
-# ─────────────────────────────────────────────────────────────────────────────
-
 from pathlib import Path
 
 from app.config import settings
@@ -53,11 +49,6 @@ def _save_registry(hooks: list[dict]) -> None:
     _REGISTRY_PATH.write_text(json.dumps(hooks, indent=2))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Models
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 class WebhookRegisterRequest(BaseModel):
     name: str  # e.g. "Zapier capture", "Slack bot"
     source_label: str = "webhook"  # label shown on created notes
@@ -66,11 +57,6 @@ class WebhookRegisterRequest(BaseModel):
     extract_body_field: str = "body"  # JSON field to use as note body
     extract_tags_field: Optional[str] = None
     auto_tag: bool = True
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Registration endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @router.post("/register", status_code=201)
@@ -118,11 +104,6 @@ def delete_webhook(hook_id: str):
         raise HTTPException(status_code=404, detail="Webhook not found.")
     _save_registry(new_hooks)
     return {"status": "deleted", "id": hook_id}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Ingest endpoint (public — authenticated by token)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _verify_signature(body: bytes, secret: str, signature_header: Optional[str]) -> bool:

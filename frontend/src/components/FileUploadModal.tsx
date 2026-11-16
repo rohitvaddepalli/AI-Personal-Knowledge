@@ -42,14 +42,13 @@ export default function FileUploadModal({ onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll active jobs every 1.5s
   useEffect(() => {
     const active = jobs.filter((j) => !['done', 'failed'].includes(j.status));
     if (active.length === 0) {
       if (pollRef.current) clearInterval(pollRef.current);
       return;
     }
-    if (pollRef.current) return; // already polling
+    if (pollRef.current) return;
     pollRef.current = setInterval(async () => {
       const updated = await Promise.all(
         jobs.map(async (j) => {
@@ -126,7 +125,6 @@ export default function FileUploadModal({ onClose }: Props) {
         overflow: 'hidden',
         boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
       }}>
-        {/* Header */}
         <div style={{
           padding: '20px 24px', borderBottom: '1px solid var(--outline-variant)',
           display: 'flex', alignItems: 'center', gap: 12,
@@ -144,7 +142,6 @@ export default function FileUploadModal({ onClose }: Props) {
         </div>
 
         <div style={{ padding: 24 }}>
-          {/* Drop zone */}
           <div
             onDrop={onDrop}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -180,7 +177,6 @@ export default function FileUploadModal({ onClose }: Props) {
             />
           </div>
 
-          {/* Jobs list */}
           {jobs.length > 0 && (
             <div>
               <div style={{
@@ -210,7 +206,6 @@ export default function FileUploadModal({ onClose }: Props) {
                       </div>
                     </div>
 
-                    {/* Status icon */}
                     {job.status === 'done' && (
                       <CheckCircle size={16} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
                     )}
@@ -221,7 +216,6 @@ export default function FileUploadModal({ onClose }: Props) {
                       <Loader2 size={16} style={{ color: 'var(--primary)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
                     )}
 
-                    {/* Actions */}
                     {job.status === 'done' && job.note_id && (
                       <button
                         onClick={() => { onClose(); navigate(`/notes/${job.note_id}`); }}

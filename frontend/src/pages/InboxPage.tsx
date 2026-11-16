@@ -45,7 +45,6 @@ function Toast({ message, type = 'success' }: { message: string; type?: 'success
   );
 }
 
-// ── Tag input inline ───────────────────────────────────────────────────────
 function TagInput({ onSave, onCancel }: { onSave: (tags: string[]) => void; onCancel: () => void }) {
   const [value, setValue] = useState('');
   return (
@@ -153,7 +152,6 @@ export default function InboxPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }}>
       {toast && <Toast message={toast.msg} type={toast.type} />}
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -179,7 +177,6 @@ export default function InboxPage() {
         </button>
       </div>
 
-      {/* Triage guide */}
       <div style={{
         display: 'flex', gap: 12, padding: '10px 14px',
         borderRadius: 'var(--radius-md)', background: 'var(--surface-container-lowest)',
@@ -192,7 +189,6 @@ export default function InboxPage() {
         <span>📦 <strong>Archive</strong> → removes from inbox</span>
       </div>
 
-      {/* Error */}
       {error && (
         <div style={{
           display: 'flex', gap: 10, padding: '10px 14px',
@@ -205,7 +201,6 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* Loading skeleton */}
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1, 2, 3].map((i) => (
@@ -219,7 +214,6 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* Empty */}
       {!loading && !error && notes.length === 0 && (
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
@@ -237,7 +231,6 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* Note cards */}
       {!loading && notes.map((note) => (
         <div key={note.id} className="animate-fade-in" style={{
           borderRadius: 'var(--radius-xl)',
@@ -245,7 +238,6 @@ export default function InboxPage() {
           border: '1px solid var(--outline-variant)',
           overflow: 'hidden',
         }}>
-          {/* Card header */}
           <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 'var(--radius-md)', flexShrink: 0,
@@ -289,7 +281,6 @@ export default function InboxPage() {
             </Link>
           </div>
 
-          {/* Content preview */}
           <div style={{
             padding: '0 18px 12px',
             fontSize: '0.8125rem', color: 'var(--on-surface-variant)',
@@ -300,7 +291,6 @@ export default function InboxPage() {
             {note.content?.substring(0, 200)}
           </div>
 
-          {/* AI summary result */}
           {summaries[note.id] && (
             <div style={{
               margin: '0 18px 12px',
@@ -318,7 +308,6 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* Tag input */}
           {tagInputId === note.id && (
             <div style={{ padding: '0 18px 12px' }}>
               <TagInput
@@ -328,7 +317,6 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* Triage actions */}
           <div style={{
             padding: '10px 18px', borderTop: '1px solid var(--outline-variant)',
             display: 'flex', gap: 6, flexWrap: 'wrap',

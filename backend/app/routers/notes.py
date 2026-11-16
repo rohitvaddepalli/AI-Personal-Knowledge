@@ -319,9 +319,6 @@ def get_full_tree(db: Session = Depends(get_db)):
     return roots
 
 
-# ── 3.2 Related notes sidebar ──────────────────────────────────────────────
-
-
 @router.get("/{note_id}/related")
 def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db)):
     """
@@ -329,9 +326,6 @@ def get_related_notes(note_id: str, limit: int = 6, db: Session = Depends(get_db
     Strategy: try vector similarity first, fall back to shared-tag keyword overlap.
     """
     return NoteService.get_related_notes(db, note_id, limit)
-
-
-# ── 3.3 Writing assistant ──────────────────────────────────────────────────
 
 
 class AiAssistRequest(BaseModel):

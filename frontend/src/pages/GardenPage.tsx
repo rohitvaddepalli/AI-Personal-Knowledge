@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUI } from '../context/UIContext';
 import { getApiBaseUrl } from '../lib/api';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface PublicNote {
   id: string;
   title: string;
@@ -21,7 +20,6 @@ interface Note {
   is_public?: boolean;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const GardenPage: React.FC = () => {
   const { showToast } = useUI();
 
@@ -105,7 +103,6 @@ const GardenPage: React.FC = () => {
         </a>
       </div>
 
-      {/* Stats */}
       <div className="gd-stats">
         <div className="stat-card">
           <div className="stat-num">{notes.length}</div>
@@ -130,7 +127,6 @@ const GardenPage: React.FC = () => {
         </a>
       </div>
 
-      {/* Tabs */}
       <div className="gd-tabs">
         {(['manage', 'preview'] as const).map(t => (
           <button
@@ -143,7 +139,6 @@ const GardenPage: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Manage tab ── */}
       {tab === 'manage' && (
         <>
           <input
@@ -185,7 +180,6 @@ const GardenPage: React.FC = () => {
         </>
       )}
 
-      {/* ── Preview tab ── */}
       {tab === 'preview' && (
         <div className="gd-preview">
           {gardenNotes.length === 0 ? (
@@ -229,7 +223,6 @@ const GardenPage: React.FC = () => {
                            text-decoration: none; white-space: nowrap; transition: border-color 150ms; }
         .btn-view-garden:hover { border-color: var(--primary, #6366f1); }
 
-        /* Stats */
         .gd-stats  { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
         .stat-card { background: var(--surface, #1a1a2e); border: 1px solid var(--border, #2a2a4a);
                      border-radius: 12px; padding: 1rem; text-align: center; }
@@ -239,20 +232,17 @@ const GardenPage: React.FC = () => {
         .stat-num  { font-size: 1.5rem; font-weight: 800; color: var(--primary, #6366f1); }
         .stat-label{ font-size: .75rem; color: var(--text-secondary, #94a3b8); margin-top: .2rem; }
 
-        /* Tabs */
         .gd-tabs   { display: flex; gap: .5rem; }
         .gd-tab    { padding: .5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border, #2a2a4a);
                      background: var(--surface, #1a1a2e); color: var(--text-secondary, #94a3b8);
                      font-size: .875rem; font-weight: 600; cursor: pointer; transition: all 150ms; }
         .gd-tab.active { background: var(--primary, #6366f1); color: #fff; border-color: var(--primary, #6366f1); }
 
-        /* Search */
         .gd-search { width: 100%; padding: .6rem 1rem; background: var(--surface, #1a1a2e);
                      border: 1px solid var(--border, #2a2a4a); border-radius: 10px;
                      color: var(--text, #e2e8f0); font-size: .9rem; outline: none; transition: border-color 150ms; }
         .gd-search:focus { border-color: var(--primary, #6366f1); }
 
-        /* Note list */
         .gd-note-list { display: flex; flex-direction: column; gap: .5rem; }
         .gd-note-row  { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
                         padding: .75rem 1rem; background: var(--surface, #1a1a2e);
@@ -270,7 +260,6 @@ const GardenPage: React.FC = () => {
         .toggle-btn:disabled { opacity: .5; cursor: not-allowed; }
         .gd-empty-list{ text-align: center; padding: 2rem; color: var(--text-secondary, #94a3b8); font-size: .9rem; }
 
-        /* Preview */
         .gd-preview   { }
         .preview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .875rem; }
         .preview-card { display: flex; flex-direction: column; gap: .4rem; padding: 1rem 1.125rem;
@@ -285,13 +274,11 @@ const GardenPage: React.FC = () => {
                           padding: 1px 7px; font-size: .65rem; font-weight: 600; }
         .preview-date   { font-size: .7rem; color: var(--text-secondary, #94a3b8); margin-top: auto; }
 
-        /* Empty */
         .gd-empty      { text-align: center; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; gap: .75rem; }
         .empty-icon    { font-size: 2.5rem; }
         .empty-title   { font-size: 1.125rem; font-weight: 700; }
         .empty-sub     { color: var(--text-secondary, #94a3b8); max-width: 360px; font-size: .875rem; }
 
-        /* Loading */
         .gd-loading { display: flex; align-items: center; gap: .75rem; color: var(--text-secondary, #94a3b8); padding: 2rem; }
         .spinner    { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.1);
                       border-top-color: var(--primary, #6366f1); border-radius: 50%; animation: spin 600ms linear infinite; }
