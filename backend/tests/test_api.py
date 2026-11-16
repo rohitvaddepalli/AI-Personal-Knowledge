@@ -1,5 +1,4 @@
 """Tests for the templates API endpoints."""
-import pytest
 from fastapi.testclient import TestClient
 
 from app.config import settings
@@ -29,7 +28,7 @@ class TestTemplates:
         # Create a template
         create_response = client.post("/api/templates", json=sample_template_data)
         template_id = create_response.json()["id"]
-        
+
         # Get the template
         response = client.get(f"/api/templates/{template_id}")
         assert response.status_code == 200
@@ -42,7 +41,7 @@ class TestTemplates:
         # Create a template
         create_response = client.post("/api/templates", json=sample_template_data)
         template_id = create_response.json()["id"]
-        
+
         # Update it
         update_data = {
             "name": "Updated Template",
@@ -50,7 +49,7 @@ class TestTemplates:
         }
         response = client.put(f"/api/templates/{template_id}", json=update_data)
         assert response.status_code == 200
-        
+
         # Verify
         get_response = client.get(f"/api/templates/{template_id}")
         data = get_response.json()
@@ -61,7 +60,7 @@ class TestTemplates:
         # Create a template
         create_response = client.post("/api/templates", json=sample_template_data)
         template_id = create_response.json()["id"]
-        
+
         # Delete it
         response = client.delete(f"/api/templates/{template_id}")
         assert response.status_code == 200
@@ -71,7 +70,7 @@ class TestTemplates:
         # Create a template
         create_response = client.post("/api/templates", json=sample_template_data)
         template_id = create_response.json()["id"]
-        
+
         # Apply it
         response = client.post(
             f"/api/templates/{template_id}/apply",
@@ -99,7 +98,7 @@ class TestTasks:
         # Create some tasks
         client.post("/api/tasks", json={"text": "Task 1"})
         client.post("/api/tasks", json={"text": "Task 2"})
-        
+
         response = client.get("/api/tasks")
         assert response.status_code == 200
         data = response.json()
@@ -111,7 +110,7 @@ class TestTasks:
         # Create a task
         create_response = client.post("/api/tasks", json={"text": "Original task"})
         task_id = create_response.json()["id"]
-        
+
         # Update it
         response = client.put(f"/api/tasks/{task_id}", json={
             "text": "Updated task",
@@ -124,7 +123,7 @@ class TestTasks:
         # Create a task
         create_response = client.post("/api/tasks", json={"text": "Task to delete"})
         task_id = create_response.json()["id"]
-        
+
         # Delete it
         response = client.delete(f"/api/tasks/{task_id}")
         assert response.status_code == 200
@@ -150,7 +149,7 @@ class TestCollections:
             "name": "Collection 1",
             "description": "Desc 1",
         })
-        
+
         response = client.get("/api/collections")
         assert response.status_code == 200
         data = response.json()
@@ -165,6 +164,37 @@ class TestHealth:
         """Test the health check endpoint."""
         response = client.get("/api/health")
         assert response.status_code == 200
+
+    def test_system_health_endpoint(self, client: TestClient):
+        """Test standardized /api/system/health endpoint."""
+        response = client.get("/api/system/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] in {"ok", "healthy", "degraded"}
+        assert data["database"] == "ok"
+        assert "appMode" in data
+        assert "environment" in data
+
+    def test_system_health_db_failure(self):
+        """When database fails, /api/system/health returns 503."""
+        from app.database import get_db
+
+        class FailingSession:
+            def execute(self, *args, **kwargs):
+                raise RuntimeError("Database query failure")
+
+        def broken_get_db():
+            yield FailingSession()
+
+        app.dependency_overrides[get_db] = broken_get_db
+        try:
+            with TestClient(app) as test_client:
+                response = test_client.get("/api/system/health")
+                assert response.status_code == 503
+                data = response.json()
+                assert data["detail"]["database"] == "unhealthy"
+        finally:
+            app.dependency_overrides.clear()
 
     def test_system_status(self, client: TestClient):
         """Test the system status endpoint."""

@@ -240,8 +240,8 @@ def garden_index(
         )
 
     total = db.query(Note).filter(Note.is_public == True, Note.deleted_at == None).count()
-    html = GARDEN_INDEX_HTML.format(count=total, notes_html="\n".join(notes_html_parts))
-    return HTMLResponse(content=html)
+    page_html = GARDEN_INDEX_HTML.format(count=total, notes_html="\n".join(notes_html_parts))
+    return HTMLResponse(content=page_html)
 
 
 @router.get("/rss")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -30,27 +30,30 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
-def _set_auth_cookies(response: Response, username: str) -> dict[str, str]:
+def _set_auth_cookies(response: Response, username: str, request: Request | None = None) -> dict[str, str]:
     cookies = issue_auth_cookies(username)
+    is_secure = settings.auth_cookie_secure
+    if request and request.headers.get("x-forwarded-proto", "").lower() == "https":
+        is_secure = True
     response.set_cookie(
         ACCESS_COOKIE_NAME,
         cookies[ACCESS_COOKIE_NAME],
         httponly=True,
-        secure=settings.auth_cookie_secure,
+        secure=is_secure,
         samesite="lax",
     )
     response.set_cookie(
         REFRESH_COOKIE_NAME,
         cookies[REFRESH_COOKIE_NAME],
         httponly=True,
-        secure=settings.auth_cookie_secure,
+        secure=is_secure,
         samesite="lax",
     )
     response.set_cookie(
         settings.csrf_cookie_name,
         cookies[settings.csrf_cookie_name],
         httponly=False,
-        secure=settings.auth_cookie_secure,
+        secure=is_secure,
         samesite="lax",
     )
     return cookies
@@ -75,25 +78,25 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(body: LoginRequest, response: Response, request: Request, db: Session = Depends(get_db)):
     ensure_default_local_user(db)
     if settings.auth_mode != "multi_user":
         return {"ok": True, "mode": settings.auth_mode}
     user = db.query(User).filter(User.username == body.username, User.is_active == True).first()  # noqa: E712
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    _set_auth_cookies(response, user.username)
+    _set_auth_cookies(response, user.username, request)
     return {"ok": True, "username": user.username, "csrfCookieName": settings.csrf_cookie_name}
 
 
 @router.post("/refresh")
-def refresh(response: Response, refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME)):
+def refresh(response: Response, request: Request, refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME)):
     if settings.auth_mode != "multi_user":
         return {"ok": True, "mode": settings.auth_mode}
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Missing refresh token")
     username = get_refresh_subject(refresh_token)
-    _set_auth_cookies(response, username)
+    _set_auth_cookies(response, username, request)
     return {"ok": True}
 
 

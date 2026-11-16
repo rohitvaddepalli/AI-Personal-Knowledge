@@ -16,6 +16,9 @@ def _sqlite_url(path: Path) -> str:
 
 class Settings(BaseSettings):
     project_name: str = "Second Brain"
+    app_mode: Literal["desktop", "web"] = "desktop"
+    environment: Literal["development", "production", "test"] = "development"
+    cors_origins: str = ""
     app_data_dir: Optional[str] = None
     database_url: Optional[str] = None
     database_mode: Literal["local", "postgres"] = "local"
@@ -83,10 +86,18 @@ class Settings(BaseSettings):
     # Kept conservative to avoid breaking usage; adjust via env var if needed.
     max_upload_size_mb: int = 25
 
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="SECOND_BRAIN_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="SECOND_BRAIN_",
+        extra="ignore",
+        protected_namespaces=("settings_",),
+    )
 
     @model_validator(mode="after")
     def apply_desktop_defaults(self):
+        if self.environment == "production" and self.app_mode == "web" and self.auth_secret_key == "change-me-in-production":
+            raise ValueError("auth_secret_key must be configured in production web mode")
+
         data_dir = Path(self.app_data_dir).expanduser() if self.app_data_dir else _default_data_dir()
         data_dir = data_dir.resolve()
         self.app_data_dir = str(data_dir)

@@ -23,6 +23,11 @@ def create_connection(conn: ConnectionCreate, db: Session = Depends(get_db)):
     return db_conn
 
 
+@router.get("", response_model=List[ConnectionResponse])
+def list_connections(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(Connection).offset(skip).limit(limit).all()
+
+
 @router.get("/note/{note_id}", response_model=List[ConnectionResponse])
 def get_connections(note_id: str, db: Session = Depends(get_db)):
     conns = (

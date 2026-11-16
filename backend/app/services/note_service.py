@@ -90,7 +90,13 @@ class NoteService:
         # Create wikilink connections
         NoteService.create_wikilink_connections(db_note.id, db_note.content, db)
 
-        db_note.tags = json.loads(db_note.tags) if db_note.tags else []
+        if isinstance(db_note.tags, str) and db_note.tags:
+            try:
+                db_note.tags = json.loads(db_note.tags)
+            except Exception:
+                db_note.tags = []
+        elif not isinstance(db_note.tags, list):
+            db_note.tags = []
         return db_note
 
     @staticmethod
@@ -124,7 +130,13 @@ class NoteService:
         if content_changed:
             NoteService.create_wikilink_connections(db_note.id, db_note.content, db)
 
-        db_note.tags = json.loads(db_note.tags) if db_note.tags else []
+        if isinstance(db_note.tags, str) and db_note.tags:
+            try:
+                db_note.tags = json.loads(db_note.tags)
+            except Exception:
+                db_note.tags = []
+        elif not isinstance(db_note.tags, list):
+            db_note.tags = []
         return db_note, needs_embedding_update
 
     @staticmethod

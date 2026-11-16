@@ -2,12 +2,14 @@ import ipaddress
 import secrets
 import time
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
+from app.database import get_db
 from app.db_init import initialize_database
 from app.routers import (
     analytics,
@@ -149,19 +151,23 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AccessControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
+default_cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+    "http://127.0.0.1:3000",
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+]
+configured_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+effective_origins = list(dict.fromkeys(default_cors_origins + configured_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-        "http://127.0.0.1:3000",
-        "tauri://localhost",
-        "http://tauri.localhost",
-        "https://tauri.localhost",
-    ],
+    allow_origins=effective_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -205,11 +211,5 @@ def root():
 
 
 @app.get("/api/health")
-def health():
-    return {
-        "status": "ok",
-        "port": settings.api_port,
-        "sidecarMode": settings.sidecar_mode,
-        "databaseBackend": settings.database_backend,
-        "databaseMode": settings.database_mode,
-    }
+async def health(db: Session = Depends(get_db)):
+    return await system.system_health(db=db)

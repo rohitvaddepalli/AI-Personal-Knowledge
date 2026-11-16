@@ -2,7 +2,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 import json
-from typing import List
+from typing import Any, List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -26,6 +26,19 @@ from app.services.note_service import NoteService
 from app.utils.security import sanitize_content_for_prompt
 
 router = APIRouter(prefix="/api/notes", tags=["notes"])
+
+
+def _normalize_tags(tags: Any) -> list[str]:
+    if isinstance(tags, list):
+        return tags
+    if isinstance(tags, str) and tags.strip():
+        try:
+            parsed = json.loads(tags)
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            return []
+    return []
 
 
 class TagSuggestionRequest(BaseModel):
@@ -82,7 +95,7 @@ def get_random_note(db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No notes available")
     offset = random.randint(0, count - 1)
     note = query.offset(offset).first()
-    note.tags = json.loads(note.tags) if note.tags else []
+    note.tags = _normalize_tags(note.tags)
     return note
 
 
@@ -100,7 +113,7 @@ def get_or_create_daily_note(db: Session = Depends(get_db)):
     )
 
     if note:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
         return note
 
     # Create new daily note
@@ -115,7 +128,7 @@ def get_or_create_daily_note(db: Session = Depends(get_db)):
     db.add(db_note)
     db.commit()
     db.refresh(db_note)
-    db_note.tags = json.loads(db_note.tags) if db_note.tags else []
+    db_note.tags = _normalize_tags(db_note.tags)
 
     # Add embedding
     try:
@@ -136,7 +149,7 @@ def get_daily_notes(db: Session = Depends(get_db)):
         .all()
     )
     for note in notes:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
     return notes
 
 
@@ -151,7 +164,7 @@ def read_notes(skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
         .all()
     )
     for note in notes:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
     return notes
 
 
@@ -189,7 +202,7 @@ def delete_note(note_id: str, db: Session = Depends(get_db)):
 def get_trashed_notes(db: Session = Depends(get_db)):
     notes = db.query(NoteModel).filter(NoteModel.deleted_at != None).order_by(NoteModel.deleted_at.desc()).all()
     for note in notes:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
     return notes
 
 
@@ -203,7 +216,7 @@ def restore_note(note_id: str, db: Session = Depends(get_db)):
     db_note.is_archived = False
     db.commit()
     db.refresh(db_note)
-    db_note.tags = json.loads(db_note.tags) if db_note.tags else []
+    db_note.tags = _normalize_tags(db_note.tags)
     return db_note
 
 
@@ -236,7 +249,7 @@ def search_notes(query: str = Query(..., min_length=1), db: Session = Depends(ge
         .all()
     )
     for note in notes:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
     return notes
 
 
@@ -250,7 +263,7 @@ def get_child_notes(note_id: str, db: Session = Depends(get_db)):
         .all()
     )
     for note in notes:
-        note.tags = json.loads(note.tags) if note.tags else []
+        note.tags = _normalize_tags(note.tags)
     return notes
 
 
@@ -278,7 +291,7 @@ def set_parent_note(note_id: str, parent_id: str, db: Session = Depends(get_db))
     note.parent_note_id = parent_id if parent_id else None
     db.commit()
     db.refresh(note)
-    note.tags = json.loads(note.tags) if note.tags else []
+    note.tags = _normalize_tags(note.tags)
     return note
 
 
@@ -399,7 +412,7 @@ def read_note(note_id: str, db: Session = Depends(get_db)):
     note = db.query(NoteModel).filter(NoteModel.id == note_id).first()
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
-    note.tags = json.loads(note.tags) if note.tags else []
+    note.tags = _normalize_tags(note.tags)
 
     # Simple backlink finding based on title match in other notes' content
     backlinks_query = (

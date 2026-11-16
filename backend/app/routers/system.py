@@ -4,10 +4,13 @@ import os
 from collections import deque
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import get_db
 from app.job_queue import list_jobs
 from app.llm.router import provider_health
 from app.runtime import get_runtime_settings, update_runtime_settings
@@ -150,5 +153,37 @@ async def shutdown_sidecar(request: Request):
 
 
 @router.get("/health")
-async def system_health():
-    return {"status": "ok", "metrics": _metrics()}
+async def system_health(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "unhealthy",
+                "database": "unhealthy",
+                "message": f"Database unreachable: {str(exc)}",
+            },
+        )
+
+    ollama_ok = await _ollama_reachable()
+    vector_ok = True
+    try:
+        from app.services.embedding_service import note_collection
+        vector_ok = note_collection is not None
+    except Exception:
+        vector_ok = False
+
+    return {
+        "status": "ok",
+        "port": settings.api_port,
+        "database": "ok",
+        "vectorDb": "ok" if vector_ok else "unavailable",
+        "llm": "ok" if ollama_ok else "unavailable",
+        "databaseBackend": settings.database_backend,
+        "databaseMode": settings.database_mode,
+        "appMode": settings.app_mode,
+        "environment": settings.environment,
+        "sidecarMode": settings.sidecar_mode,
+        "metrics": _metrics(),
+    }

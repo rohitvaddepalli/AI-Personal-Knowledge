@@ -10,6 +10,15 @@ from app.main import app
 # Test database setup
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
+@pytest.fixture(autouse=True)
+def mock_embedding_calls(monkeypatch):
+    monkeypatch.setattr("app.services.embedding_service.add_note_embedding", lambda *args, **kwargs: None)
+    monkeypatch.setattr("app.services.embedding_service.update_note_embedding", lambda *args, **kwargs: None)
+    monkeypatch.setattr("app.services.embedding_service.delete_note_embedding", lambda *args, **kwargs: None)
+    monkeypatch.setattr("app.services.note_service.add_note_embedding", lambda *args, **kwargs: None)
+    monkeypatch.setattr("app.routers.notes.add_note_embedding", lambda *args, **kwargs: None)
+
+
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database session for each test."""
@@ -20,28 +29,34 @@ def db_session():
     )
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
-    
+
     session = TestingSessionLocal()
     try:
         yield session
     finally:
         session.close()
         Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
 
 @pytest.fixture(scope="function")
 def client(db_session):
     """Create a test client with overridden database dependency."""
+    engine = db_session.bind
+    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
     def override_get_db():
+        session = session_factory()
         try:
-            yield db_session
+            yield session
         finally:
-            pass
-    
+            session.close()
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 @pytest.fixture

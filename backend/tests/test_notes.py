@@ -1,5 +1,4 @@
 """Tests for notes CRUD and core features."""
-import pytest
 from fastapi.testclient import TestClient
 
 

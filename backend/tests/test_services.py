@@ -1,5 +1,4 @@
 """Tests for analytics, collections, export, auth, and health endpoints."""
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -252,8 +251,8 @@ class TestConnections:
         note_a = client.post("/api/notes", json={"title": "A", "content": "a"}).json()
         note_b = client.post("/api/notes", json={"title": "B", "content": "b"}).json()
         resp = client.post("/api/connections", json={
-            "note_id": note_a["id"],
-            "connected_note_id": note_b["id"],
+            "source_note_id": note_a["id"],
+            "target_note_id": note_b["id"],
             "relationship_type": "related",
         })
         assert resp.status_code == 200
