@@ -41,9 +41,6 @@ const DailyNotes      = lazy(() => import('./pages/DailyNotes'));
 const ImportExportPage = lazy(() => import('./pages/ImportExportPage'));
 const WebhooksPage    = lazy(() => import('./pages/WebhooksPage'));
 
-// ── Navigation structure ───────────────────────────────────────────────────
-// "core" = always visible in beginner mode
-// "advanced" = shown under expandable section
 const CORE_ITEMS = [
   { path: '/',         label: 'Dashboard',  icon: BookOpen },
   { path: '/inbox',    label: 'Inbox',      icon: Inbox,   badge: 'inbox' },
@@ -121,7 +118,6 @@ function AnimatedRoutes() {
   );
 }
 
-// ── Sidebar nav item ───────────────────────────────────────────────────────
 function NavItem({
   path, label, icon: Icon, active, onClick, inboxCount,
 }: {
@@ -149,7 +145,6 @@ function NavItem({
   );
 }
 
-// ── App Content ────────────────────────────────────────────────────────────
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -162,7 +157,6 @@ function AppContent() {
   const [inboxCount, setInboxCount] = useState(0);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('nv_theme') as 'light' | 'dark') || 'light');
 
-  // Apply theme to <html> element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-color-mode', theme);
@@ -171,16 +165,13 @@ function AppContent() {
   const { pulling, pullResult, pullProgress } = useDownload();
   const { showToast } = useUI();
 
-  // First-run onboarding check
   useEffect(() => {
     const done = localStorage.getItem('onboardingDone');
     if (!done) {
-      // Small delay so the app finishes loading first
       setTimeout(() => setShowOnboarding(true), 800);
     }
   }, []);
 
-  // Inbox badge count
   useEffect(() => {
     fetch('/api/inbox')
       .then((r) => {
@@ -191,9 +182,8 @@ function AppContent() {
       .catch((err) => {
         showToast('Service failure: ' + err.message, 'error');
       });
-  }, [location.pathname, showToast]); // Refresh count on navigation
+  }, [location.pathname, showToast]);
 
-  // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const meta = e.ctrlKey || e.metaKey;
@@ -204,7 +194,6 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigate]);
 
-  // Auto-expand Advanced if current route is advanced
   useEffect(() => {
     const isAdvanced = ADVANCED_ITEMS.some((i) => location.pathname.startsWith(i.path));
     if (isAdvanced) setAdvancedOpen(true);
@@ -219,7 +208,6 @@ function AppContent() {
 
   const isFluidPage = ['/ask', '/graph'].includes(location.pathname);
 
-  // ── Loading / error screens ─────────────────────────────────────────────
   if (isDesktop && initializing) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: 'var(--surface)' }}>
